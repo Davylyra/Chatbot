@@ -1,0 +1,41 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+
+# Test files
+test_*.py
+*_test.py
+tests/
+coverage/
+.coverage
+
+# Data files
+*.pkl
+*.bin
+*.h5
+data/
+models/
+checkpoints/
+
+# Logs
+logs/
+*.log
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

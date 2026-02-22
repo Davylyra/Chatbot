@@ -1,0 +1,69 @@
+{
+  "name": "glinax-chatbot",
+  "private": true,
+  "version": "2.1.0",
+  "type": "module",
+  "description": "AI-powered university admission assistant for Ghana",
+  "keywords": [
+    "university",
+    "admission",
+    "ghana",
+    "ai",
+    "chatbot",
+    "education"
+  ],
+  "author": "Glinax Team",
+  "license": "MIT",
+  "homepage": "https://glinax.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/glinax/glinax-chatbot.git"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "build:analyze": "tsc -b && vite build --mode analyze",
+    "preview": "vite preview --host",
+    "preview:spa": "node preview-server.mjs",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint . --ext ts,tsx --fix",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "clean": "rm -rf dist node_modules/.vite",
+    "prepare": "husky install",
+    "start": "npm run dev"
+  },
+  "dependencies": {
+    "framer-motion": "^12.23.24",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-icons": "^5.5.0",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.9.4",
+    "socket.io-client": "^4.8.0",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@types/node": "^24.6.0",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.4",
+    "autoprefixer": "^10.4.21",
+    "baseline-browser-mapping": "^2.9.8",
+    "esbuild": "^0.25.11",
+    "eslint": "^9.36.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.22",
+    "globals": "^16.4.0",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2",
+    "postcss": "^8.5.6",
+    "prettier": "^3.2.5",
+    "tailwindcss": "^3.4.18",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.45.0",
+    "vite": "^6.0.0"
+  }
+}

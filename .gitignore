@@ -1,0 +1,47 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build outputs
+dist/
+build/
+*.local
+
+# Test files
+test-*.js
+*.test.js
+*.spec.js
+__tests__/
+__mocks__/
+coverage/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.pytest_cache/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Uploads and temp files
+uploads/
+temp/
+*.tmp
