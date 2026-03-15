@@ -1,13 +1,8 @@
-/**
- * Socket.io Hook for Real-Time Notifications
- */
-
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../contexts/AuthContext';
 import type { Notification } from '../types';
 
-// TODO: add retry logic for failed connections
 export type NotificationData = Notification;
 
 export const useSocket = () => {
@@ -20,17 +15,72 @@ export const useSocket = () => {
   const [readMessagesCount, setReadMessagesCount] = useState(0);
   const reconnectAttemptsRef = useRef(0);
   const isConnectingRef = useRef(false);
+  const hasLoadedInitial = useRef(false);
+
+  // Load initial notifications from API
+  const loadInitialNotifications = useCallback(async () => {
+    if (hasLoadedInitial.current) return;
+    
+    try {
+      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('token');
+      if (!token) {
+        return;
+      }
+      const response = await fetch(`${API_BASE_URL}/notifications?limit=10`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load notifications: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.success && Array.isArray(data.notifications)) {
+        const loadedNotifications: NotificationData[] = data.notifications.map((notif: any) => ({
+          id: notif.id,
+          title: notif.title,
+          message: notif.message,
+          type: notif.type || 'info',
+          category: notif.category || 'general',
+          priority: notif.priority || 'normal',
+          actionUrl: notif.actionUrl,
+          link: notif.link || notif.actionUrl,
+          linkText: notif.linkText || 'Learn more',
+          metadata: notif.metadata,
+          createdAt: new Date(notif.createdAt || notif.fetchedAt),
+          timestamp: notif.timestamp || new Date(notif.createdAt || notif.fetchedAt).toISOString(),
+          isRead: notif.isRead || false,
+          readAt: notif.readAt ? new Date(notif.readAt) : undefined,
+          readNowUrl: notif.readNowUrl,
+          readNowExpiresAt: notif.readNowExpiresAt ? new Date(notif.readNowExpiresAt) : undefined,
+          scheduledDeletionAt: notif.scheduledDeletionAt ? new Date(notif.scheduledDeletionAt) : undefined,
+          isRealTime: false
+        }));
+
+        setNotifications(loadedNotifications);
+        const unread = loadedNotifications.filter(n => !n.isRead).length;
+        setUnreadCount(unread);
+        hasLoadedInitial.current = true;
+      }
+    } catch (error) {
+      console.error('Failed to load initial notifications:', error);
+    }
+  }, []);
 
   // Connect to Socket.io server
   const connect = useCallback(() => {
     if (!isAuthenticated || !user?.id) {
-      console.log('Socket: Not connecting - user not authenticated');
       return;
     }
 
     // Prevent multiple simultaneous connection attempts
     if (isConnectingRef.current || (socketRef.current && socketRef.current.connected)) {
-      console.log('Socket: Already connecting or connected');
       return;
     }
 
@@ -38,12 +88,6 @@ export const useSocket = () => {
     // Remove /api path from base URL for Socket.io connection
     const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
     const API_BASE_URL = apiUrl.replace(/\/api$/, '');
-
-    console.log('Connecting to Socket.io server...', { 
-      url: API_BASE_URL, 
-      userId: user.id,
-      attempt: reconnectAttemptsRef.current + 1 
-    });
 
     // Cleanup existing socket if any
     if (socketRef.current) {
@@ -71,31 +115,30 @@ export const useSocket = () => {
 
       // Connection events
       socket.on('connect', () => {
-        console.log('Socket connected:', socket.id);
         setIsConnected(true);
         isConnectingRef.current = false;
         reconnectAttemptsRef.current = 0;
 
         // Join user-specific room for notifications
         socket.emit('join-user-room', user.id);
-        console.log(`Joining user room: ${user.id}`);
+
+        // Load initial notifications from database
+        loadInitialNotifications();
       });
 
       // New: Handle connection success confirmation from server
       socket.on('connection-success', (data: any) => {
-        console.log('Socket.io connection confirmed:', data);
         if (data.dbConnected === false) {
           console.warn('Server running in limited mode (DB not connected)');
         }
       });
 
       // Handle room join confirmation
-      socket.on('room-joined', (data: any) => {
-        console.log('Successfully joined user room:', data);
+      socket.on('room-joined', (_data: any) => {
+        // Room joined successfully
       });
 
     socket.on('disconnect', (reason: string) => {
-      console.log('Socket disconnected:', reason);
       setIsConnected(false);
       isConnectingRef.current = false;
 
@@ -120,8 +163,7 @@ export const useSocket = () => {
       }
     });
 
-    socket.on('reconnect', (attemptNumber: number) => {
-      console.log(`Socket reconnected after ${attemptNumber} attempts`);
+    socket.on('reconnect', (_attemptNumber: number) => {
       setIsConnected(true);
       isConnectingRef.current = false;
       reconnectAttemptsRef.current = 0;
@@ -130,10 +172,14 @@ export const useSocket = () => {
       if (user?.id) {
         socket.emit('join-user-room', user.id);
       }
+
+      // Reload notifications after reconnect
+      hasLoadedInitial.current = false;
+      loadInitialNotifications();
     });
 
-    socket.on('reconnect_attempt', (attemptNumber: number) => {
-      console.log(`Socket reconnection attempt ${attemptNumber}...`);
+    socket.on('reconnect_attempt', (_attemptNumber: number) => {
+      // Reconnection attempt in progress
     });
 
     socket.on('reconnect_failed', () => {
@@ -148,7 +194,6 @@ export const useSocket = () => {
 
     // User-specific notification events
     socket.on('notification', (notificationData: any) => {
-      console.log('Real-time notification received:', notificationData);
 
       const notification: NotificationData = {
         id: notificationData.id || `notif_${Date.now()}`,
@@ -176,7 +221,6 @@ export const useSocket = () => {
         );
         
         if (exists) {
-          console.log('Skipped duplicate real-time notification:', notification.title);
           return prev;
         }
         
@@ -198,7 +242,6 @@ export const useSocket = () => {
 
     // Broadcast notification events (for system announcements)
     socket.on('broadcast-notification', (notificationData: any) => {
-      console.log('Broadcast notification received:', notificationData);
 
       const notification: NotificationData = {
         id: notificationData.id || `broadcast_${Date.now()}`,
@@ -226,7 +269,6 @@ export const useSocket = () => {
         );
         
         if (exists) {
-          console.log('Skipped duplicate broadcast notification:', notification.title);
           return prev;
         }
         
@@ -247,7 +289,6 @@ export const useSocket = () => {
 
     // Listen for notification deletion events from backend
     socket.on('notification_deleted', async (data: any) => {
-      console.log('Notification deleted event received:', data);
       const { notificationId } = data;
       
       // Remove from local state
@@ -257,11 +298,11 @@ export const useSocket = () => {
       await fetchReplacementNotification();
     });
   } catch (error) {
-    console.error('❌ Failed to create Socket.io connection:', error);
+    console.error('Failed to create Socket.io connection:', error);
     isConnectingRef.current = false;
     setIsConnected(false);
   }
-  }, [user?.id, isAuthenticated]);
+  }, [user?.id, isAuthenticated, loadInitialNotifications]);
 
   // Fetch a replacement notification to fill the gap
   const fetchReplacementNotification = useCallback(async () => {
@@ -273,7 +314,8 @@ export const useSocket = () => {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       headers['Authorization'] = `Bearer ${token}`;
 
-      const resp = await fetch(`${API_BASE_URL}/notifications?limit=1&unreadOnly=true`, {
+      // Fetch multiple notifications to ensure we get at least one new one
+      const resp = await fetch(`${API_BASE_URL}/notifications?limit=5`, {
         method: 'GET',
         headers,
         credentials: 'include'
@@ -283,36 +325,48 @@ export const useSocket = () => {
 
       const data = await resp.json();
       if (data.success && data.notifications && data.notifications.length > 0) {
-        const newNotif = data.notifications[0];
-        const notification: NotificationData = {
-          id: newNotif.id,
-          title: newNotif.title,
-          message: newNotif.message,
-          type: newNotif.type,
-          category: newNotif.category,
-          priority: newNotif.priority,
-          actionUrl: newNotif.actionUrl,
-          link: newNotif.link || newNotif.actionUrl, // Only real URLs
-          linkText: newNotif.linkText,
-          metadata: newNotif.metadata,
-          createdAt: new Date(newNotif.createdAt || newNotif.fetchedAt),
-          timestamp: newNotif.timestamp || new Date(newNotif.createdAt || newNotif.fetchedAt).toISOString(),
-          isRead: false,
-          isRealTime: false
-        };
-
-        // Add to notifications if not already present
         setNotifications(prev => {
-          const exists = prev.some(n => n.id === notification.id);
-          if (!exists) {
-            console.log(`✅ Loaded replacement notification: ${notification.title}`);
-            return [...prev, notification];
+          const currentIds = new Set(prev.map(n => n.id));
+          const newNotifications: NotificationData[] = [];
+
+          // Find notifications that aren't already in the list
+          for (const newNotif of data.notifications) {
+            if (!currentIds.has(newNotif.id)) {
+              const notification: NotificationData = {
+                id: newNotif.id,
+                title: newNotif.title,
+                message: newNotif.message,
+                type: newNotif.type,
+                category: newNotif.category,
+                priority: newNotif.priority,
+                actionUrl: newNotif.actionUrl,
+                link: newNotif.link || newNotif.actionUrl,
+                linkText: newNotif.linkText,
+                metadata: newNotif.metadata,
+                createdAt: new Date(newNotif.createdAt || newNotif.fetchedAt),
+                timestamp: newNotif.timestamp || new Date(newNotif.createdAt || newNotif.fetchedAt).toISOString(),
+                isRead: newNotif.isRead || false,
+                readNowUrl: newNotif.readNowUrl,
+                readNowExpiresAt: newNotif.readNowExpiresAt ? new Date(newNotif.readNowExpiresAt) : undefined,
+                isRealTime: false
+              };
+              newNotifications.push(notification);
+              currentIds.add(newNotif.id);
+              
+              // Only add one replacement at a time
+              if (newNotifications.length >= 1) break;
+            }
           }
+
+          if (newNotifications.length > 0) {
+            return [...prev, ...newNotifications];
+          }
+          
           return prev;
         });
       }
     } catch (err) {
-      console.error('❌ Failed to fetch replacement notification:', err);
+      console.error('Failed to fetch replacement notification:', err);
     }
   }, []);
 
@@ -321,10 +375,11 @@ export const useSocket = () => {
     const now = new Date();
     const optimisticDeletion = new Date(now.getTime() + 2 * 1000); // 2 seconds
 
-    // Optimistic UI update
+    // Optimistic UI update - mark as read and schedule deletion
     setNotifications(prev =>
       prev.map(n => n.id === notificationId ? {
         ...n,
+        isRead: true,
         readAt: now,
         scheduledDeletionAt: optimisticDeletion,
         metadata: { ...n.metadata, read: true }
@@ -355,7 +410,7 @@ export const useSocket = () => {
         prev.map(n => n.id === notificationId ? { ...n, scheduledDeletionAt: serverDeletionAt } : n)
       );
     } catch (err) {
-      console.error('❌ Mark-as-read API failed:', err);
+      console.error('Mark-as-read API failed:', err);
       // Rollback optimistic changes if needed (keep as read but remove deletion schedule)
       setNotifications(prev =>
         prev.map(n => n.id === notificationId ? { ...n, scheduledDeletionAt: undefined } : n)
@@ -365,7 +420,6 @@ export const useSocket = () => {
     // Local removal after 2 seconds + fetch replacement
     setTimeout(async () => {
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
-      console.log(`🗑️ Auto-deleted read notification (UI): ${notificationId}`);
       
       // Fetch replacement notification to fill the gap
       await fetchReplacementNotification();
@@ -377,6 +431,63 @@ export const useSocket = () => {
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
     setUnreadCount(prev => Math.max(0, prev - 1));
   }, []);
+
+  // Mark all notifications as read
+  const markAllAsRead = useCallback(async () => {
+    try {
+      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('token');
+      if (!token) {
+        return { success: false };
+      }
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      headers['Authorization'] = `Bearer ${token}`;
+
+      // Count how many unread notifications will be marked
+      const unreadCount = notifications.filter(n => !n.isRead).length;
+
+      // Optimistically update all to read
+      const now = new Date();
+      const optimisticDeletion = new Date(now.getTime() + 2 * 1000);
+      setNotifications(prev =>
+        prev.map(n => ({
+          ...n,
+          isRead: true,
+          readAt: now,
+          scheduledDeletionAt: optimisticDeletion,
+          metadata: { ...n.metadata, read: true }
+        }))
+      );
+      setUnreadCount(0);
+
+      // Call backend
+      const resp = await fetch(`${API_BASE_URL}/notifications/read-all`, {
+        method: 'PUT',
+        headers,
+        credentials: 'include'
+      });
+
+      if (!resp.ok) throw new Error(`Failed to mark all as read: ${resp.status}`);
+
+      // Schedule batch deletion after 2 seconds
+      setTimeout(async () => {
+        setNotifications([]);
+        
+        // Fetch replacements to refill
+        for (let i = 0; i < Math.min(unreadCount, 5); i++) {
+          await fetchReplacementNotification();
+          // Small delay between fetches to prevent duplicates
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }, 2 * 1000);
+
+      return { success: true };
+    } catch (err) {
+      console.error('Failed to mark all as read:', err);
+      return { success: false, error: err };
+    }
+  }, [notifications, fetchReplacementNotification]);
 
   // Clear all notifications
   const clearAllNotifications = useCallback(() => {
@@ -439,7 +550,7 @@ export const useSocket = () => {
         link: data.link
       };
     } catch (error) {
-      console.error('❌ Failed to access read message:', error);
+      console.error('Failed to access read message:', error);
       return {
         success: false,
         error: (error as Error).message || 'Failed to access message'
@@ -458,7 +569,6 @@ export const useSocket = () => {
       return () => {
         clearTimeout(connectTimer);
         if (socketRef.current) {
-          console.log('🔌 Disconnecting socket (cleanup)...');
           socketRef.current.removeAllListeners();
           socketRef.current.disconnect();
           socketRef.current = null;
@@ -508,10 +618,9 @@ export const useSocket = () => {
 
         setReadMessages(messages);
         setReadMessagesCount(data.total || messages.length);
-        console.log(`✅ Loaded ${messages.length} read messages`);
       }
     } catch (err) {
-      console.error('❌ Failed to fetch read messages:', err);
+      console.error('Failed to fetch read messages:', err);
     }
   }, []);
 
@@ -525,7 +634,6 @@ export const useSocket = () => {
         );
         
         if (toDelete.length > 0) {
-          console.log(`🗑️ Auto-cleanup: Removing ${toDelete.length} expired notifications`);
           return prev.filter(n => 
             !n.scheduledDeletionAt || n.scheduledDeletionAt > now
           );
@@ -546,6 +654,7 @@ export const useSocket = () => {
     readMessagesCount,
     fetchReadMessages,
     markAsRead,
+    markAllAsRead,
     removeNotification,
     clearAllNotifications,
     accessReadMessage,

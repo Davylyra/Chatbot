@@ -43,39 +43,36 @@ export const fetchLiveAdmissionNotifications = async () => {
       }
     });
     
-    // If we don't have at least 11 notifications, add curated fallbacks
-    if (notifications.length < 11) {
-      console.log(`ℹ️ Only ${notifications.length} notifications fetched, adding fallbacks to reach minimum of 11`);
-      const fallbacks = getCuratedFallbackNotifications(academicYear);
-      notifications.push(...fallbacks);
+    // Return only real notifications - no fake fallbacks
+    // Better to show 0 notifications than fake data
+    if (notifications.length === 0) {
+      console.log('ℹ️ No real notifications available - returning empty array');
+      return [];
     }
 
     // Deduplicate and sort by priority
     const uniqueNotifications = deduplicateNotifications(notifications);
     const sortedNotifications = sortNotificationsByPriority(uniqueNotifications);
     
-    // Ensure we have at least 11
-    const finalNotifications = sortedNotifications.slice(0, Math.max(sortedNotifications.length, 15));
-    
-    console.log(`Returning ${finalNotifications.length} notifications (minimum 11 required)`);
-    return finalNotifications;
+    console.log(`✅ Returning ${sortedNotifications.length} real notifications`);
+    return sortedNotifications;
     
   } catch (error) {
     console.error('❌ Error fetching live notifications:', error);
-    // Even on error, return at least 11 fallback notifications
-    const fallbacks = getCuratedFallbackNotifications(academicYear);
-    return fallbacks.slice(0, 11);
+    // Return empty array on error - no fake fallbacks
+    return [];
   }
 };
 
 /**
  * Fetch updates directly from university websites (all 15 sources)
+ * OPTIMIZED: Parallel fetching instead of sequential
  */
 async function fetchUniversityUpdates() {
-  const updates = [];
   const timeout = 5000; // 5 second timeout
   
-  for (const [code, uni] of Object.entries(UNIVERSITY_SOURCES)) {
+  // Fetch all universities in parallel for better performance
+  const fetchPromises = Object.entries(UNIVERSITY_SOURCES).map(async ([code, uni]) => {
     try {
       // Attempt to fetch news/admission pages with retry/timeout
       const response = await fetchWithRetry(uni.newsUrl || uni.admissionUrl, {
@@ -88,14 +85,11 @@ async function fetchUniversityUpdates() {
         // Parse for admission-related keywords
         const admissionKeywords = ['admission list', 'admission status', 'admissions open', 'application deadline', 'entrance exam', 'matriculation', 'application form', 'online application'];
         
-        let found = false;
         for (const keyword of admissionKeywords) {
           if (html.toLowerCase().includes(keyword)) {
-            found = true;
-            
             // Create notification with proper schema
             const notification = {
-              id: `${code}_live_${Date.now()}`,
+              id: `${code}_live_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
               university: uni.name,
               title: `📢 ${uni.name} Admission Update`,
               message: `Recent updates detected on ${uni.name} admissions page. Visit their website for latest information.`,
@@ -119,75 +113,32 @@ async function fetchUniversityUpdates() {
               }
             };
             
-            updates.push(notification);
-            console.log(`Found admission updates for ${uni.name} (keyword: "${keyword}")`);
-            break;
+            console.log(`✅ Found admission updates for ${uni.name} (keyword: "${keyword}")`);
+            return notification; // Return only real updates
           }
         }
-        
-        if (!found) {
-          // Still add a general notification to maintain count
-          const notification = {
-            id: `${code}_general_${Date.now()}`,
-            university: uni.name,
-            title: `${uni.name} Admissions`,
-            message: `Check ${uni.name} for the latest admission information and updates.`,
-            type: 'info',
-            priority: 'low',
-            category: 'general',
-            date: new Date().toISOString(),
-            fetchedAt: new Date(),
-            createdAt: new Date(),
-            actionUrl: uni.admissionUrl,
-            link: uni.admissionUrl,
-            readNowUrl: uni.admissionUrl,
-            linkText: 'Visit Admissions Page',
-            source: 'official_website',
-            verified: true,
-            metadata: {
-              universityName: uni.name,
-              universityCode: code,
-              sourceUrl: uni.admissionUrl
-            }
-          };
-          
-          updates.push(notification);
-          console.log(`ℹ️ Added general notification for ${uni.name}`);
-        }
       }
+      
+      // Skip generic fallback notifications - return null if no real update found
+      console.log(`ℹ️ No real updates from ${uni.name}`);
+      return null;
+      
     } catch (error) {
-      // Create fallback notification even on error to maintain count
+      // Don't create fallback notifications on error - just log and return null
       console.log(`⚠️ Could not fetch from ${uni.name}: ${error.message}`);
-      
-      const fallbackNotification = {
-        id: `${code}_fallback_${Date.now()}`,
-        university: uni.name,
-        title: `${uni.name} Admissions`,
-        message: `Visit ${uni.name} official website for admission updates and application information.`,
-        type: 'info',
-        priority: 'low',
-        category: 'general',
-        date: new Date().toISOString(),
-        fetchedAt: new Date(),
-        createdAt: new Date(),
-        actionUrl: uni.admissionUrl,
-        link: uni.admissionUrl,
-        readNowUrl: uni.admissionUrl,
-        linkText: 'Visit Website',
-        source: 'fallback',
-        verified: true,
-        metadata: {
-          universityName: uni.name,
-          universityCode: code,
-          sourceUrl: uni.admissionUrl,
-          isFallback: true
-        }
-      };
-      
-      updates.push(fallbackNotification);
+      return null;
     }
-  }
+  });
   
+  // Wait for all fetches to complete
+  const results = await Promise.allSettled(fetchPromises);
+  
+  // Extract only successful real notifications (filter out nulls and rejected)
+  const updates = results
+    .filter(r => r.status === 'fulfilled' && r.value !== null)
+    .map(r => r.value);
+  
+  console.log(`📊 Parallel fetch complete: ${updates.length} real notifications from ${Object.keys(UNIVERSITY_SOURCES).length} universities`);
   return updates;
 }
 

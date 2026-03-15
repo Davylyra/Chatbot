@@ -1,0 +1,38 @@
+import { useNavigate } from 'react-router-dom';
+import { useAppStore } from '../store';
+
+interface UniversityChatOptions {
+  name: string;
+  fullName: string;
+  logo?: string;
+}
+
+/**
+ * Custom hook for navigating to chat with university context
+ * Shared between Universities page and Forms page to avoid code duplication
+ */
+export const useUniversityChat = () => {
+  const navigate = useNavigate();
+  const { currentConversation, saveCurrentConversation } = useAppStore();
+
+  const startUniversityChat = (university: UniversityChatOptions) => {
+    // Save current conversation before starting new one
+    if (currentConversation) {
+      saveCurrentConversation();
+    }
+
+    navigate('/chat', {
+      state: {
+        universityContext: {
+          name: university.name,
+          fullName: university.fullName,
+          logo: university.logo
+        },
+        forceNewConversation: true,
+        initialMessage: `Tell me about ${university.fullName} - their programs, admission requirements, and application process.`
+      }
+    });
+  };
+
+  return { startUniversityChat };
+};

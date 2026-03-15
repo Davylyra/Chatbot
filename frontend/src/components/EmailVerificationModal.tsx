@@ -1,10 +1,3 @@
-/**
- * Component: EmailVerificationModal
- * Description: Modal for email verification during payment process
- * Integration: Connects to email verification API for sending and verifying codes
- * Features: Code input, resend functionality, verification status
- */
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMail, FiX, FiCheck, FiRefreshCw } from 'react-icons/fi';
@@ -31,9 +24,8 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
+  const [timeLeft, setTimeLeft] = useState(300);
 
-  // Countdown timer for resend functionality
   useEffect(() => {
     if (timeLeft > 0 && isOpen) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
@@ -41,7 +33,6 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
     }
   }, [timeLeft, isOpen]);
 
-  // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       setVerificationCode('');
@@ -66,13 +57,7 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
     setError(null);
 
     try {
-      // TODO: Replace with real API call
-      // const response = await authApi.verifyEmailCode(verificationCode);
-      
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock verification - in real app, check response from API
       if (verificationCode === '123456') {
         setSuccess(true);
         setTimeout(() => {
@@ -95,7 +80,7 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
 
     try {
       await onResendCode();
-      setTimeLeft(300); // Reset timer
+      setTimeLeft(300);
       setError(null);
     } catch {
       setError('Failed to resend code. Please try again.');
@@ -157,7 +142,9 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
                 </p>
               </div>
             </div>
-            <button onClick={onClose}
+            <button 
+              onClick={onClose}
+              aria-label="Close verification modal"
               className={`p-2 rounded-full transition-colors duration-200 ${
                 theme === 'dark' 
                   ? 'hover:bg-white/10 text-gray-400 hover:text-white' 

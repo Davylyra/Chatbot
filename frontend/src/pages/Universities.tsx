@@ -6,9 +6,9 @@ import Navbar from '../components/Navbar';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUniversities } from '../hooks/useUniversities';
 import { usePerformance } from '../hooks/usePerformance';
-import { useAppStore } from '../store';
 import { UNIVERSITIES_DATA } from '../data/constants';
 import LazyImage from '../components/LazyImage';
+import { useUniversityChat } from '../hooks/useUniversityChat';
 
 // Animation variants for staggered animations
 const staggerContainer = {
@@ -31,7 +31,7 @@ const Universities: React.FC = () => {
   
   const { theme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
-  const { currentConversation, saveCurrentConversation } = useAppStore();
+  const { startUniversityChat } = useUniversityChat();
   
   // Use dynamic universities hook
   const { universities, error, refreshUniversities } = useUniversities();
@@ -264,22 +264,10 @@ const Universities: React.FC = () => {
                   whileTap={{ scale: 0.98 }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    
-                    // Save current conversation before starting new one
-                    if (currentConversation) {
-                      saveCurrentConversation();
-                    }
-                    
-                    navigate('/chat', { 
-                      state: { 
-                        universityContext: {
-                          name: university.universityName || university.name,
-                          fullName: university.fullName,
-                          logo: university.logo
-                        },
-                        forceNewConversation: true,
-                        initialMessage: `Tell me about ${university.fullName} - their programs, admission requirements, and application process.`
-                      }
+                    startUniversityChat({
+                      name: university.universityName || university.name,
+                      fullName: university.fullName,
+                      logo: university.logo
                     });
                   }}
                   className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-3 rounded-lg transition-colors text-sm"

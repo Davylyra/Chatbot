@@ -152,7 +152,6 @@ from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt  
 
-# CORS configuration
 JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret")
 JWT_ALGOS = ["HS256"]
 auth_scheme = HTTPBearer(auto_error=False)

@@ -1,8 +1,3 @@
-/**
- * Conversation History Component
- * Displays a list of previous chat conversations
- */
-
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMessageCircle, FiClock, FiRefreshCw, FiTrash2, FiSearch, FiX } from 'react-icons/fi';
@@ -33,7 +28,6 @@ interface Message {
   attachments?: any[];
 }
 
-// 🚀 PERFORMANCE: Simple in-memory cache with TTL (5 minutes)
 const conversationsCache = {
   data: null as Conversation[] | null,
   timestamp: 0,
@@ -64,7 +58,6 @@ const ConversationHistory: React.FC = () => {
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when messages change (only for new messages, not history loading)
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({
@@ -75,10 +68,8 @@ const ConversationHistory: React.FC = () => {
     }
   }, []);
 
-  // Only auto-scroll when new messages are added, not when loading conversation history
   useEffect(() => {
     if (messages.length > 0 && !loadingMessages) {
-      // Small delay to ensure DOM is updated
       const timer = setTimeout(() => scrollToBottom(), 100);
       return () => clearTimeout(timer);
     }
@@ -86,12 +77,9 @@ const ConversationHistory: React.FC = () => {
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
-  // 🚀 PERFORMANCE: Optimized conversation loading with caching (<1s target)
   const loadConversations = async (forceRefresh = false) => {
     try {
-      // 🚀 CACHE: Check if we have valid cached data (skip API call)
       if (!forceRefresh && conversationsCache.isValid()) {
-        console.log('⚡ Using cached conversations (cache hit)');
         setConversations(conversationsCache.data!);
         setLoading(false);
         return;
@@ -101,10 +89,7 @@ const ConversationHistory: React.FC = () => {
       setError(null);
 
       const token = localStorage.getItem('token');
-      const startTime = performance.now();
-      console.log('🔍 Loading conversations from API, has token:', !!token);
 
-      // Always try demo endpoint first for reliability, then authenticated if available
       const demoEndpoint = `${API_BASE_URL}/chat/conversations-demo?limit=20`;
       const authEndpoint = `${API_BASE_URL}/chat/conversations?limit=20`;
 
@@ -112,9 +97,7 @@ const ConversationHistory: React.FC = () => {
       let data: any;
 
       try {
-        // Try authenticated endpoint if we have a token
         if (token) {
-          console.log('🔐 Trying authenticated endpoint');
           response = await fetch(authEndpoint, {
             method: 'GET',
             headers: {
@@ -126,10 +109,8 @@ const ConversationHistory: React.FC = () => {
 
           if (response.ok) {
             data = await response.json();
-            console.log('✅ Authenticated conversations loaded');
           } else if (response.status === 401 || response.status === 403) {
-            console.log('🔒 Auth failed, falling back to demo');
-            localStorage.removeItem('token'); // Clear invalid token
+            localStorage.removeItem('token');
             throw new Error('Auth failed');
           } else {
             throw new Error(`Auth endpoint failed: ${response.status}`);
@@ -138,7 +119,6 @@ const ConversationHistory: React.FC = () => {
           throw new Error('No token');
         }
       } catch (authError) {
-        console.log('🔄 Using demo endpoint');
         response = await fetch(demoEndpoint, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
@@ -149,40 +129,33 @@ const ConversationHistory: React.FC = () => {
         }
 
         data = await response.json();
-        console.log('✅ Demo conversations loaded');
       }
 
-      // Process conversations data
       const conversationsList = data.conversations || data.data || [];
       if (!Array.isArray(conversationsList)) {
-        console.warn('⚠️ Invalid data format:', data);
+        console.warn('Invalid data format:', data);
         setConversations([]);
         setError('No conversations found');
         return;
       }
 
-      // Map and validate conversations
       const validConversations = conversationsList
         .filter((conv: any) => conv && (conv.id || conv._id))
         .map((conv: any): Conversation => ({
           id: conv.id || conv._id?.toString() || String(conv._id),
-          title: conv.title || 'New Conversation', // Backend generates title from first message
+          title: conv.title || 'New Conversation',
           lastMessage: conv.lastMessage || conv.last_message || '',
           timestamp: conv.timestamp || conv.updated_at || conv.created_at || new Date().toISOString(),
           messageCount: Number(conv.messageCount || conv.message_count || 0),
           universityContext: conv.universityContext || conv.university_context
         }))
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); // Newest first
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-      // 🚀 CACHE: Store in cache for fast subsequent loads
       conversationsCache.set(validConversations);
       setConversations(validConversations);
-      
-      const loadTime = performance.now() - startTime;
-      console.log(`✅ Loaded ${validConversations.length} conversations in ${loadTime.toFixed(0)}ms`);
 
     } catch (error) {
-      console.error('❌ Error loading conversations:', error);
+      console.error('Error loading conversations:', error);
       setError('Unable to load conversation history');
       setConversations([]);
     } finally {
@@ -190,17 +163,13 @@ const ConversationHistory: React.FC = () => {
     }
   };
 
-  // FIXED: Enhanced message loading with proper authentication
   const loadMessages = async (conversationId: string) => {
     try {
       setLoadingMessages(true);
       setError(null);
       
       const token = localStorage.getItem('token');
-      const startTime = performance.now();
-      console.log('🔍 Loading messages for:', conversationId, 'auth:', !!token);
       
-      // 🚀 PERFORMANCE: Try demo endpoint first for fast loading
       const demoEndpoint = `${API_BASE_URL}/chat/conversations-demo/${conversationId}/messages?limit=100`;
       const authEndpoint = `${API_BASE_URL}/chat/conversations/${conversationId}/messages?limit=100`;
       
@@ -208,9 +177,7 @@ const ConversationHistory: React.FC = () => {
       let data: any;
       
       try {
-        // Try authenticated endpoint if we have a token
         if (token) {
-          console.log('🔐 Trying authenticated messages endpoint');
           response = await fetch(authEndpoint, {
             method: 'GET',
             headers: {
@@ -222,9 +189,7 @@ const ConversationHistory: React.FC = () => {
           
           if (response.ok) {
             data = await response.json();
-            console.log('✅ Authenticated messages loaded');
           } else if (response.status === 401 || response.status === 403) {
-            console.log('🔒 Auth failed, falling back to demo');
             throw new Error('Auth failed');
           } else {
             throw new Error(`Auth endpoint failed: ${response.status}`);
@@ -233,7 +198,6 @@ const ConversationHistory: React.FC = () => {
           throw new Error('No token');
         }
       } catch (authError) {
-        console.log('🔄 Using demo messages endpoint');
         response = await fetch(demoEndpoint, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
@@ -244,22 +208,19 @@ const ConversationHistory: React.FC = () => {
         }
         
         data = await response.json();
-        console.log('✅ Demo messages loaded');
       }
       
-      // Process messages data
       const msgArray = Array.isArray(data.messages) ? data.messages :
                       Array.isArray(data.data) ? data.data :
                       Array.isArray(data) ? data : [];
 
       if (!Array.isArray(msgArray)) {
-        console.warn('⚠️ Invalid message data format');
+        console.warn('Invalid message data format');
         setMessages([]);
         setLoadingMessages(false);
         return;
       }
 
-      // CRITICAL: Backend returns messages in correct order - preserve it
       const validMessages = msgArray
         .filter((msg: any) => msg && (msg.message || msg.text) && (msg.id || msg._id))
         .map((msg: any, index: number) => {
@@ -277,7 +238,6 @@ const ConversationHistory: React.FC = () => {
           } as Message;
         });
       
-      // CRITICAL: Client-side deduplication as safety measure
       const dedupedMessages: Message[] = [];
       const seenSignatures = new Set<string>();
       
@@ -292,8 +252,6 @@ const ConversationHistory: React.FC = () => {
       }
       
       setMessages(dedupedMessages);
-      const loadTime = performance.now() - startTime;
-      console.log(`✅ Loaded ${dedupedMessages.length} messages in ${loadTime.toFixed(0)}ms`);
 
       // Update selected conversation metadata
       setSelectedConversation(prev => {
@@ -308,7 +266,7 @@ const ConversationHistory: React.FC = () => {
       });
       
     } catch (error) {
-      console.error('❌ Error loading messages:', error);
+      console.error('Error loading messages:', error);
       setError('Unable to load conversation messages. Please try again.');
       setMessages([]);
     } finally {
@@ -317,25 +275,20 @@ const ConversationHistory: React.FC = () => {
   };
 
   useEffect(() => {
-    console.log('🔍 ConversationHistory mounted, loading conversations...');
-    loadConversations(false); // Use cache if available
+    loadConversations(false);
   }, []);
   
-  // Also reload when user changes AND on page visibility change (tab focus)
   useEffect(() => {
     if (user) {
-      console.log('👤 User detected, reloading conversations for:', user.id || user.email);
-      conversationsCache.clear(); // Clear cache when user changes
-      loadConversations(true); // Force refresh
+      conversationsCache.clear();
+      loadConversations(true);
     }
   }, [user]);
 
-  // Reload conversations when tab becomes visible (user switches back to tab)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        console.log('👁️ Tab became visible, refreshing conversation history...');
-        loadConversations(false); // Use cache if still valid, otherwise refresh
+        loadConversations(false);
       }
     };
 
@@ -349,7 +302,6 @@ const ConversationHistory: React.FC = () => {
   };
 
   const handleContinueConversation = (conversation: Conversation) => {
-    // Navigate to chat with the selected conversation context
     navigate('/chat', {
       state: {
         conversationId: conversation.id,
@@ -365,41 +317,32 @@ const ConversationHistory: React.FC = () => {
   const handleDeleteConversation = async (conversation: Conversation, e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // Confirmation dialog
     if (!window.confirm(`Delete conversation "${conversation.title}"?\n\nThis will permanently delete all ${conversation.messageCount} messages in this conversation. This action cannot be undone.`)) {
       return;
     }
 
-    // 🚀 OPTIMISTIC UPDATE: Remove immediately from UI for instant feedback
     const previousConversations = [...conversations];
     const previousSelected = selectedConversation;
     const previousMessages = [...messages];
 
     try {
-      // 🚀 PERFORMANCE: Optimistically update UI before API call
       setConversations(prev => {
         const updated = prev.filter(c => c.id !== conversation.id);
-        console.log(`🗑️ OPTIMISTIC: Removed conversation from state. Remaining: ${updated.length}`);
         return updated;
       });
       
-      // 🚀 CACHE: Clear cache to force refresh on next load
       conversationsCache.clear();
       
-      // Clear selected conversation if it was the one deleted
       if (selectedConversation?.id === conversation.id) {
         setSelectedConversation(null);
         setMessages([]);
       }
 
-      // Remove from Zustand store to prevent cross-component issues
       const store = useAppStore?.getState?.();
       if (store?.deleteConversation) {
         store.deleteConversation(conversation.id);
-        console.log('🗑️ OPTIMISTIC: Removed conversation from Zustand store');
       }
 
-      // Now make the actual API call
       const token = localStorage.getItem('token');
       const headers: HeadersInit = {
         'Content-Type': 'application/json'
@@ -415,10 +358,7 @@ const ConversationHistory: React.FC = () => {
         credentials: 'include'
       });
 
-      // FIXED: Handle 401 gracefully - delete endpoint now supports demo users
       if (response.status === 401 && !token) {
-        console.log('⚠️ Delete in demo mode - conversation may not be deletable');
-        // 🔄 ROLLBACK: Restore previous state on error
         setConversations(previousConversations);
         setSelectedConversation(previousSelected);
         setMessages(previousMessages);
@@ -431,16 +371,11 @@ const ConversationHistory: React.FC = () => {
         throw new Error(`Failed to delete conversation: ${response.status}`);
       }
 
-      const data = await response.json();
-      console.log('✅ Conversation deleted from backend:', data);
-      
-      // ✅ SUCCESS: No reload needed - optimistic update already applied!
-      console.log('✨ OPTIMISTIC DELETE: Conversation successfully deleted (no reload needed)');
+      await response.json();
 
     } catch (error) {
-      console.error('❌ Error deleting conversation:', error);
+      console.error('Error deleting conversation:', error);
       
-      // 🔄 ROLLBACK: Restore previous state on error
       setConversations(previousConversations);
       setSelectedConversation(previousSelected);
       setMessages(previousMessages);
@@ -455,7 +390,7 @@ const ConversationHistory: React.FC = () => {
     const d = ts instanceof Date ? ts : new Date(ts);
     return isNaN(d.getTime()) ? null : d;
   };
-// Filter conversations based on search query
+
   const filteredConversations = useMemo(() => {
     if (!searchQuery.trim()) {
       return conversations;
@@ -495,7 +430,6 @@ const ConversationHistory: React.FC = () => {
   if (loading) {
     return (
       <div className="h-full flex">
-        {/* Loading Skeleton for Conversations List */}
         <div className={`w-1/3 border-r flex flex-col ${
           theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
         }`}>
@@ -515,7 +449,6 @@ const ConversationHistory: React.FC = () => {
             }`} />
           </div>
           
-          {/* Conversation List Skeleton */}
           <div className="flex-1 overflow-y-auto p-2 space-y-2">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
@@ -543,7 +476,6 @@ const ConversationHistory: React.FC = () => {
           </div>
         </div>
 
-        {/* Messages Placeholder */}
         <div className="flex-1 flex items-center justify-center">
           <div className={`text-center ${
             theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
@@ -582,7 +514,6 @@ const ConversationHistory: React.FC = () => {
 
   return (
     <div className="h-full flex">
-      {/* Conversations List */}
       <div className={`w-1/3 border-r flex flex-col ${
         theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
       }`}>
@@ -610,7 +541,6 @@ const ConversationHistory: React.FC = () => {
             </motion.button>
           </div>
           
-          {/* Search Bar */}
           <div className="relative">
             <FiSearch className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
               theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
@@ -647,7 +577,6 @@ const ConversationHistory: React.FC = () => {
           </div>
         </div>
         
-        {/* Fixed: Use flex-1 and min-h-0 to allow scrolling within the flex container */}
         <div className="flex-1 overflow-y-auto min-h-0 scrollbar-hide">
           {conversations.length === 0 ? (
             <div className={`text-center p-8 ${
@@ -760,7 +689,6 @@ const ConversationHistory: React.FC = () => {
                         }}
                         className="text-xs px-2 py-1 bg-primary-600 hover:bg-primary-700 text-white rounded-md transition-colors duration-200"
                       >
-                        Continue
                       </motion.button>
                     </div>
                   </div>
@@ -771,7 +699,6 @@ const ConversationHistory: React.FC = () => {
         </div>
       </div>
 
-      {/* Messages View */}
       <div className="flex-1 flex flex-col">
         {selectedConversation ? (
           <>

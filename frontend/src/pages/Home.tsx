@@ -1,30 +1,3 @@
-/**
- * Home Page Component
- * 
- * This is the main landing page of the Glinax Chatbot application.
- * It displays personalized greetings, action buttons, and university information.
- * 
- * Features:
- * - Personalized greeting based on user authentication status
- * - Quick action buttons for chat and forms
- * - Program recommendation card
- * - University sessions with search functionality
- * - Responsive design with glassmorphism effects
- * - Fixed height layout that adjusts to screen size
- * 
- * Layout Structure:
- * - Fixed height container (100vh/100dvh) with no scrolling
- * - Navbar at the top with fixed height
- * - Content area with scrollable content inside
- * - Responsive adjustments for different screen heights
- * 
- * Integration Notes:
- * - Ready for backend data integration
- * - Loading states implemented for better UX
- * - Error handling for failed data loads
- * - Uses unified glassmorphism system for consistent styling
- */
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -66,23 +39,14 @@ const Home: React.FC = () => {
     closeLimitationModal 
   } = useGuestLimitations();
 
-  // Load initial data when component mounts
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        // Load forms and universities data
-        // TODO: Replace with real API calls from services/api.ts
         if (isAuthenticated && forms.length === 0) {
           await loadForms();
         }
-        
-        // TODO: Load universities when backend integration is ready
-        // if (universities.length === 0) {
-        //   await loadUniversities();
-        // }
       } catch {
         setError('Failed to load data. Please try again.');
-        // Error loading initial data - handled gracefully
       }
     };
 
@@ -157,10 +121,6 @@ const Home: React.FC = () => {
     searchOpen ? filteredUniversities : allUniversities.slice(0, 3),
     [searchOpen, filteredUniversities, allUniversities]
   );
-
-  // App loads instantly - no loading states
-
-  // App handles errors gracefully without blocking UI
 
   return (
     <div className="fixed-height-container flex flex-col overflow-hidden">

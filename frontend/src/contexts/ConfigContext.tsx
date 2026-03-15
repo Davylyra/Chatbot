@@ -1,9 +1,3 @@
-/**
- * Configuration Context
- * Description: Manages dynamic app configuration from API
- * Integration: Provides centralized config management across the app
- */
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { SmartApiService } from '../services/api';

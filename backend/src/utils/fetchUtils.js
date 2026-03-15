@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import crypto from 'crypto';
 
 export const DEFAULT_USER_AGENT = 'GlinaxBot/2.0 (University Admission Assistant; +https://glinax.com)';
 
@@ -26,10 +27,17 @@ export const fetchWithRetry = async (url, options = {}, retries = 2, timeout = 1
 
 export function deduplicateNotifications(notifications) {
   const seen = new Map();
+  
   return notifications.filter(n => {
-    const key = `${n.university || 'unknown'}_${(n.title || '').substring(0, 40)}`;
-    if (seen.has(key)) return false;
-    seen.set(key, true);
+    // Use content hash for better deduplication
+    const content = `${n.university || 'unknown'}_${n.title || ''}_${n.message || ''}`;
+    const hash = crypto.createHash('md5').update(content).digest('hex');
+    
+    if (seen.has(hash)) {
+      console.log(`🔄 Duplicate detected: ${n.title}`);
+      return false;
+    }
+    seen.set(hash, true);
     return true;
   });
 }
@@ -57,7 +65,7 @@ export function getCuratedFallbackNotifications(academicYear) {
       message: `University of Ghana ${academicYear} undergraduate applications information available. Check official website.`,
       type: 'info',
       priority: month >= 11 || month <= 1 ? 'high' : 'normal',
-      actionUrl: 'https://ug.edu.gh/admissions',
+      actionUrl: 'https://admissions.ug.edu.gh/undergraduate/overview',
       readNowUrl: 'https://www.ug.edu.gh/announcements',
       linkText: 'View UG Announcements'
     },
@@ -79,8 +87,8 @@ export function getCuratedFallbackNotifications(academicYear) {
       message: 'University of Cape Coast admission information and program details available online.',
       type: 'info',
       priority: 'normal',
-      actionUrl: 'https://ucc.edu.gh/admissions',
-      readNowUrl: 'https://ucc.edu.gh/news',
+      actionUrl: 'https://admissions.ucc.edu.gh/',
+      readNowUrl: 'https://ucc.edu.gh/announcements?type=admission',
       linkText: 'View UCC News'
     },
     {
@@ -90,8 +98,8 @@ export function getCuratedFallbackNotifications(academicYear) {
       message: 'University of Energy and Natural Resources admission details and programs.',
       type: 'info',
       priority: 'normal',
-      actionUrl: 'https://uenr.edu.gh/admissions',
-      readNowUrl: 'https://uenr.edu.gh/news-and-events',
+      actionUrl: 'https://admissions.uenr.edu.gh/',
+      readNowUrl: 'https://uenr.edu.gh/news/',
       linkText: 'View UENR Updates'
     },
     {
@@ -112,8 +120,8 @@ export function getCuratedFallbackNotifications(academicYear) {
       message: 'University of Mines and Technology admission information and mining-related programs.',
       type: 'info',
       priority: 'normal',
-      actionUrl: 'https://umat.edu.gh/admissions',
-      readNowUrl: 'https://umat.edu.gh/news',
+      actionUrl: 'https://umat.edu.gh/overview-undergraduate',
+      readNowUrl: 'https://umat.edu.gh/media-press/news',
       linkText: 'View UMaT News'
     },
     {
@@ -123,8 +131,8 @@ export function getCuratedFallbackNotifications(academicYear) {
       message: 'University of Education, Winneba teacher training and education programs.',
       type: 'info',
       priority: 'normal',
-      actionUrl: 'https://uew.edu.gh/admissions',
-      readNowUrl: 'https://uew.edu.gh/news',
+      actionUrl: 'https://uew.edu.gh/admissions/apply',
+      readNowUrl: 'https://uew.edu.gh/media/uew-news',
       linkText: 'View UEW News'
     },
     {
@@ -134,21 +142,11 @@ export function getCuratedFallbackNotifications(academicYear) {
       message: 'University of Professional Studies business and professional programs.',
       type: 'info',
       priority: 'normal',
-      actionUrl: 'https://upsa.edu.gh/admissions',
-      readNowUrl: 'https://upsa.edu.gh/news-and-events',
+      actionUrl: 'https://admissions.upsa.edu.gh/admissions/undergraduate/',
+      readNowUrl: 'https://upsa.edu.gh/news/',
       linkText: 'View UPSA Updates'
     },
-    {
-      id: `gtu_info_${now.getTime()}`,
-      university: 'GTU',
-      title: '💻 GTU Admissions',
-      message: 'Ghana Technology University ICT and technology-focused programs.',
-      type: 'info',
-      priority: 'normal',
-      actionUrl: 'https://gtu.edu.gh/admissions',
-      readNowUrl: 'https://gtu.edu.gh/news',
-      linkText: 'View GTU News'
-    },
+    
     {
       id: `gctu_info_${now.getTime()}`,
       university: 'GCTU',
@@ -156,8 +154,8 @@ export function getCuratedFallbackNotifications(academicYear) {
       message: 'Ghana Communication Technology University communications and technology programs.',
       type: 'info',
       priority: 'normal',
-      actionUrl: 'https://gctu.edu.gh/admissions',
-      readNowUrl: 'https://gctu.edu.gh/news',
+      actionUrl: 'https://site.gctu.edu.gh/how-to-apply',
+      readNowUrl: 'https://site.gctu.edu.gh/announcements',
       linkText: 'View GCTU News'
     },
     {
@@ -209,25 +207,23 @@ export function getCuratedFallbackNotifications(academicYear) {
 export const UNIVERSITY_SOURCES = {
   UG: {
     name: 'University of Ghana',
-    admissionUrl: 'https://ug.edu.gh/admissions',
+    admissionUrl: 'https://admissions.ug.edu.gh/undergraduate/overview',
     newsUrl: 'https://www.ug.edu.gh/announcements',
-    statusUrl: 'https://apply.ug.edu.gh/admissions/admissionstatus'
   },
   KNUST: {
     name: 'KNUST',
     admissionUrl: 'https://knust.edu.gh/admissions',
     newsUrl: 'https://www.knust.edu.gh/news',
-    statusUrl: 'https://admissions.knust.edu.gh'
   },
   UCC: {
     name: 'University of Cape Coast',
-    admissionUrl: 'https://ucc.edu.gh/admissions',
-    newsUrl: 'https://ucc.edu.gh/news'
+    admissionUrl: 'https://admissions.ucc.edu.gh/',
+    newsUrl: 'https://ucc.edu.gh/announcements?type=admission'
   },
   UENR: {
     name: 'University of Energy and Natural Resources',
-    admissionUrl: 'https://uenr.edu.gh/admissions',
-    newsUrl: 'https://uenr.edu.gh/news-and-events'
+    admissionUrl: 'https://admissions.uenr.edu.gh/',
+    newsUrl: 'https://uenr.edu.gh/news/'
   },
   UDS: {
     name: 'University for Development Studies',
@@ -236,28 +232,23 @@ export const UNIVERSITY_SOURCES = {
   },
   UMAT: {
     name: 'University of Mines and Technology',
-    admissionUrl: 'https://umat.edu.gh/admissions',
-    newsUrl: 'https://umat.edu.gh/news'
+    admissionUrl: 'https://umat.edu.gh/overview-undergraduate',
+    newsUrl: 'https://umat.edu.gh/media-press/news'
   },
   UEW: {
     name: 'University of Education, Winneba',
-    admissionUrl: 'https://uew.edu.gh/admissions',
-    newsUrl: 'https://uew.edu.gh/news'
+    admissionUrl: 'https://uew.edu.gh/admissions/apply',
+    newsUrl: 'https://uew.edu.gh/media/uew-news'
   },
   UPSA: {
     name: 'University of Professional Studies, Accra',
-    admissionUrl: 'https://upsa.edu.gh/admissions',
-    newsUrl: 'https://upsa.edu.gh/news-and-events'
-  },
-  GTU: {
-    name: 'Ghana Technology University',
-    admissionUrl: 'https://gtu.edu.gh/admissions',
-    newsUrl: 'https://gtu.edu.gh/news'
+    admissionUrl: 'https://admissions.upsa.edu.gh/admissions/undergraduate/',
+    newsUrl: 'https://upsa.edu.gh/news/'
   },
   GCTU: {
     name: 'Ghana Communication Technology University',
-    admissionUrl: 'https://gctu.edu.gh/admissions',
-    newsUrl: 'https://gctu.edu.gh/news'
+    admissionUrl: 'https://site.gctu.edu.gh/how-to-apply',
+    newsUrl: 'https://site.gctu.edu.gh/announcements'
   },
   AAMUSTED: {
     name: 'Akenten Appiah-Menka University of Skills Training',
@@ -266,8 +257,8 @@ export const UNIVERSITY_SOURCES = {
   },
   CKT_UTAS: {
     name: 'CK Tedam University of Technology and Applied Sciences',
-    admissionUrl: 'https://cktutas.edu.gh/admissions',
-    newsUrl: 'https://cktutas.edu.gh/news'
+    admissionUrl: 'https://cktutas.edu.gh/admissions-portal/',
+    newsUrl: 'https://cktutas.edu.gh/news/'
   },
   SDD_UBIDS: {
     name: 'SD Dombo University of Business and Integrated Development Studies',
@@ -276,13 +267,13 @@ export const UNIVERSITY_SOURCES = {
   },
   ATU: {
     name: 'Accra Technical University',
-    admissionUrl: 'https://atu.edu.gh/admissions',
+    admissionUrl: 'https://atu.edu.gh/how-to-apply-to-atu/',
     newsUrl: 'https://atu.edu.gh/news'
   },
   HTU: {
     name: 'Ho Technical University',
-    admissionUrl: 'https://htu.edu.gh/admissions',
-    newsUrl: 'https://htu.edu.gh/news'
+    admissionUrl: 'https://app.htu.edu.gh/admissions/',
+    newsUrl: 'https://htu.edu.gh/admission-news/'
   }
 };
 

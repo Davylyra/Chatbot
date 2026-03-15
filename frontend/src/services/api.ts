@@ -264,7 +264,6 @@ export class ApiService {
     return httpClient.delete<void>(`/chat/conversations/${conversationId}`);
   }
 
-  // 🏷️ Generate LLM-powered conversation title
   static async generateConversationTitle(
     conversationId: string,
     firstUserMessage: string,

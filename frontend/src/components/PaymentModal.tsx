@@ -97,13 +97,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         throw new Error('Please log in to make a payment');
       }
 
-      console.log('💳 Initializing payment:', {
-        formId: formData.id,
-        amount: formData.formPrice,
-        phone: rawPhone,
-        method: selectedMethod
-      });
-
       const storedUser = localStorage.getItem('user');
       const parsedUser = storedUser ? JSON.parse(storedUser) : null;
 
@@ -142,13 +135,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         throw new Error(data.message || 'Invalid payment response');
       }
 
-      console.log('✅ Payment initialized:', data.data.reference);
-
       // Start verification polling
       startPaymentVerification(data.data.reference);
 
     } catch (err: any) {
-      console.error('❌ Payment initialization error:', err);
+      console.error('Payment initialization error:', err);
       setError(err.message || 'Failed to initialize payment');
       setProcessing(false);
     }
@@ -173,7 +164,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         const data = await response.json();
 
         if (data.success && data.status === 'success') {
-          console.log('✅ Payment verified successfully');
           setVerifying(false);
           setProcessing(false);
           onSuccess(ref);
@@ -192,7 +182,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         }
 
       } catch (err: any) {
-        console.error('❌ Payment verification error:', err);
+        console.error('Payment verification error:', err);
         setVerifying(false);
         setProcessing(false);
         setError(err.message);

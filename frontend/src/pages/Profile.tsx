@@ -27,8 +27,8 @@ const Profile: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [profileData, setProfileData] = useState<any>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Fetch profile data on mount
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -49,7 +49,6 @@ const Profile: React.FC = () => {
         });
 
         const data = await response.json();
-
         if (data.success && data.user) {
           setProfileData(data.user);
           setFormData({
@@ -60,8 +59,6 @@ const Profile: React.FC = () => {
             interests: data.user.interests || [],
             preferredUniversities: data.user.preferredUniversities || []
           });
-          
-          // Update auth context with fresh data
           updateProfile({
             name: data.user.name,
             email: data.user.email,
@@ -69,16 +66,29 @@ const Profile: React.FC = () => {
           });
         }
       } catch (error) {
-        console.error('❌ Failed to fetch profile:', error);
+        console.error('Failed to fetch profile:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchProfile();
-  }, []);
+  }, [refreshTrigger]);
 
-  // Update form data when user changes
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && !isLoading) {
+        setRefreshTrigger(prev => prev + 1);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isLoading]);
+
   useEffect(() => {
     if (user && !profileData) {
       setFormData({
@@ -111,7 +121,6 @@ const Profile: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // FIXED: Enhanced save handler with actual API call
   const handleSave = async () => {
     if (!validateForm()) return;
     
@@ -125,8 +134,6 @@ const Profile: React.FC = () => {
         setIsSaving(false);
         return;
       }
-      
-      console.log('📝 Updating profile...', formData);
       
       const response = await fetch(`${API_BASE_URL}/profile/update`, {
         method: 'PUT',
@@ -149,12 +156,8 @@ const Profile: React.FC = () => {
       }
       
       if (data.success) {
-        console.log('✅ Profile updated successfully');
-        
-        // CRITICAL: Update profileData with fresh backend data (includes all fields)
         setProfileData(data.user);
         
-        // CRITICAL: Update formData to reflect saved state (for future edits)
         setFormData({
           name: data.user.name || '',
           email: data.user.email || '',
@@ -164,14 +167,12 @@ const Profile: React.FC = () => {
           preferredUniversities: data.user.preferredUniversities || formData.preferredUniversities
         });
         
-        // Update auth context with fresh data
         updateProfile({ 
           name: data.user.name, 
           email: data.user.email,
           createdAt: data.user.createdAt
         });
         
-        // Update localStorage with fresh data
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           const userData = JSON.parse(storedUser);
@@ -183,11 +184,10 @@ const Profile: React.FC = () => {
         setIsEditing(false);
         setErrors({});
         
-        // Show success toast (auto-dismisses in 3 seconds)
         showSuccess('Profile Updated', 'Your profile has been saved successfully', 3000);
       }
     } catch (error: any) {
-      console.error('❌ Profile update error:', error);
+      console.error('Profile update error:', error);
       setErrors({ submit: error.message || 'Failed to update profile' });
     } finally {
       setIsSaving(false);
@@ -198,7 +198,6 @@ const Profile: React.FC = () => {
     setIsEditing(false);
     setErrors({});
     
-    // CRITICAL: Reset form data to last saved profileData state (from server)
     if (profileData) {
       setFormData({
         name: profileData.name || '',
@@ -208,9 +207,7 @@ const Profile: React.FC = () => {
         interests: profileData.interests || [],
         preferredUniversities: profileData.preferredUniversities || []
       });
-      console.log('↩️ Reverted to last saved profile state');
     } else if (user) {
-      // Fallback to auth context if profileData not loaded yet
       setFormData({
         name: user.name || '',
         email: user.email || '',

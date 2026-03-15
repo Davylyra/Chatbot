@@ -1,9 +1,3 @@
-/**
- * Component: ErrorBoundary
- * Description: Comprehensive error boundary with fallback UI and error reporting
- * Features: Error logging, recovery options, user-friendly error messages
- */
-
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { motion } from 'framer-motion';
@@ -44,19 +38,14 @@ class ErrorBoundary extends Component<Props, State> {
       errorInfo
     });
 
-    // Log error to console in development
     if (import.meta.env.DEV) {
       console.error('ErrorBoundary caught an error:', error, errorInfo);
     }
 
-    // In production, you would send this to an error reporting service
-    // Example: Sentry, LogRocket, etc.
     this.logErrorToService();
   }
 
   private logErrorToService = () => {
-    // TODO: Implement error reporting service integration
-    // Example: Sentry.captureException(error, { extra: errorInfo });
   };
 
   private handleRetry = () => {

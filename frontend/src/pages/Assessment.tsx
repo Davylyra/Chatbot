@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { FiArrowLeft, FiCheck, FiStar, FiBookOpen, FiTarget } from 'react-icons/fi';
 import Navbar from '../components/Navbar';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { assessmentService, type AssessmentQuestion } from '../services/assessmentService';
 
 
@@ -19,6 +20,7 @@ interface AssessmentData {
 const Assessment: React.FC = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { user, isAuthenticated } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [questions, setQuestions] = useState<AssessmentQuestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,11 +67,46 @@ const Assessment: React.FC = () => {
     if (currentStep < questions.length - 1) {
       setCurrentStep(prev => prev + 1);
     } else {
-      // Assessment complete - send data to chat
+      // Assessment complete - update profile with interests and send data to chat
+      console.log(' Assessment completed with data:', assessmentData);
+      console.log(' Interests array:', assessmentData.interests);
+      console.log(' User authenticated:', isAuthenticated);
+      console.log('User object:', user);
+      
       try {
-        const chatMessage = await assessmentService.sendAssessmentToChat(assessmentData);
+        // Update user profile with assessment interests (auto-fill profile page)
+        if (isAuthenticated && user && assessmentData.interests?.length > 0) {
+          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+          const token = localStorage.getItem('token');
+          
+          console.log(' Token exists:', !!token);
+          console.log(' Sending interests to backend:', assessmentData.interests);
+          
+          if (token) {
+            try {
+              const response = await fetch(`${API_BASE_URL}/profile/update`, {
+                method: 'PUT',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  interests: assessmentData.interests
+                })
+              });
+              
+              const responseData = await response.json();
+              
+              if (!response.ok) {
+                console.error('Failed to update profile:', responseData);
+              }
+            } catch (error) {
+              console.error('Failed to update profile interests:', error);
+            }
+          }
+        }
         
-        console.log('✅ Assessment completed, navigating to chat with data:', { assessmentData, chatMessage });
+        const chatMessage = await assessmentService.sendAssessmentToChat(assessmentData);
         
         // Navigate to chat with assessment data
         navigate('/chat', { 
@@ -84,6 +121,36 @@ const Assessment: React.FC = () => {
         });
       } catch (error) {
         console.error('Failed to send assessment to chat:', error);
+        
+        // Update profile even if chat fails
+        if (isAuthenticated && user && assessmentData.interests?.length > 0) {
+          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+          const token = localStorage.getItem('token');
+          
+          if (token) {
+            try {
+              const response = await fetch(`${API_BASE_URL}/profile/update`, {
+                method: 'PUT',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  interests: assessmentData.interests
+                })
+              });
+              
+              const responseData = await response.json();
+              
+              if (!response.ok) {
+                console.error('Failed to update profile (retry):', responseData);
+              }
+            } catch (updateError) {
+              console.error('Failed to update profile interests:', updateError);
+            }
+          }
+        }
+        
         // Fallback: navigate to chat with basic assessment data
         const fallbackMessage = `I just completed my assessment. My strong subjects are ${assessmentData.bestSubject?.join(', ') || 'various subjects'} and I studied ${assessmentData.shsProgram || 'an SHS program'}. I obtained ${assessmentData.wassceGrade || 'good grades'} in WASSCE. I'm interested in ${assessmentData.interests?.join(', ') || 'multiple fields'} and my career goal is to ${assessmentData.careerGoals || 'pursue higher education'}. Could you help me with university recommendations?`;
         

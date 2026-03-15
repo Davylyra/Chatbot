@@ -1,12 +1,3 @@
-/**
- * Greeting Utilities
- * Description: Provides personalized greeting messages based on time and user context
- * Integration: Used across the app for consistent user experience
- */
-
-/**
- * Get time-based greeting
- */
 export const getTimeBasedGreeting = (): string => {
   const hour = new Date().getHours();
   
@@ -21,9 +12,6 @@ export const getTimeBasedGreeting = (): string => {
   }
 };
 
-/**
- * Get personalized greeting message
- */
 export const getPersonalizedGreeting = (userName?: string): {
   greeting: string;
   message: string;
@@ -48,9 +36,6 @@ export const getPersonalizedGreeting = (userName?: string): {
   }
 };
 
-/**
- * Get welcome back message based on user name
- */
 const getWelcomeBackMessage = (userName: string): string => {
   const messages = [
     `Welcome back, ${userName}! Ready to explore university options?`,
@@ -59,7 +44,6 @@ const getWelcomeBackMessage = (userName: string): string => {
     `Welcome back! How can I assist you with your university search today?`
   ];
   
-  // Use a simple hash of the name to consistently show the same message
   const hash = userName.split('').reduce((a, b) => {
     a = ((a << 5) - a) + b.charCodeAt(0);
     return a & a;
@@ -68,9 +52,6 @@ const getWelcomeBackMessage = (userName: string): string => {
   return messages[Math.abs(hash) % messages.length];
 };
 
-/**
- * Get contextual greeting based on user's last activity
- */
 export const getContextualGreeting = (userName?: string, lastActivity?: string): string => {
   if (!userName) {
     return 'Welcome! Let\'s get started with your university search.';
@@ -80,7 +61,6 @@ export const getContextualGreeting = (userName?: string, lastActivity?: string):
     return getPersonalizedGreeting(userName).message;
   }
   
-  // Add contextual messages based on last activity
   const contextualMessages = {
     'chat': `Welcome back, ${userName}! Ready to continue our conversation?`,
     'forms': `Hello ${userName}! Need help with more university forms?`,

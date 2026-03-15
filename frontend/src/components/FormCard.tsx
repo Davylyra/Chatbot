@@ -2,8 +2,8 @@ import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { FiShoppingCart, FiCalendar, FiMessageCircle } from 'react-icons/fi';
 import { useTheme } from '../contexts/ThemeContext';
-import { useNavigate } from 'react-router-dom';
 import { formatPrice, formatDeadline, formatFormStatus, getCurrencySymbol } from '../utils/formatters';
+import { useUniversityChat } from '../hooks/useUniversityChat';
 
 interface FormCardProps {
   universityName: string;
@@ -34,17 +34,13 @@ const FormCard: React.FC<FormCardProps> = memo(({
   lastUpdated: _lastUpdated // eslint-disable-line @typescript-eslint/no-unused-vars
 }) => {
   const { theme } = useTheme();
-  const navigate = useNavigate();
+  const { startUniversityChat } = useUniversityChat();
 
   const handleChatClick = () => {
-    navigate('/chat', { 
-      state: { 
-        universityContext: {
-          name: universityName,
-          fullName: fullName,
-          logo: logo
-        }
-      }
+    startUniversityChat({
+      name: universityName,
+      fullName: fullName,
+      logo: logo
     });
   };
   return (

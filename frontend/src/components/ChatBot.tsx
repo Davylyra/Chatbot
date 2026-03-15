@@ -112,7 +112,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
         }
         stableSetCurrentConversation(resumedConversation);
 
-        // Fetch messages from backend
         const headers: HeadersInit = { 'Accept': 'application/json' };
         const token = localStorage.getItem('token');
         if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -126,18 +125,14 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
         }
         const data = await resp.json();
         if (data.success && Array.isArray(data.messages)) {
-          // DEDUPLICATION: Check existing messages to prevent duplicates
           const existingMessages = useAppStore.getState().messages.filter(
             m => m.conversationId === resumeConversationId
           );
           const existingIds = new Set(existingMessages.map(m => m.id));
           
-          // Map and add only new messages to store
           data.messages.forEach((msg: any) => {
             const messageId = msg.id || `${Date.now()}-${Math.random()}`;
-            // Skip if message already exists
             if (existingIds.has(messageId)) {
-              console.log(`⏭️ Skipping duplicate message: ${messageId}`);
               return;
             }
             
@@ -152,7 +147,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
             };
             stableAddMessage(mapped);
           });
-          console.log(`Loaded ${data.messages.length} messages, added ${data.messages.length - existingMessages.length} new ones`);
         }
         setIsInitialized(true);
       } catch (e) {
@@ -172,7 +166,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
       return;
     }
     
-    console.log('Initializing ChatBot...');
     const { greeting } = getPersonalizedGreeting(user?.name);
     const guestNote = isGuest ? " (You're in guest mode - some features may be limited)" : "";
     
@@ -215,7 +208,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
   useEffect(() => {
     if (!locationForceNewConversation || !isInitialized) return;
     
-    console.log('Forcing new conversation from homepage');
     const { greeting } = getPersonalizedGreeting(user?.name);
     
     // Save current conversation if it has messages
@@ -260,32 +252,24 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
       conversationId: newConversationId,
     };
     stableAddMessage(welcomeMessage);
-  }, [locationForceNewConversation]); // ✅ Only runs when forceNewConversation changes
+  }, [locationForceNewConversation]);
   
   // 3. Handle initial messages (assessment or university) with duplicate prevention
   useEffect(() => {
     if (!initialMessage || !currentConversation || !isInitialized) return;
     
-    // Wait a bit for conversation to be properly set up
     const timeoutId = setTimeout(() => {
-      // ✅ DUPLICATE PREVENTION: Check if we've already processed this message
       const messageKey = `${currentConversation.id}-${initialMessage}`;
       if (processedMessages.has(messageKey)) {
-        console.log('🚫 Skipping duplicate initial message');
         return;
       }
-      
-      console.log('📝 Processing initial message:', initialMessage.substring(0, 50));
-      
-      // Mark as processed IMMEDIATELY to prevent duplicates
+
       setProcessedMessages(prev => new Set(prev).add(messageKey));
-      
-      // Check if this is the first user message BEFORE adding
+
       const isFirstUserMessage = useAppStore.getState().messages.filter(
         m => m.conversationId === currentConversation.id && m.isUser
       ).length === 0;
-      
-      // Add user message
+
       const userMessage = {
         id: `user-${Date.now()}`,
         text: initialMessage,
@@ -295,30 +279,23 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
       };
       stableAddMessage(userMessage);
 
-      // Update conversation title with initial message if it's the first user message
       if (isFirstUserMessage && shouldUpdateConversationTitle(currentConversation.title, initialMessage)) {
         const newTitle = generateConversationTitle(initialMessage, universityContext?.name, assessmentData);
         useAppStore.getState().updateConversation(currentConversation.id, { title: newTitle });
-        console.log(`📝 Updated conversation title from initial message: "${newTitle}"`);
       }
 
-      // Get AI response immediately
       handleInitialMessageResponse(initialMessage, currentConversation.id);
     }, 500);
     
     return () => clearTimeout(timeoutId);
-  }, [initialMessage, currentConversation?.id, isInitialized]); // ✅ Only essential dependencies
+  }, [initialMessage, currentConversation?.id, isInitialized]);
 
   
-  // 4. Handle university context changes (simplified)
   useEffect(() => {
     if (!universityContext || !currentConversation || !isInitialized) return;
     
     const contextChanged = currentConversation.universityContext !== universityContext.name;
     if (contextChanged) {
-      console.log('🏫 University context changed to:', universityContext.name);
-      
-      // Update conversation context
       const updatedConversation = {
         ...currentConversation,
         universityContext: universityContext.name,
@@ -326,9 +303,8 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
       };
       stableSetCurrentConversation(updatedConversation);
     }
-  }, [universityContext?.name, currentConversation?.universityContext]); // ✅ Specific dependencies
+  }, [universityContext?.name, currentConversation?.universityContext]);
 
-  // CRITICAL FIX: Get current conversation messages with forced refresh and proper chronological ordering
   const { messages: allMessages } = useAppStore();
   const currentMessages = currentConversation
     ? allMessages
@@ -344,8 +320,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
   const handleInitialMessageResponse = useCallback(async (message: string, conversationId: string) => {
     setIsTyping(true);
     try {
-      console.log('🤖 Generating AI response for initial message...');
-      
       // Determine context based on whether this is assessment or university
       const context = assessmentData ? {
         assessment_data: assessmentData,
@@ -385,12 +359,8 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
           confidence: response.confidence || 0.0
         };
         stableAddMessage(botMessage);
-        console.log('✅ Initial message response added successfully');
-        
-       
       }
     } catch (error) {
-      console.error('❌ Initial message response error:', error);
       const errorMessage = {
         id: `error-${Date.now()}`,
         text: assessmentData 
@@ -480,21 +450,10 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
     lastMessageCountRef.current = currentMessages.length;
   }, [currentMessages.length, isUserAtBottom, scrollToBottom, currentMessages]);
 
-  // Handle sending messages with file attachments - FIXED
   const handleSendMessage = async () => {
     if ((!inputMessage.trim() && attachedFiles.length === 0) || !currentConversation) return;
 
-    console.log('🚀 [CHATBOT] handleSendMessage called:', {
-      inputLength: inputMessage.trim().length,
-      hasFiles: attachedFiles.length > 0,
-      conversationId: currentConversation?.id,
-      isAuthenticated,
-      isGuest
-    });
-
-    // FIXED: Check authentication for protected features
     if (!isAuthenticated && !isGuest && attachedFiles.length > 0) {
-      console.log('🔒 [CHATBOT] Authentication required for file upload');
       setShowAuthModal(true);
       return;
     }
@@ -502,7 +461,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
     const messageText = inputMessage.trim();
     const filesToSend = [...attachedFiles];
     
-    // CRITICAL: Check if this is first user message BEFORE adding to store
     const isFirstUserMessage = currentMessages.filter(m => m.isUser).length === 0;
     
     // Clear input and attachments immediately
@@ -511,10 +469,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
     setIsTyping(true);
     setError(null);
 
-    // Create user message object with attachment info
     const newMessage = {
       id: Date.now().toString(),
-      text: messageText || `📎 Sent ${filesToSend.length} file(s)`,
+      text: messageText || `Sent ${filesToSend.length} file(s)`,
       isUser: true,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       conversationId: currentConversation.id,
@@ -525,35 +482,21 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
       }))
     };
 
-    // Add user message to conversation
     stableAddMessage(newMessage);
     
-    // Update conversation title with first user message if needed
     if (isFirstUserMessage && messageText && shouldUpdateConversationTitle(currentConversation.title, messageText)) {
       const newTitle = generateConversationTitle(messageText, universityContext?.name, assessmentData);
       useAppStore.getState().updateConversation(currentConversation.id, { title: newTitle });
-      console.log(`📝 Updated conversation title to: "${newTitle}"`);
     }
     
-    // Scroll to bottom after adding message
     setTimeout(() => scrollToBottom(), 50);
 
     try {
       let response;
-      
-      console.log('📞 [CHATBOT] About to call sendChatMessage:', {
-        messageText: messageText.substring(0, 50),
-        conversationId: currentConversation.id,
-        universityName: universityContext?.name,
-        hasFiles: filesToSend.length > 0
-      });
-      
-      // FIXED: Handle file uploads properly with enhanced validation
+
       if (filesToSend.length > 0) {
-        console.log('📎 Sending files:', filesToSend.map(f => f.name));
         response = await sendMessageWithFiles(messageText, filesToSend, currentConversation.id, universityContext?.name);
       } else {
-        // Regular text message
         response = await stableSendChatMessage(
           messageText, 
           currentConversation.id,
@@ -567,22 +510,8 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
           }
         );
       }
-      
-      console.log('📥 [CHATBOT] Received response from sendChatMessage:', {
-        success: response?.success,
-        hasMessage: !!response?.message,
-        messageLength: response?.message?.length || 0,
-        hasError: !!(response && 'error' in response && response.error)
-      });
-      
-      // ✅ FIXED: Enhanced response handling with better error checking
+
       if (response && response.success && response.message) {
-        console.log('✅ Received successful response from bot:', {
-          messageLength: response.message.length,
-          confidence: response.confidence,
-          sourcesCount: response.sources?.length || 0,
-          fallbackMode: response.metadata?.fallback_mode || false
-        });
 
         const botMessage = {
           id: (Date.now() + 1).toString(),
@@ -596,54 +525,31 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
         
         stableAddMessage(botMessage);
         
-        // 🏷️ Update conversation title if backend provided one
-        // Check if it's a real title (not a conversation ID or generic placeholder)
         if (response.conversation_title && 
             response.conversation_title !== currentConversation.id &&
             !response.conversation_title.startsWith('conv_') &&
             response.conversation_title !== 'New Conversation' &&
             response.conversation_title !== 'Untitled' &&
             response.conversation_title.trim().length > 0) {
-          console.log(`🏷️ Updating conversation title from backend: \"${response.conversation_title}\"`);
           useAppStore.getState().updateConversation(currentConversation.id, { 
             title: response.conversation_title 
           });
-        } else {
-          console.log(`⚠️ Backend title not suitable for update: \"${response.conversation_title}\"`);
         }
         
-        // 🏷️ Auto-save conversation after first exchange to trigger LLM title generation
         if (isFirstUserMessage && currentMessages.length <= 2) {
-          console.log('💾 Auto-saving conversation after first exchange to generate LLM title...');
           setTimeout(() => {
             stableSaveCurrentConversation().catch(err => {
               console.warn('Failed to auto-save for title generation:', err);
             });
-          }, 1000); // Delay to ensure messages are added to store
-        }
-        
-        // Auto-scroll disabled - user can scroll manually if needed
-
-        // Show confidence feedback
-        if (response.confidence && response.confidence > 0.9) {
-          console.log('✅ High confidence response:', response.confidence);
-        } else if (response.metadata?.response_type === 'hybrid_search') {
-          console.log('🌐 Web search enhanced response');
-        } else if (response.metadata?.fallback_mode) {
-          console.log('⚠️ Fallback mode response provided');
+          }, 1000);
         }
       } else if (response && (response as any).error === 'AUTHENTICATION_REQUIRED') {
-        // FIXED: Show authentication modal when required
-        console.log('🔒 Authentication required, showing modal');
         setShowAuthModal(true);
-        setError(null); // Clear error since we're showing auth modal
+        setError(null);
       } else if (response && !response.success) {
-        // ✅ FIXED: Handle unsuccessful response with error message
         const errorMsg = response.message || 'Unable to get response. Please try again.';
-        console.error('❌ Response unsuccessful:', errorMsg);
         setError(errorMsg);
         
-        // Show error message as a bot message for better UX
         const errorBotMessage = {
           id: (Date.now() + 1).toString(),
           text: errorMsg,
@@ -655,12 +561,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
         };
         stableAddMessage(errorBotMessage);
       } else {
-        // ✅ FIXED: Fallback for unexpected response format
-        console.error('❌ Unexpected response format:', response);
         const fallbackError = 'Unable to get response. Please try again.';
         setError(fallbackError);
         
-        // Show error as bot message
         const errorBotMessage = {
           id: (Date.now() + 1).toString(),
           text: fallbackError,
@@ -673,13 +576,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
         stableAddMessage(errorBotMessage);
       }
     } catch (error) {
-      // ✅ FIXED: Enhanced catch block with detailed logging
-      console.error('❌ Chat error with details:', {
-        error,
-        errorMessage: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      });
-      
       const errorMsg = filesToSend.length > 0 
         ? 'Failed to send files. Please try again.' 
         : error instanceof Error && error.message 
@@ -688,10 +584,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
       
       setError(errorMsg);
       
-      // ✅ FIXED: Show error as bot message so user sees it immediately
       const errorBotMessage = {
         id: (Date.now() + 1).toString(),
-        text: `⚠️ ${errorMsg}`,
+        text: errorMsg,
         isUser: false,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         conversationId: currentConversation.id,
@@ -704,13 +599,11 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
     }
   };
 
-  // FIXED: Enhanced file upload with proper validation and error handling
   const sendMessageWithFiles = async (message: string, files: File[], conversationId: string, universityName?: string): Promise<EnhancedChatResponse> => {
     try {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
       
-      // Enhanced file validation
-      const maxFileSize = 10 * 1024 * 1024; // 10MB
+      const maxFileSize = 10 * 1024 * 1024;
       const allowedTypes = [
         'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
         'application/pdf', 
@@ -733,21 +626,10 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
       formData.append('conversation_id', conversationId);
       formData.append('university_name', universityName || '');
       
-      // Add each file with proper key name expected by backend
       files.forEach((file) => {
         formData.append('files', file, file.name);
       });
 
-      console.log('📎 FIXED: Sending validated files to backend:', {
-        fileCount: files.length,
-        totalSize: files.reduce((sum, f) => sum + f.size, 0),
-        fileTypes: files.map(f => f.type),
-        fileNames: files.map(f => f.name),
-        message: message?.substring(0, 50) || 'No text message',
-        conversationId
-      });
-
-      // Get token for authentication
       const token = localStorage.getItem('token');
       const headers: HeadersInit = {};
       
@@ -759,7 +641,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
         method: 'POST',
         headers,
         body: formData
-        // Note: timeout not supported in fetch API, using AbortController if needed
       });
 
       if (!response.ok) {
@@ -774,12 +655,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
       }
 
       const data = await response.json();
-      
-      console.log('✅ FIXED: Files uploaded successfully:', {
-        filesProcessed: data.files_processed || files.length,
-        responseLength: data.message?.length || data.reply?.length || 0,
-        confidence: data.confidence
-      });
 
       return {
         success: true,
@@ -791,9 +666,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
       };
 
     } catch (error: any) {
-      console.error('❌ FIXED: File upload error with details:', error);
-
-      // Provide user-friendly error messages
       if (error?.message?.includes('too large')) {
         throw new Error('One or more files are too large. Please use files under 10MB.');
       } else if (error?.message?.includes('not supported')) {
@@ -809,7 +681,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
   const handleQuickAction = async (action: string) => {
     if (!currentConversation) return;
 
-    // CRITICAL: Check if this is first user message BEFORE adding to store
     const isFirstUserMessage = currentMessages.filter(m => m.isUser).length === 0;
 
     const newMessage = {
@@ -822,21 +693,17 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
 
     stableAddMessage(newMessage);
     
-    // Update conversation title with quick action if it's the first user message
     if (isFirstUserMessage && shouldUpdateConversationTitle(currentConversation.title, action)) {
       const newTitle = generateConversationTitle(action, universityContext?.name, assessmentData);
       useAppStore.getState().updateConversation(currentConversation.id, { title: newTitle });
-      console.log(`📝 Updated conversation title from quick action: "${newTitle}"`);
     }
     
     setIsTyping(true);
     setError(null);
     
-    // Scroll to bottom after adding quick action message
     setTimeout(() => scrollToBottom(), 50);
 
     try {
-      // Use real RAG service for quick actions too
       const response = await stableSendChatMessage(
         action, 
         currentConversation.id,
@@ -863,26 +730,20 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
         
         stableAddMessage(botMessage);
         
-        // 🏷️ Auto-save conversation after first exchange to trigger LLM title generation
         if (isFirstUserMessage && currentMessages.length <= 2) {
-          console.log('💾 Auto-saving conversation after first quick action to generate LLM title...');
           setTimeout(() => {
             stableSaveCurrentConversation().catch(err => {
               console.warn('Failed to auto-save for title generation:', err);
             });
           }, 1000);
         }
-        
-        // Auto-scroll disabled - user can scroll manually if needed
       } else if (response && response.error === 'AUTHENTICATION_REQUIRED') {
-        // FIXED: Show authentication modal for quick actions too
         setShowAuthModal(true);
         setError(null);
       } else {
         setError('Unable to get response. Please try again.');
       }
     } catch (error) {
-      console.error('❌ Quick action error:', error);
       setError('Unable to get response. Please try again.');
     } finally {
       setIsTyping(false);
@@ -896,21 +757,18 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
     }
   };
 
-  // FIXED: File handling functions with proper multiple file support
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
-    // FIXED: Check authentication for file uploads
     if (!isAuthenticated && !isGuest) {
       setShowAuthModal(true);
       return;
     }
 
-    // FIXED: Validate file types and sizes
     const validFiles = files.filter(file => {
       const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-      const maxSize = 10 * 1024 * 1024; // 10MB
+      const maxSize = 10 * 1024 * 1024;
       
       if (!validTypes.includes(file.type)) {
         setError(`File type ${file.type} is not supported`);
@@ -923,11 +781,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
       return true;
     });
 
-    // FIXED: Support multiple files properly
     setAttachedFiles(prev => [...prev, ...validFiles]);
     setShowAttachMenu(false);
     
-    // Reset file input to allow selecting the same files again
     if (event.target) {
       event.target.value = '';
     }
@@ -937,16 +793,14 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
-    // FIXED: Check authentication for image uploads
     if (!isAuthenticated && !isGuest) {
       setShowAuthModal(true);
       return;
     }
 
-    // FIXED: Validate image files
     const validImages = files.filter(file => {
       const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-      const maxSize = 10 * 1024 * 1024; // 10MB
+      const maxSize = 10 * 1024 * 1024;
       
       if (!validImageTypes.includes(file.type)) {
         setError(`Image type ${file.type} is not supported`);
@@ -959,11 +813,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
       return true;
     });
 
-    // FIXED: Support multiple images properly
     setAttachedFiles(prev => [...prev, ...validImages]);
     setShowAttachMenu(false);
     
-    // Reset file input
     if (event.target) {
       event.target.value = '';
     }
@@ -972,11 +824,10 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
   const handleCameraCapture = () => {
     setShowAttachMenu(false);
     
-    // Create a dedicated camera input element
     const cameraInput = document.createElement('input');
     cameraInput.type = 'file';
     cameraInput.accept = 'image/*';
-    cameraInput.capture = 'environment'; // Use back camera if available
+    cameraInput.capture = 'environment';
     cameraInput.style.display = 'none';
     
     cameraInput.onchange = (event) => {
@@ -986,7 +837,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
       }
     };
     
-    // Add to DOM, trigger click, then remove
     document.body.appendChild(cameraInput);
     cameraInput.click();
     document.body.removeChild(cameraInput);
@@ -998,7 +848,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
 
   const handleBuyForms = () => {
     setShowAttachMenu(false);
-    // Navigate to forms page or open forms modal
     window.location.href = '/forms';
   };
 
@@ -1010,15 +859,12 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
   const handleUniversitySelect = (university: { name: string; fullName: string; logo?: string }) => {
     setShowUniversityModal(false);
     
-    // Create a new conversation for the selected university with professional title
     const conversationTitle = 'New Conversation';
     const newConversationId = stableCreateConversation(conversationTitle);
     
-    // Find the created conversation and set it as current
     const newConversation = useAppStore.getState().conversations.find(c => c.id === newConversationId);
     stableSetCurrentConversation(newConversation || null);
     
-    // Add personalized welcome message
     const { greeting } = getPersonalizedGreeting(user?.name);
     const guestNote = isGuest ? " (You're in guest mode - some features may be limited)" : "";
     const welcomeText = `${greeting}! I'm here to help you with ${university.name} admissions and information.${guestNote}`;
@@ -1035,17 +881,12 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
   };
 
   const handleStartNewConversation = () => {
-    console.log('🧹 New Chat: clearing state and preventing context leakage...');
-
-    // Save current conversation if needed
     if (currentConversation && currentMessages.length > 0) {
       stableSaveCurrentConversation().catch(() => {});
     }
 
-    // Strictly suppress any preloaded context for the next session
     setSuppressContext(true);
 
-    // Clear local UI state
     setProcessedMessages(new Set());
     setInputMessage('');
     setAttachedFiles([]);
@@ -1053,20 +894,16 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
     setIsTyping(false);
     setShowAttachMenu(false);
 
-    // Clear global chat state for messages only; do not carry over any triggers
     useAppStore.setState({
       messages: [],
       loading: false,
       error: null,
     });
 
-    // Create a brand new, blank conversation without auto prompts
     const newConversationId = startNewConversation();
 
-    // Ensure no automatic initialMessage is sent in this fresh session
     setIsInitialized(true);
 
-    // Minimal neutral welcome only; no assessment/university prompts
     const { greeting } = getPersonalizedGreeting(user?.name);
     const guestNote = isGuest ? " (You're in guest mode - some features may be limited)" : "";
     stableAddMessage({
@@ -1111,7 +948,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
         </div>
       )}
 
-      {/* Messages Container - FIXED: AnimatePresence with mode */}
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4 min-h-0 relative">
         <AnimatePresence mode="popLayout">
           {currentMessages.map((message) => (
@@ -1140,12 +976,12 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
               <div className={`w-2 h-2 rounded-full animate-bounce ${
                 theme === 'dark' ? 'bg-gray-500' : 'bg-gray-400'
               }`}></div>
-              <div className={`w-2 h-2 rounded-full animate-bounce ${
+              <div className={`w-2 h-2 rounded-full animate-bounce animate-delay-100 ${
                 theme === 'dark' ? 'bg-gray-500' : 'bg-gray-400'
-              }`} style={{ animationDelay: '0.1s' }}></div>
-              <div className={`w-2 h-2 rounded-full animate-bounce ${
+              }`}></div>
+              <div className={`w-2 h-2 rounded-full animate-bounce animate-delay-200 ${
                 theme === 'dark' ? 'bg-gray-500' : 'bg-gray-400'
-              }`} style={{ animationDelay: '0.2s' }}></div>
+              }`}></div>
             </div>
             <span className="text-sm">Glinax is typing...</span>
           </motion.div>
@@ -1317,7 +1153,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
         </div>
       </div>
 
-      {/* FIXED: Attach Menu Overlay with proper mode */}
       <AnimatePresence mode="wait">
         {showAttachMenu && (
           <>
@@ -1468,7 +1303,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
         )}
       </AnimatePresence>
 
-      {/* FIXED: University Selection Modal with proper keys */}
       <AnimatePresence mode="wait">
         {showUniversityModal && (
           <>
@@ -1590,7 +1424,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
         initialMode="login"
       />
 
-      {/* Hidden File Inputs - FIXED: Better file type support */}
       <input
         ref={fileInputRef}
         type="file"

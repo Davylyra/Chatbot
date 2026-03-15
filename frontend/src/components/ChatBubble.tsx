@@ -40,7 +40,6 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(({
     text.includes('Hello')
   );
 
-  // FIXED: Function to render file attachments
   const renderAttachments = () => {
     if (!attachments || attachments.length === 0) return null;
 
@@ -156,7 +155,6 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(({
                   >
                   {processedText}
                   </ReactMarkdown>
-                  {/* FIXED: Show attachments for greeting messages too */}
                   {renderAttachments()}
                 </div>
               ) : (
@@ -192,7 +190,6 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(({
                   >
                     {processedText}
                   </ReactMarkdown>
-                  {/* FIXED: Show attachments for all messages */}
                   {renderAttachments()}
                 </div>
               )}

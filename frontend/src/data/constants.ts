@@ -4,7 +4,6 @@
  * Integration: Replace with real data from backend APIs
  */
 
-// University data - TODO: Replace with API data
 export const UNIVERSITIES_DATA = [
   {
     id: "1",
@@ -184,7 +183,6 @@ export const UNIVERSITIES_DATA = [
   }
 ];
 
-// Assessment questions - TODO: Replace with API data
 export const ASSESSMENT_QUESTIONS = [
   {
     id: "shsProgram",
@@ -272,7 +270,6 @@ export const ASSESSMENT_QUESTIONS = [
   },
 ];
 
-// Payment methods - TODO: Replace with API data
 export const PAYMENT_METHODS = [
   { 
     name: "MTN Mobile Money", 
@@ -352,7 +349,6 @@ export const HELP_SECTIONS = [
   }
 ];
 
-// Mock transactions - TODO: Replace with API data
 export const MOCK_TRANSACTIONS = [
   {
     id: "1",
@@ -395,7 +391,6 @@ export const MOCK_TRANSACTIONS = [
   }
 ];
 
-// Mock recent chats - TODO: Replace with API data
 export const MOCK_RECENT_CHATS = [
   {
     id: "1",

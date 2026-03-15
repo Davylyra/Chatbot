@@ -16,13 +16,12 @@ export const isTokenValid = (token: string | null): boolean => {
     
     // Check if token is expired
     if (payload.exp && payload.exp < currentTime) {
-      console.log('🔒 Token expired at:', new Date(payload.exp * 1000));
       return false;
     }
     
     return true;
   } catch (error) {
-    console.error('❌ Token validation error:', error);
+    console.error('Token validation error:', error);
     return false;
   }
 };
@@ -30,7 +29,6 @@ export const isTokenValid = (token: string | null): boolean => {
 export const clearExpiredToken = (): void => {
   const token = localStorage.getItem('token');
   if (token && !isTokenValid(token)) {
-    console.log('🧹 Clearing expired token');
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     

@@ -13,6 +13,13 @@ router.get('/me', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
     const usersCollection = await getCollection("users");
+    
+    if (!usersCollection) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database temporarily unavailable. Please try again.'
+      });
+    }
 
     const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
 
@@ -25,20 +32,25 @@ router.get('/me', authMiddleware, async (req, res) => {
 
     // Get additional user stats
     const messagesCollection = await getCollection("messages");
-    const messageCount = await messagesCollection.countDocuments({ user_id: userId });
+    const messageCount = messagesCollection ? await messagesCollection.countDocuments({ user_id: userId }) : 0;
     
     const conversationsCollection = await getCollection("conversations");
-    const conversationCount = await conversationsCollection.countDocuments({ user_id: userId });
+    const conversationCount = conversationsCollection ? await conversationsCollection.countDocuments({ user_id: userId }) : 0;
 
     // Get latest assessment data for interests and preferences
     const userProfilesCollection = await getCollection("user_profiles");
-    const userProfile = await userProfilesCollection.findOne({ user_id: new ObjectId(userId) });
+    const userProfile = userProfilesCollection ? await userProfilesCollection.findOne({ user_id: new ObjectId(userId) }) : null;
     
     // Extract interests and preferred universities from latest assessment
     let interests = [];
     let preferredUniversities = [];
     
-    if (userProfile && userProfile.preferences) {
+    // PRIORITY 1: Check if user has directly saved interests in users collection (from assessment)
+    if (user.interests && Array.isArray(user.interests) && user.interests.length > 0) {
+      interests = user.interests;
+      console.log('✅ Loading interests from users collection:', interests);
+    } else if (userProfile && userProfile.preferences) {
+      // PRIORITY 2: Fall back to user_profiles collection
       // Combine subjects and interests
       if (userProfile.preferences.interests && Array.isArray(userProfile.preferences.interests)) {
         interests = userProfile.preferences.interests;
@@ -46,6 +58,14 @@ router.get('/me', authMiddleware, async (req, res) => {
       if (userProfile.preferences.subjects && Array.isArray(userProfile.preferences.subjects)) {
         interests = [...new Set([...interests, ...userProfile.preferences.subjects])];
       }
+      console.log('📋 Loading interests from user_profiles collection:', interests);
+    } else {
+      console.log('⚠️ No interests found in database');
+    }
+    
+    // Check for preferred universities in users collection first
+    if (user.preferredUniversities && Array.isArray(user.preferredUniversities) && user.preferredUniversities.length > 0) {
+      preferredUniversities = user.preferredUniversities;
     }
     
     // Extract preferred universities from AI recommendations
@@ -55,6 +75,9 @@ router.get('/me', authMiddleware, async (req, res) => {
         .map(rec => rec.university_name)
         .filter(Boolean);
     }
+
+    console.log(' Sending profile response with interests:', interests);
+    console.log('Sending profile response with preferredUniversities:', preferredUniversities);
 
     res.json({
       success: true,
@@ -128,12 +151,22 @@ router.get('/debug-user', authMiddleware, async (req, res) => {
 // Update profile - PRODUCTION READY with comprehensive validation
 router.put('/update', authMiddleware, validateProfilePayload, async (req, res) => {
   const userId = req.user.id;
-  const { name, email, password, currentPassword, location, bio } = req.body;
+  const { name, email, password, currentPassword, location, bio, interests, preferredUniversities } = req.body;
 
   console.log('🔍 Profile update request - userId:', userId, 'type:', typeof userId);
+  console.log('📥 Request body received:', req.body);
+  console.log('📥 Interests in request:', interests);
 
   try {
     const usersCollection = await getCollection("users");
+    
+    if (!usersCollection) {
+      console.error('❌ Database connection failed - usersCollection is null');
+      return res.status(503).json({
+        success: false,
+        message: 'Database temporarily unavailable. Please try again.'
+      });
+    }
     
     // Fetch current user data - handle both string and ObjectId formats
     let currentUser;
@@ -237,6 +270,18 @@ router.put('/update', authMiddleware, validateProfilePayload, async (req, res) =
     if (password !== undefined) {
       updateFields.password = await bcrypt.hash(password, 10); // Standardized to 'password'
     }
+    
+    // Handle interests array (from assessment)
+    if (interests !== undefined && Array.isArray(interests)) {
+      updateFields.interests = interests;
+      console.log('✅ Updating interests from assessment:', interests);
+    }
+    
+    // Handle preferred universities array
+    if (preferredUniversities !== undefined && Array.isArray(preferredUniversities)) {
+      updateFields.preferredUniversities = preferredUniversities;
+      console.log('✅ Updating preferred universities:', preferredUniversities);
+    }
 
     // REMOVED: The "no changes" check was preventing valid location/bio updates
     // updatedAt alone is fine - it means they opened edit mode and saved without changes
@@ -279,28 +324,15 @@ router.put('/update', authMiddleware, validateProfilePayload, async (req, res) =
     }
 
     console.log(`✅ Profile updated successfully for user ${userId}`);
+    console.log('✅ Updated user document:', updatedUser);
 
-    // Fetch interests and preferences from user_profiles (same as GET /me)
-    let interests = [];
-    let preferredUniversities = [];
+    // Return interests and preferredUniversities from the updated user document (not from user_profiles)
+    // This ensures we return what we just saved
+    const updatedInterests = updatedUser.interests || [];
+    const updatedUniversities = updatedUser.preferredUniversities || [];
     
-    try {
-      const userProfilesCollection = await getCollection("user_profiles");
-      const userProfile = await userProfilesCollection.findOne({ user_id: userId });
-      
-      if (userProfile && userProfile.interests && Array.isArray(userProfile.interests)) {
-        interests = userProfile.interests;
-      }
-      
-      if (userProfile && userProfile.ai_recommendations && Array.isArray(userProfile.ai_recommendations)) {
-        preferredUniversities = userProfile.ai_recommendations
-          .slice(0, 3)
-          .map(rec => rec.university_name)
-          .filter(Boolean);
-      }
-    } catch (profileErr) {
-      console.warn('⚠️ Could not fetch user profile data:', profileErr);
-    }
+    console.log('📤 Returning interests:', updatedInterests);
+    console.log('📤 Returning preferredUniversities:', updatedUniversities);
 
     res.json({
       success: true,
@@ -314,8 +346,8 @@ router.put('/update', authMiddleware, validateProfilePayload, async (req, res) =
         isEmailVerified: updatedUser.isEmailVerified || updatedUser.is_verified || false,
         createdAt: updatedUser.createdAt || updatedUser.created_at,
         updatedAt: updatedUser.updatedAt || updatedUser.updated_at,
-        interests: interests,
-        preferredUniversities: preferredUniversities
+        interests: updatedInterests,
+        preferredUniversities: updatedUniversities
       }
     });
   } catch (err) {

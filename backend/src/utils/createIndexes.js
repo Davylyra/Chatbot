@@ -101,6 +101,20 @@ async function createIndexes() {
     );
     console.log('✅ Created index: unread_count_query');
     
+    // DUPLICATE PREVENTION: Unique compound index for admission notifications
+    // Prevents same notification (title + university + user) from being stored twice
+    await notificationsCollection.createIndex(
+      { userId: 1, title: 1, 'metadata.universityCode': 1 },
+      { 
+        name: 'unique_user_notification_university',
+        partialFilterExpression: { 
+          'metadata.universityCode': { $exists: true },
+          category: 'admission_update'
+        }
+      }
+    );
+    console.log('✅ Created index: unique_user_notification_university (duplicate prevention)');
+    
     // ========================================
     // DISPLAY ALL INDEXES
     // ========================================

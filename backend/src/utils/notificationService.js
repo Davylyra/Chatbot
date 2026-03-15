@@ -246,28 +246,7 @@ export const getUnreadCount = async (userId) => {
   }
 };
 
-// Mark notification as read
-export const markAsRead = async (notificationId, userId) => {
-  try {
-    const notificationsCollection = await getCollection('notifications');
-    const result = await notificationsCollection.updateOne(
-      { 
-        _id: new ObjectId(notificationId),
-        userId: userId 
-      }, 
-      { 
-        $set: { 
-          isRead: true, 
-          readAt: new Date() 
-        } 
-      }
-    );
-    return result.modifiedCount > 0;
-  } catch (error) {
-    console.error('Error marking notification as read:', error);
-    return false;
-  }
-};
+// Note: markAsRead removed - use scheduleNotificationDeletion instead
 
 // Schedule notification for deletion
 export const scheduleNotificationDeletion = async (notificationId, userId, delaySeconds = 2) => {
@@ -314,6 +293,5 @@ export default {
   sendPaymentNotification,
   sendFormNotification,
   getUnreadCount,
-  markAsRead,
   scheduleNotificationDeletion
 };

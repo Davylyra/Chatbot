@@ -3,29 +3,25 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiAlertCircle, FiCheck } from 'react-icons/fi';
 import Navbar from '../components/Navbar';
-import { useAppStore } from '../store';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { contentService, type PageContent } from '../services/contentService';
+import { useSocket } from '../hooks/useSocket';
 
 const Notifications: React.FC = () => {
   // Hooks and state
   const navigate = useNavigate();
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { notifications, loadNotifications, markNotificationAsRead, markAllNotificationsAsRead } = useAppStore();
+  const { notifications, markAsRead, markAllAsRead } = useSocket();
   
   // Local state for UI feedback
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [recentlyMarkedRead, setRecentlyMarkedRead] = useState<Set<string>>(new Set());
   const [pageContent, setPageContent] = useState<PageContent | null>(null);
 
-  // Load notifications and page content on component mount
-  useEffect(() => {
-    if (notifications.length === 0 && user?.id) {
-      loadNotifications(user.id);
-    }
-  }, [notifications.length, loadNotifications, user?.id]);
+  // Socket handles notification loading automatically via WebSocket connection
+  // No need to manually load - they come in real-time
 
   // Load page content
   useEffect(() => {
@@ -49,17 +45,19 @@ const Notifications: React.FC = () => {
     if (!user?.id) return;
     
     try {
-      await markAllNotificationsAsRead(user.id);
-      setShowSuccessMessage(true);
-      setTimeout(() => setShowSuccessMessage(false), 3000);
+      const result = await markAllAsRead();
+      if (result.success) {
+        setShowSuccessMessage(true);
+        setTimeout(() => setShowSuccessMessage(false), 3000);
+      }
     } catch {
       // Failed to mark all notifications as read - handled gracefully
     }
-  }, [user?.id, markAllNotificationsAsRead]);
+  }, [user?.id, markAllAsRead]);
 
   // Handle marking individual notification as read with visual feedback
   const handleMarkAsRead = useCallback((notificationId: string) => {
-    markNotificationAsRead(notificationId);
+    markAsRead(notificationId);
     setRecentlyMarkedRead(prev => new Set([...prev, notificationId]));
     setTimeout(() => {
       setRecentlyMarkedRead(prev => {
@@ -68,7 +66,7 @@ const Notifications: React.FC = () => {
         return newSet;
       });
     }, 2000);
-  }, [markNotificationAsRead]);
+  }, [markAsRead]);
 
   return (
     <div className="min-h-screen">

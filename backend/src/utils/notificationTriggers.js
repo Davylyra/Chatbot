@@ -5,7 +5,6 @@
  */
 
 import { getCollection } from '../config/db.js';
-import { fetchLatestAdmissions } from './admissionScraper.js';
 import { fetchLiveAdmissionNotifications } from './liveAdmissionFetcher.js';
 import { buildNotification } from './notificationBuilder.js';
 import notificationService from './notificationService.js';
@@ -18,23 +17,16 @@ const getAcademicYear = () => {
 };
 
 // Check for urgent admission updates and notify all users
-// ENHANCED: Now uses live fetcher with graceful fallback
 export const checkAdmissionUpdates = async () => {
   try {
     console.log('🔍 [LIVE-NOTIFICATIONS] Checking for admission updates from live sources...');
 
-    // First, try to fetch from live sources
-    let events = await fetchLiveAdmissionNotifications();
+    // Fetch from live sources only (no fallback to prevent fake notifications)
+    const events = await fetchLiveAdmissionNotifications();
     console.log(`📡 [LIVE-NOTIFICATIONS] Fetched ${Array.isArray(events) ? events.length : 0} notifications from live sources`);
 
-    // Fallback to scraper if live fetch returns nothing
-    if (!events || events.length === 0) {
-      console.log('ℹ️ [LIVE-NOTIFICATIONS] No live data, falling back to scraper');
-      events = await fetchLatestAdmissions();
-    }
-    
     if (!Array.isArray(events) || events.length === 0) {
-      console.log('ℹ️ [LIVE-NOTIFICATIONS] No admission events available from any source');
+      console.log('ℹ️ [LIVE-NOTIFICATIONS] No admission events available - showing real data only');
       return;
     }
 
@@ -55,7 +47,9 @@ export const checkAdmissionUpdates = async () => {
       const message = event.message || '';
 
       for (const user of users) {
-        const already = await checkRecentNotification(user._id.toString(), title, 24);
+        // Enhanced duplicate check: pass university code for more accurate detection
+        const universityCode = event.metadata?.universityCode || event.university;
+        const already = await checkRecentNotification(user._id.toString(), title, 24, universityCode);
         if (already) continue;
 
         const notification = buildNotification({
@@ -92,16 +86,24 @@ export const checkAdmissionUpdates = async () => {
 };
 
 // Check if user recently received similar notification
-const checkRecentNotification = async (userId, title, hoursBack = 24) => {
+// ENHANCED: Now checks by university code + title for better duplicate detection
+const checkRecentNotification = async (userId, title, hoursBack = 24, universityCode = null) => {
   try {
     const notificationsCollection = await getCollection('notifications');
     const cutoffTime = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
 
-    const existing = await notificationsCollection.findOne({
+    const query = {
       userId,
       title,
       createdAt: { $gte: cutoffTime }
-    });
+    };
+    
+    // If university code provided, check for exact match to prevent cross-university duplicates
+    if (universityCode) {
+      query['metadata.universityCode'] = universityCode;
+    }
+
+    const existing = await notificationsCollection.findOne(query);
 
     return !!existing;
   } catch (error) {

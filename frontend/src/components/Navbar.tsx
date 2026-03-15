@@ -1,10 +1,3 @@
-/**
- * Component: Navbar
- * Description: Main navigation header with seamless glassmorphism design
- * Integration: Handles navigation and theme switching
- * Features: Frosted glass effect on scroll, responsive design, theme-aware styling
- */
-
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -12,12 +5,9 @@ import {
   FiMenu,
   FiArrowLeft,
   FiUser,
-  FiBell,
   FiCheck
 } from 'react-icons/fi';
 import { useTheme } from '../contexts/ThemeContext';
-import { useSocket } from '../hooks/useSocket';
-import NotificationPanel from './NotificationPanel';
 
 interface NavbarProps {
   title?: string;
@@ -51,11 +41,6 @@ const Navbar: React.FC<NavbarProps> = memo(({
   const headerRef = useRef<HTMLElement>(null);
   const [showTooltip, setShowTooltip] = useState(false);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
-  const [showNotificationPanel, setShowNotificationPanel] = useState(false);
-
-  // Get notification data from socket hook
-  const { notifications } = useSocket();
-  const unreadCount = notifications.filter(n => !n.metadata?.read).length;
 
   const handleHomeClick = useCallback(() => {
     navigate('/');
@@ -73,32 +58,6 @@ const Navbar: React.FC<NavbarProps> = memo(({
   }, [isMarkingAllRead, onMarkAllReadClick]);
 
   const isButtonDisabled = !onMarkAllReadClick || isMarkingAllRead;
-
-  // Notification handlers
-  const handleNotificationClick = useCallback(() => {
-    setShowNotificationPanel(!showNotificationPanel);
-  }, [showNotificationPanel]);
-
-  // Close notification panel when clicking elsewhere
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const notificationButton = document.getElementById('notification-button');
-      const notificationPanel = document.getElementById('notification-panel');
-
-      if (showNotificationPanel &&
-          notificationButton &&
-          notificationPanel &&
-          !notificationButton.contains(event.target as Node) &&
-          !notificationPanel.contains(event.target as Node)) {
-        setShowNotificationPanel(false);
-      }
-    };
-
-    if (showNotificationPanel) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [showNotificationPanel]);
 
   // Scroll event listener for frosted glass effect
   // Creates seamless glassmorphism effect when user scrolls
@@ -191,11 +150,6 @@ const Navbar: React.FC<NavbarProps> = memo(({
                      style={{ borderRadius: '45px' }}
                    >
                      <div className="flex items-center space-x-2">
-                       {showNotificationBadge && (
-                         <FiBell className={`w-4 h-4 transition-colors duration-200 ${
-                           theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                         }`} />
-                       )}
                        <h1 className={`text-sm font-semibold uppercase tracking-wide whitespace-nowrap transition-colors duration-200 ${
                          theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
                        }`}>
@@ -210,32 +164,8 @@ const Navbar: React.FC<NavbarProps> = memo(({
                    </motion.div>
                  </div>
 
-                 {/* Right side - Notification, Profile, Mark All Read, or Glinax Logo G */}
+                 {/* Right side - Profile, Mark All Read, or Glinax Logo G */}
                  <div className="flex items-center space-x-2">
-                   {/* Notification Button - Always show if user is authenticated */}
-                   {unreadCount > 0 && (
-                     <motion.button
-                       id="notification-button"
-                       whileHover={{ scale: 1.05 }}
-                       whileTap={{ scale: 0.95 }}
-                       onClick={handleNotificationClick}
-                       className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
-                         theme === 'dark'
-                           ? 'glass-unified-dark hover:bg-white/10'
-                           : 'glass-unified hover:bg-white/20'
-                       } ${showNotificationPanel ? 'bg-primary-500/20' : ''}`}
-                     >
-                       <FiBell className={`w-5 h-5 transition-colors duration-200 ${
-                         theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                       }`} />
-
-                       {/* Notification Badge */}
-                       <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                         {unreadCount > 9 ? '9+' : unreadCount}
-                       </span>
-                     </motion.button>
-                   )}
-
                    {showMarkAllReadButton ? (
                      <div className="relative">
                        <motion.button
@@ -341,12 +271,6 @@ const Navbar: React.FC<NavbarProps> = memo(({
                  </div>
         </div>
       </div>
-
-      {/* Notification Panel */}
-      <NotificationPanel
-        isOpen={showNotificationPanel}
-        onClose={() => setShowNotificationPanel(false)}
-      />
     </motion.nav>
   );
 });

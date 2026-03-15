@@ -203,7 +203,8 @@ server.listen(PORT, async () => {
     console.log('MongoDB connected');
     
     // Start background jobs only after DB connection
-    scheduleAdmissionChecks();
+    // NOTE: scheduleAdmissionChecks() removed - startAdmissionNotificationsScheduler() already handles fetching
+    // This prevents duplicate notifications from being sent to users
     startCleanupSchedule();
     startAdmissionNotificationsScheduler();
   } catch (error) {
@@ -217,7 +218,7 @@ server.listen(PORT, async () => {
         await connectDB();
         isDBConnected = true;
         console.log('MongoDB reconnected');
-        scheduleAdmissionChecks();
+        // NOTE: scheduleAdmissionChecks() removed to prevent duplicates
         startCleanupSchedule();
         startAdmissionNotificationsScheduler();
       } catch (retryError) {

@@ -24,9 +24,6 @@ const Settings: React.FC = () => {
     emailUpdates: true
   });
 
-  // Settings are now managed locally
-  // TODO: Integrate with backend settings API
-
   return (
     <div className={`min-h-screen ${
       theme === 'dark' 
@@ -41,7 +38,6 @@ const Settings: React.FC = () => {
       />
 
       <div className="max-w-md mx-auto px-4 py-6">
-        {/* Appearance Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -60,7 +56,6 @@ const Settings: React.FC = () => {
               ? 'bg-white/10 border-white/20' 
               : 'bg-white/80 border-white/30'
           }`}>
-            {/* Theme Setting */}
             <div>
               <div className="flex items-center space-x-3 mb-3">
                 <FiSun className={`w-5 h-5 transition-colors duration-200 ${
@@ -138,7 +133,6 @@ const Settings: React.FC = () => {
               </div>
             </div>
 
-            {/* Language Setting */}
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <FiGlobe className={`w-5 h-5 transition-colors duration-200 ${
@@ -158,8 +152,6 @@ const Settings: React.FC = () => {
                 onChange={(e) => {
                   const newLanguage = e.target.value as 'en' | 'tw' | 'ga' | 'ew';
                   setLocalSettings({...localSettings, language: newLanguage});
-                  // TODO: Integrate with backend settings API
-                  // Language updated successfully
                 }}
                 title="Select display language"
                 aria-label="Display language"
@@ -178,7 +170,6 @@ const Settings: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Notifications Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -199,7 +190,6 @@ const Settings: React.FC = () => {
               ? 'bg-white/10 border-white/20' 
               : 'bg-white/80 border-white/30'
           }`}>
-            {/* Push Notifications */}
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3 flex-1">
                 <FiBell className={`w-5 h-5 transition-colors duration-200 ${
@@ -224,8 +214,6 @@ const Settings: React.FC = () => {
                   if (!checkGuestAccess('notifications')) return;
                   const newValue = !localSettings.pushNotifications;
                   setLocalSettings({...localSettings, pushNotifications: newValue});
-                  // TODO: Integrate with backend settings API
-                  // Push notifications updated successfully
                 }}
                 disabled={isGuest}
                 className={`relative w-12 h-6 rounded-full transition-colors ${
@@ -250,7 +238,6 @@ const Settings: React.FC = () => {
               </button>
             </div>
 
-            {/* Email Updates */}
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3 flex-1">
                 <FiMail className={`w-5 h-5 transition-colors duration-200 ${
@@ -275,8 +262,6 @@ const Settings: React.FC = () => {
                   if (!checkGuestAccess('notifications')) return;
                   const newValue = !localSettings.emailUpdates;
                   setLocalSettings({...localSettings, emailUpdates: newValue});
-                  // TODO: Integrate with backend settings API
-                  // Email updates updated successfully
                 }}
                 disabled={isGuest}
                 className={`relative w-12 h-6 rounded-full transition-colors ${

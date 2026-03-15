@@ -33,7 +33,6 @@ const Forms: React.FC = () => {
   const [pageContent, setPageContent] = useState<PageContent | null>(null);
   const { forms, loadForms, purchaseForm } = useAppStore();
 
-  // Load forms data and page content
   useEffect(() => {
     const loadFormsData = async () => {
       if (forms.length === 0) {
@@ -41,7 +40,6 @@ const Forms: React.FC = () => {
           await loadForms();
         } catch {
           setError('Failed to load forms. Please try again.');
-          // Forms loading error - handled gracefully
         }
       }
     };
@@ -63,7 +61,6 @@ const Forms: React.FC = () => {
     loadPageContent();
   }, []);
 
-  // Handle refresh - Optimized with useCallback
   const handleRefresh = useCallback(async () => {
     setError(null);
     
@@ -71,7 +68,6 @@ const Forms: React.FC = () => {
       await loadForms();
     } catch {
       setError('Failed to refresh forms. Please try again.');
-      // Forms refresh error - handled gracefully
     }
   }, [loadForms]);
 
@@ -83,16 +79,11 @@ const Forms: React.FC = () => {
     enabled: !isLoading && !error
   });
 
-  // Use dynamic payment methods from constants
   const paymentMethods = PAYMENT_METHODS;
 
-  // Handle search result selection
   const handleSearchResultSelect = (_selectedForm: any) => {
-    // You can add custom logic here, like highlighting the selected form
-    // Form selected via search
   };
 
-  // Filter forms based on search query - Optimized with useMemo
   const filteredForms = useMemo(() => 
     searchQuery
       ? forms.filter(form =>
@@ -107,31 +98,23 @@ const Forms: React.FC = () => {
     setSelectedForm(form);
     setShowPaymentModal(true);
   }, []);
-
-  // Check if user email is verified (mock implementation)
   const isEmailVerified = () => {
-    // Guest users can proceed without email verification
     if (isGuest) {
       return true;
     }
     
-    // TODO: Replace with real API call to check email verification status
-    // For authenticated users, check their email verification status
-    // For now, we'll assume email is verified for authenticated users
     return user && user.email !== 'guest@glinax.com';
   };
 
   const handlePayment = async () => {
     if (!selectedForm || !selectedPaymentMethod) return;
     
-    // Check if email is verified
     if (!isEmailVerified()) {
       setShowPaymentModal(false);
       setShowEmailVerification(true);
       return;
     }
     
-    // Proceed with payment if email is verified
     await processPayment();
   };
 
@@ -167,14 +150,7 @@ const Forms: React.FC = () => {
   };
 
   const handleResendVerificationCode = async () => {
-    // TODO: Replace with real API call
-    // const response = await authApi.sendEmailVerification(user?.email);
-    
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Mock success
-    // Verification code sent successfully
   };
 
   return (

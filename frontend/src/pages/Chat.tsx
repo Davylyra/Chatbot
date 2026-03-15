@@ -16,8 +16,6 @@ const Chat: React.FC = () => {
   const resumeConversationId = location.state?.conversationId;
   const resumeConversationTitle = location.state?.conversationTitle;
 
-  console.log('🔍 Chat page state:', { universityContext, assessmentData, initialMessage, forceNewConversation, userContext });
-
   return (
     <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <Navbar 
