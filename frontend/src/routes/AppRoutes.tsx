@@ -6,7 +6,6 @@ import About from '../pages/About';
 import Settings from '../pages/Settings';
 import Profile from '../pages/Profile';
 import Notifications from '../pages/Notifications';
-import RecentChats from '../pages/RecentChats';
 import Transactions from '../pages/Transactions';
 import HelpSupport from '../pages/HelpSupport';
 import Login from '../pages/Login';
@@ -87,8 +86,8 @@ const AppRoutes = () => {
         <Route 
           path="/recent-chats" 
           element={
-            <ProtectedRoute>
-              <RecentChats />
+            <ProtectedRoute allowGuest={true}>
+              <ConversationHistoryPage />
             </ProtectedRoute>
           } 
         />

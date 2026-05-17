@@ -1,17 +1,18 @@
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { getCollection } from "../config/db.js";
+import { getCollection } from "../../config/db.js";
 import { ObjectId } from "mongodb";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
-import { rateLimiters } from "../middleware/rateLimiter.js";
+import { rateLimiters } from "../rateLimiter.js";
 import {
   validateAuthPayload,
   validateEmail,
   validateGmailDomain,
   validatePassword,
-} from "../middleware/inputValidation.js";
+} from "../inputValidation.js";
+import sendVerificationEmail from "../../utils/sendVerificationEmail.js";
 
 dotenv.config();
 
@@ -20,45 +21,27 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 console.log("Auth router file is executing");
 
-// REGISTER
-router.post("/signup", rateLimiters.authRateLimit, validateAuthPayload, async (req, res) => {
-  const { name, email, password } = req.body;
+// SEND SIGNUP VERIFICATION CODE
+// Step 1: User enters email → we send verification code
+router.post("/send-signup-verification", rateLimiters.authRateLimit, async (req, res) => {
+  const { email } = req.body;
 
-  // Validate required fields
   const errors = [];
-  
-  if (!name || !name.trim()) {
-    errors.push('Name is required');
-  } else if (name.trim().length < 3) {
-    errors.push('Name must be at least 3 characters');
-  } else if (name.length > 100) {
-    errors.push('Name must not exceed 100 characters');
-  }
-
   if (!email) {
     errors.push('Email is required');
   }
 
-  if (!password) {
-    errors.push('Password is required');
-  }
-
   if (errors.length > 0) {
-    console.log('🔍 Signup validation failed:', { name, email, hasPassword: !!password, errors });
     return res.status(400).json({ 
       success: false, 
       message: 'Validation failed',
-      errors,
-      errorDetails: errors.join('; ')
+      errors
     });
   }
 
-  // Normalize email
   const normalizedEmail = String(email).toLowerCase();
 
-  // Use shared validators
   if (!validateEmail(normalizedEmail)) {
-    console.log('🔍 Email format invalid:', normalizedEmail);
     return res.status(400).json({ 
       success: false,
       message: 'Invalid email format',
@@ -67,7 +50,6 @@ router.post("/signup", rateLimiters.authRateLimit, validateAuthPayload, async (r
   }
 
   if (!validateGmailDomain(normalizedEmail)) {
-    console.log('🔍 Email not @gmail.com:', normalizedEmail);
     return res.status(400).json({ 
       success: false,
       message: 'Email must end with @gmail.com',
@@ -75,62 +57,202 @@ router.post("/signup", rateLimiters.authRateLimit, validateAuthPayload, async (r
     });
   }
 
-  const pwdValidation = validatePassword(password);
-  if (!pwdValidation.valid) {
-    console.log('🔍 Password validation failed:', pwdValidation.errors);
-    return res.status(400).json({ 
-      success: false,
-      message: 'Password does not meet requirements',
-      errors: pwdValidation.errors,
-      errorDetails: pwdValidation.errors.join('; ')
-    });
-  }
-
   try {
     const usersCollection = await getCollection("users");
+    const signupVerificationsCollection = await getCollection("signup_verifications");
     
-    // Check if user exists
+    // Check if user already exists
     const existingUser = await usersCollection.findOne({ email: normalizedEmail });
     if (existingUser) {
-      console.log('🔍 User already exists:', normalizedEmail);
-      return res.status(400).json({ 
+      return res.status(409).json({ 
         success: false,
         message: "Email already registered",
         errors: ["An account with this email already exists"]
       });
     }
 
+    // Generate 6-digit verification code
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Store verification request temporarily
+    await signupVerificationsCollection.updateOne(
+      { email: normalizedEmail },
+      { 
+        $set: { 
+          email: normalizedEmail,
+          verification_code: verificationCode, 
+          expires_at: expiresAt,
+          created_at: new Date()
+        }
+      },
+      { upsert: true }
+    );
+
+    // Send verification code via email
+    await sendVerificationEmail(normalizedEmail, verificationCode);
+
+    console.log('✅ Verification code sent:', { email: normalizedEmail });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Verification code sent to your email. Valid for 10 minutes.',
+      email: normalizedEmail
+    });
+  } catch (err) {
+    console.error('❌ Send verification error:', err);
+    return res.status(500).json({ 
+      success: false,
+      message: "Failed to send verification code",
+      errors: ["Please try again later"]
+    });
+  }
+});
+
+// VERIFY SIGNUP AND CREATE ACCOUNT
+// Step 2: User enters verification code → we create account
+router.post("/verify-signup", rateLimiters.authRateLimit, async (req, res) => {
+  const { email, verification_code, name, password } = req.body;
+
+  const errors = [];
+  
+  if (!email) {
+    errors.push('Email is required');
+  }
+  if (!verification_code) {
+    errors.push('Verification code is required');
+  }
+  if (!name) {
+    errors.push('Name is required');
+  }
+  if (!password) {
+    errors.push('Password is required');
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Validation failed',
+      errors
+    });
+  }
+
+  const normalizedEmail = String(email).toLowerCase();
+
+  // Validate name
+  if (name.trim().length < 3) {
+    errors.push('Name must be at least 3 characters');
+  } else if (name.length > 100) {
+    errors.push('Name must not exceed 100 characters');
+  }
+
+  // Validate email
+  if (!validateEmail(normalizedEmail)) {
+    errors.push('Invalid email format');
+  }
+  if (!validateGmailDomain(normalizedEmail)) {
+    errors.push('Email must end with @gmail.com');
+  }
+
+  // Validate password
+  const pwdValidation = validatePassword(password);
+  if (!pwdValidation.valid) {
+    errors.push(...pwdValidation.errors);
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({ 
+      success: false,
+      message: 'Validation failed',
+      errors
+    });
+  }
+
+  try {
+    const usersCollection = await getCollection("users");
+    const signupVerificationsCollection = await getCollection("signup_verifications");
+    
+    // Check if user already exists
+    const existingUser = await usersCollection.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(409).json({ 
+        success: false,
+        message: "Email already registered",
+        errors: ["An account with this email already exists"]
+      });
+    }
+
+    // Retrieve and verify the code
+    const verificationRecord = await signupVerificationsCollection.findOne({ 
+      email: normalizedEmail 
+    });
+
+    if (!verificationRecord) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Verification code not found",
+        errors: ["Please request a new verification code"]
+      });
+    }
+
+    if (verificationRecord.verification_code !== String(verification_code)) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid verification code",
+        errors: ["The code you entered is incorrect"]
+      });
+    }
+
+    if (new Date() > verificationRecord.expires_at) {
+      await signupVerificationsCollection.deleteOne({ email: normalizedEmail });
+      return res.status(400).json({ 
+        success: false,
+        message: "Verification code expired",
+        errors: ["Please request a new verification code"]
+      });
+    }
+
     // Hash password
     const password_hash = await bcrypt.hash(password, 10);
 
-    // Insert user (email not verified yet)
+    // Create user with verified status (email verified via code)
     const newUser = {
       name: name.trim(),
       email: normalizedEmail,
       password_hash,
-      is_verified: false,
+      is_verified: true,  // Email verified via signup verification flow
       created_at: new Date(),
       updated_at: new Date()
     };
     
     const result = await usersCollection.insertOne(newUser);
 
-    console.log('✅ Signup successful:', { name, email: normalizedEmail, userId: result.insertedId });
+    // Clean up verification record
+    await signupVerificationsCollection.deleteOne({ email: normalizedEmail });
 
-    // IMPORTANT: Do NOT auto-login or issue a token on signup. Require explicit login.
+    console.log('✅ Account created after verification:', { name, email: normalizedEmail, userId: result.insertedId });
+
     return res.status(201).json({
       success: true,
-      message: 'Account created successfully, please log in.'
+      message: 'Account created successfully! Please log in.',
+      email: normalizedEmail
     });
   } catch (err) {
-    console.error('❌ Signup error:', err);
+    console.error('❌ Verify signup error:', err);
     return res.status(500).json({ 
       success: false,
-      message: "Signup failed due to server error",
+      message: "Failed to create account",
       errors: ["Please try again later"]
     });
   }
 });
+
+
+
+// LEGACY SIGNUP ENDPOINT - NOW USES TWO-STEP VERIFICATION FLOW
+// The old direct signup is deprecated. Use:
+// 1. POST /api/auth/send-signup-verification (send email with code)
+// 2. POST /api/auth/verify-signup (verify code and create account)
 
 // LOGIN
 // LOGIN

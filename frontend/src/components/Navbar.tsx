@@ -97,8 +97,8 @@ const Navbar: React.FC<NavbarProps> = memo(({
         borderBottom: 'none'
       }}
     >
-      <div className="max-w-md mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
+      <div className="max-w-md mx-auto px-4 py-4 md:max-w-5xl">
+        <div className="relative flex items-center justify-between">
           {/* Left side - Back Arrow */}
           <div className="flex items-center">
             {showBackButton ? (
@@ -121,7 +121,7 @@ const Navbar: React.FC<NavbarProps> = memo(({
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={onMenuClick}
-                className={`w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center transition-all duration-200 ${
+                className={`w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center transition-all duration-200 md:hidden ${
                   theme === 'dark' 
                     ? 'bg-white/10 border-white/20 hover:bg-white/20' 
                     : 'bg-white/60 border-white/40 hover:bg-white/80'
@@ -136,21 +136,21 @@ const Navbar: React.FC<NavbarProps> = memo(({
             )}
           </div>
 
-                 {/* Center - Section Title */}
-                 <div className="flex-1 flex justify-center px-4">
+                 {/* Center - Section Title (always centered) */}
+                 <div className="absolute left-1/2 transform -translate-x-1/2 px-4 max-w-[60%] flex justify-center">
                    <motion.div
                      initial={{ scale: 0.9, opacity: 0 }}
                      animate={{ scale: 1, opacity: 1 }}
                      transition={{ delay: 0.1 }}
-                     className={`px-6 py-2 transition-all duration-200 shadow-lg ${
+                     className={`px-6 py-2 text-center transition-all duration-200 shadow-lg ${
                        theme === 'dark' 
                          ? 'glass-unified-dark shadow-black/20' 
                          : 'glass-unified shadow-gray-200/50'
                      }`}
                      style={{ borderRadius: '45px' }}
                    >
-                     <div className="flex items-center space-x-2">
-                       <h1 className={`text-sm font-semibold uppercase tracking-wide whitespace-nowrap transition-colors duration-200 ${
+                     <div className="flex items-center justify-center space-x-2 md:space-x-3">
+                       <h1 className={`text-sm font-semibold uppercase tracking-wide truncate transition-colors duration-200 ${
                          theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
                        }`}>
                          {title}
@@ -165,7 +165,7 @@ const Navbar: React.FC<NavbarProps> = memo(({
                  </div>
 
                  {/* Right side - Profile, Mark All Read, or Glinax Logo G */}
-                 <div className="flex items-center space-x-2">
+                 <div className="flex items-center space-x-2 md:space-x-3">
                    {showMarkAllReadButton ? (
                      <div className="relative">
                        <motion.button
@@ -175,7 +175,7 @@ const Navbar: React.FC<NavbarProps> = memo(({
                          disabled={isButtonDisabled}
                          onMouseEnter={() => !isButtonDisabled && setShowTooltip(true)}
                          onMouseLeave={() => setShowTooltip(false)}
-                         className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 relative ${
+                         className={`w-10 h-10 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-200 relative ${
                            theme === 'dark' 
                              ? 'glass-unified-dark hover:bg-white/10' 
                              : 'glass-unified hover:bg-white/20'
@@ -222,7 +222,7 @@ const Navbar: React.FC<NavbarProps> = memo(({
                        whileHover={{ scale: 1.05 }}
                        whileTap={{ scale: 0.95 }}
                        onClick={onProfileClick}
-                       className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
+                       className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
                          theme === 'dark' 
                            ? 'bg-white/10 hover:bg-white/15' 
                            : 'bg-white/20 hover:bg-white/30'
@@ -242,12 +242,12 @@ const Navbar: React.FC<NavbarProps> = memo(({
                          theme === 'dark' ? 'text-white' : 'text-gray-800'
                        }`} />
                      </motion.button>
-                   ) : (
+                     ) : (
                      <motion.button
                        whileHover={{ scale: 1.05 }}
                        whileTap={{ scale: 0.95 }}
                        onClick={handleHomeClick}
-                       className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
+                       className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
                          theme === 'dark' 
                            ? 'bg-white/10 hover:bg-white/15' 
                            : 'bg-white/20 hover:bg-white/30'

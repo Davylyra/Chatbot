@@ -1103,7 +1103,12 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-              onClick={() => setShowAttachMenu(!showAttachMenu)}
+              onClick={() => {
+                if (!isGuest) {
+                  setShowAttachMenu(!showAttachMenu);
+                }
+              }}
+              disabled={isGuest}
             className={`p-2.5 rounded-full transition-all duration-200 ${
                 showAttachMenu
                   ? theme === 'dark' 
@@ -1112,8 +1117,8 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
                   : theme === 'dark' 
                 ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/50' 
                 : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-            }`}
-            title="Attach file or document"
+            } ${isGuest ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title={isGuest ? 'Guest users cannot attach files. Please log in.' : 'Attach file or document'}
           >
             <FiPaperclip className="w-5 h-5" />
           </motion.button>
@@ -1130,23 +1135,25 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
                 theme === 'dark' 
                   ? 'glass-unified-dark text-white placeholder-gray-400' 
                   : 'glass-unified text-gray-900 placeholder-gray-500'
-              }`}
-              disabled={isTyping}
+              } ${isGuest ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={isTyping || isGuest}
             />
           </div>
           <motion.button
-            whileHover={{ scale: (inputMessage.trim() || attachedFiles.length > 0) && !isTyping ? 1.05 : 1 }}
-            whileTap={{ scale: (inputMessage.trim() || attachedFiles.length > 0) && !isTyping ? 0.95 : 1 }}
+            whileHover={{ scale: (inputMessage.trim() || attachedFiles.length > 0) && !isTyping && !isGuest ? 1.05 : 1 }}
+            whileTap={{ scale: (inputMessage.trim() || attachedFiles.length > 0) && !isTyping && !isGuest ? 0.95 : 1 }}
             onClick={handleSendMessage}
-            disabled={!(inputMessage.trim() || attachedFiles.length > 0) || isTyping}
+            disabled={!(inputMessage.trim() || attachedFiles.length > 0) || isTyping || isGuest}
             className={`p-3 rounded-full transition-all duration-200 ${
-              (inputMessage.trim() || attachedFiles.length > 0) && !isTyping
+              (inputMessage.trim() || attachedFiles.length > 0) && !isTyping && !isGuest
                 ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-md hover:shadow-lg'
                 : theme === 'dark'
                   ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                   : 'bg-gray-300 text-gray-400 cursor-not-allowed'
             }`}
-            title={(inputMessage.trim() || attachedFiles.length > 0) ? "Send message" : "Type a message or attach files"}
+            title={(inputMessage.trim() || attachedFiles.length > 0)
+              ? (isGuest ? 'Guest users cannot send messages. Please log in.' : 'Send message')
+              : 'Type a message or attach files'}
           >
             <FiSend className="w-5 h-5" />
           </motion.button>
@@ -1154,7 +1161,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
       </div>
 
       <AnimatePresence mode="wait">
-        {showAttachMenu && (
+        {showAttachMenu && !isGuest && (
           <>
             {/* Backdrop */}
             <motion.div

@@ -14,7 +14,8 @@ const REQUIRED_COLLECTIONS = {
     'forms': 'Store form submissions and university applications',
     'payments': 'Store Paystack payment transactions and status',
     'universities': 'Store comprehensive university information and programs',
-    'sessions': 'Store user authentication sessions and tokens'
+    'sessions': 'Store user authentication sessions and tokens',
+    'signup_verifications': 'Store temporary signup verification codes (auto-expires after 10 minutes)'
 };
 
 async function createCollectionsAndVerifyData() {
@@ -113,6 +114,15 @@ async function createIndexes(db) {
         await db.collection('sessions').createIndex({ "user_id": 1 });
         await db.collection('sessions').createIndex({ "expires_at": 1 }, { expireAfterSeconds: 0 });
         console.log('✅ Sessions indexes created');
+        
+        // Signup verifications collection - optimize for email lookup and auto-expire
+        try {
+            await db.collection('signup_verifications').createIndex({ "email": 1 }, { unique: true });
+        } catch (e) {
+            console.log('  (Email index already exists)');
+        }
+        await db.collection('signup_verifications').createIndex({ "expires_at": 1 }, { expireAfterSeconds: 0 });
+        console.log('✅ Signup verifications indexes created');
         
     } catch (error) {
         console.error('⚠️ Index creation error:', error.message);

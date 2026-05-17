@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import { UNIVERSITIES_DATA, MOCK_TRANSACTIONS } from '../data/constants';
+import { UNIVERSITIES_DATA } from '../data/constants';
 import type { Notification } from '../types';
 
 // Type definitions for the application state
@@ -365,8 +365,58 @@ export const useAppStore = create<AppState>()(
           set({ purchasedForms: mockPurchasedForms }, false, 'loadPurchasedForms');
         },
 
-        loadTransactions: (_userId) => {
-          set({ transactions: MOCK_TRANSACTIONS }, false, 'loadTransactions');
+        loadTransactions: async (_userId) => {
+          try {
+            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+            const token = localStorage.getItem('token');
+
+            if (!token) {
+              set({ transactions: [] }, false, 'loadTransactions/guest');
+              return;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/payments/transactions`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+
+            const payload = await response.json();
+            const rawTransactions = Array.isArray(payload?.data) ? payload.data : [];
+            const mappedTransactions: Transaction[] = rawTransactions.map((tx: any) => {
+              const createdAt = tx.created_at || tx.createdAt || tx.paid_at || tx.paidAt;
+              const dateObj = createdAt ? new Date(createdAt) : new Date();
+              const amountNumber = Number(tx.amount_paid ?? tx.amount ?? 0);
+              const normalizedStatus = (tx.status === 'success' || tx.status === 'successful')
+                ? 'completed'
+                : (tx.status === 'failed' ? 'failed' : 'pending');
+
+              return {
+                id: String(tx._id || tx.id || tx.reference || Date.now()),
+                universityName: tx.university_name || tx.metadata?.universityName || 'N/A',
+                fullName: tx.form_name || tx.metadata?.formName || 'Payment',
+                type: tx.type || 'Form Purchase',
+                date: dateObj.toLocaleDateString(),
+                time: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                status: normalizedStatus,
+                paymentMethod: tx.payment_method || 'Mobile Money',
+                amount: `GHC ${Number.isFinite(amountNumber) ? amountNumber.toFixed(2) : '0.00'}`,
+                currency: tx.currency || 'GHS',
+                reference: tx.reference || ''
+              };
+            });
+
+            set({ transactions: mappedTransactions }, false, 'loadTransactions/success');
+          } catch (error) {
+            console.error('Failed to load transactions from backend:', error);
+            set({ transactions: [] }, false, 'loadTransactions/fallback');
+          }
         },
 
         addTransaction: (transaction) =>

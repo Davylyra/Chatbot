@@ -18,6 +18,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   signup: (name: string, email: string, password: string) => Promise<{ success: boolean; message: string; errors?: string[] }>;
+  sendSignupVerification: (email: string) => Promise<{ success: boolean; message: string; errors?: string[] }>;
+  verifySignup: (email: string, code: string, name: string, password: string) => Promise<{ success: boolean; message: string; errors?: string[] }>;
   loginAsGuest: () => void;
   updateProfile: (updates: Partial<User>) => void;
 }
@@ -196,6 +198,76 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const sendSignupVerification = async (email: string): Promise<{ success: boolean; message: string; errors?: string[] }> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/send-signup-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const message = data.message || 'Failed to send verification code';
+        setError(message);
+        return { 
+          success: false, 
+          message,
+          errors: data.errors || [message]
+        };
+      }
+
+      return { success: true, message: data.message || 'Verification code sent to your email' };
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to send verification code';
+      console.error('Send verification error:', message);
+      setError(message);
+      return { success: false, message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifySignup = async (email: string, code: string, name: string, password: string): Promise<{ success: boolean; message: string; errors?: string[] }> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/verify-signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, verification_code: code, name, password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const message = data.message || 'Verification failed';
+        setError(message);
+        return { 
+          success: false, 
+          message,
+          errors: data.errors || [message]
+        };
+      }
+
+      return { success: true, message: data.message || 'Account created successfully! Please log in.' };
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Verification failed';
+      console.error('Verify signup error:', message);
+      setError(message);
+      return { success: false, message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isAuthenticated,
@@ -205,6 +277,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     logout,
     signup,
+    sendSignupVerification,
+    verifySignup,
     loginAsGuest,
     updateProfile,
   };

@@ -6,7 +6,7 @@ import { useTheme } from '../contexts/ThemeContext';
 interface EmailVerificationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onVerified: () => void;
+  onVerified: (code: string) => Promise<void>;
   userEmail: string;
   onResendCode: () => Promise<void>;
 }
@@ -57,18 +57,14 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
     setError(null);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      if (verificationCode === '123456') {
-        setSuccess(true);
-        setTimeout(() => {
-          onVerified();
-          onClose();
-        }, 1500);
-      } else {
-        setError('Invalid verification code. Please try again.');
-      }
-    } catch {
-      setError('Verification failed. Please try again.');
+      // Call the onVerified callback with the code
+      await onVerified(verificationCode);
+      setSuccess(true);
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message || 'Verification failed. Please try again.');
     } finally {
       setIsVerifying(false);
     }

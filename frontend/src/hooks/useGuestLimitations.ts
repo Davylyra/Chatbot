@@ -4,7 +4,7 @@
  * Integration: Used across components to control guest access
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface GuestLimitation {
@@ -59,6 +59,16 @@ export const useGuestLimitations = () => {
         'Personalized recommendations'
       ]
     },
+    chat: {
+      feature: 'Chat Access',
+      description: 'Start new chat sessions and use the full AI assistant experience.',
+      benefits: [
+        'Send unlimited messages',
+        'Attach files and documents',
+        'Save conversation history',
+        'Resume chats anytime'
+      ]
+    },
     recentChats: {
       feature: 'Chat History',
       description: 'Access your complete chat history and continue previous conversations.',
@@ -91,23 +101,22 @@ export const useGuestLimitations = () => {
     }
   };
 
-  const checkGuestAccess = (feature: string): boolean => {
+  const checkGuestAccess = useCallback((feature: string): boolean => {
     if (!isGuest) return true;
-    
-    // Show limitation modal for guest users
+
     const config = limitationConfigs[feature];
     if (config) {
       setLimitationData(config);
       setShowLimitationModal(true);
     }
-    
-    return false;
-  };
 
-  const closeLimitationModal = () => {
+    return false;
+  }, [isGuest]);
+
+  const closeLimitationModal = useCallback(() => {
     setShowLimitationModal(false);
     setLimitationData(null);
-  };
+  }, []);
 
   return {
     isGuest,

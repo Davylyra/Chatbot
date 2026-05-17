@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAutoCloseError } from '../hooks/useAutoCloseError';
+import EmailVerificationModal from '../components/EmailVerificationModal';
 
 const Signup: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -16,7 +17,8 @@ const Signup: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const { signup, isLoading } = useAuth();
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const { sendSignupVerification, verifySignup, isLoading } = useAuth();
   const navigate = useNavigate();
   const { theme } = useTheme();
 
@@ -38,7 +40,7 @@ const Signup: React.FC = () => {
     });
   }, 5000);
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleSendVerification = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Clear previous errors
@@ -92,30 +94,72 @@ const Signup: React.FC = () => {
 
     try {
       setErrors({});
-      const result = await signup(formData.name, formData.email, formData.password);
+      // Send verification code to email
+      const result = await sendSignupVerification(formData.email);
       if (result.success) {
-        navigate('/login', { state: { signupSuccess: true, message: result.message } });
+        // Show verification modal
+        setIsVerificationModalOpen(true);
       } else {
-        // Parse backend errors and display them properly
+        // Parse backend errors
         if (result.errors && Array.isArray(result.errors)) {
           const backendErrors: {[key: string]: string} = {};
           for (const error of result.errors) {
-            if (error.includes('Name')) backendErrors.name = error;
-            else if (error.includes('Email') || error.includes('@gmail')) backendErrors.email = error;
-            else if (error.includes('Password')) backendErrors.password = error;
+            if (error.includes('Email') || error.includes('@gmail')) backendErrors.email = error;
             else backendErrors.submit = error;
           }
           if (Object.keys(backendErrors).length > 0) {
             setErrors(backendErrors);
           } else {
-            setErrors({ submit: result.message || 'Signup failed' });
+            setErrors({ submit: result.message || 'Failed to send verification code' });
           }
         } else {
-          setErrors({ submit: result.message || 'Signup failed' });
+          setErrors({ submit: result.message || 'Failed to send verification code' });
         }
       }
     } catch (error: any) {
-      setErrors({ submit: error.message || 'Signup failed. Please try again.' });
+      setErrors({ submit: error.message || 'Failed to send verification code. Please try again.' });
+    }
+  };
+
+  const handleVerifyCode = async (verificationCode: string) => {
+    try {
+      // Verify code and create account
+      const result = await verifySignup(
+        formData.email,
+        verificationCode,
+        formData.name,
+        formData.password
+      );
+      
+      if (result.success) {
+        // Clear form
+        setFormData({
+          name: '',
+          email: '',
+          password: '',
+          confirmPassword: ''
+        });
+        // Redirect to login after small delay to allow modal to close
+        setTimeout(() => {
+          navigate('/login', { state: { signupSuccess: true, message: 'Account created successfully! Please log in.' } });
+        }, 2000);
+      } else {
+        // Throw error to be caught by modal
+        throw new Error(result.message || 'Verification failed');
+      }
+    } catch (error: any) {
+      throw error;
+    }
+  };
+
+  const handleResendCode = async () => {
+    try {
+      const result = await sendSignupVerification(formData.email);
+      if (!result.success) {
+        setErrors({ submit: result.message || 'Failed to resend code' });
+      }
+    } catch (error: any) {
+      setErrors({ submit: error.message || 'Failed to resend code' });
     }
   };
 
@@ -123,17 +167,20 @@ const Signup: React.FC = () => {
     <div className="min-h-screen">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, ${theme === 'dark' ? 'white' : 'black'} 1px, transparent 0)`,
-          backgroundSize: '20px 20px'
-        }} />
+        <div
+          className={`absolute inset-0 bg-[length:20px_20px] ${
+            theme === 'dark'
+              ? 'bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.22)_1px,transparent_0)]'
+              : 'bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.22)_1px,transparent_0)]'
+          }`}
+        />
       </div>
 
       <div className="relative min-h-screen flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md"
+          className="w-full max-w-sm mx-auto px-4 py-4 overflow-hidden md:max-w-xl md:px-6 md:py-6 lg:max-w-2xl xl:max-w-3xl"
         >
 
           {/* Logo and Title */}
@@ -185,7 +232,7 @@ const Signup: React.FC = () => {
                 : 'glass-card-unified'
             }`}
           >
-            <form onSubmit={handleSignup} className="space-y-6">
+            <form onSubmit={handleSendVerification} className="space-y-6">
               {/* Name Field */}
               <div className="space-y-2">
                 <label className={`text-sm font-semibold transition-colors duration-200 ${
@@ -277,7 +324,7 @@ const Signup: React.FC = () => {
                     <FiLock className="w-5 h-5" />
                   </div>
                   <input
-                    type="text"
+                    type={showPassword ? 'text' : 'password'}
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
@@ -292,11 +339,6 @@ const Signup: React.FC = () => {
                         ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400'
                         : 'bg-gray-50/50 border-gray-200 text-gray-900 placeholder-gray-500'
                     }`}
-                    style={{ 
-                      WebkitTextSecurity: showPassword ? 'none' : 'disc',
-                      textSecurity: showPassword ? 'none' : 'disc',
-                      fontFamily: 'monospace'
-                    } as React.CSSProperties}
                     required
                   />
                   <div className="absolute inset-y-0 right-0 pr-4 flex items-center justify-center z-50">
@@ -307,17 +349,10 @@ const Signup: React.FC = () => {
                         e.stopPropagation();
                         setShowPassword(!showPassword);
                       }}
-                      className={`flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200/20 transition-colors duration-200 ${
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className={`flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200/20 transition-colors duration-200 bg-transparent border-0 outline-none relative z-[9999] ${
                         theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
                       }`}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                      style={{ 
-                        background: 'transparent',
-                        border: 'none',
-                        outline: 'none',
-                        position: 'relative',
-                        zIndex: 9999
-                      }}
                     >
                       {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
                     </button>
@@ -344,7 +379,7 @@ const Signup: React.FC = () => {
                     <FiLock className="w-5 h-5" />
                   </div>
                   <input
-                    type="text"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
@@ -359,11 +394,6 @@ const Signup: React.FC = () => {
                         ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400'
                         : 'bg-gray-50/50 border-gray-200 text-gray-900 placeholder-gray-500'
                     }`}
-                    style={{ 
-                      WebkitTextSecurity: showConfirmPassword ? 'none' : 'disc',
-                      textSecurity: showConfirmPassword ? 'none' : 'disc',
-                      fontFamily: 'monospace'
-                    } as React.CSSProperties}
                     required
                   />
                   <div className="absolute inset-y-0 right-0 pr-4 flex items-center justify-center z-50">
@@ -374,17 +404,10 @@ const Signup: React.FC = () => {
                         e.stopPropagation();
                         setShowConfirmPassword(!showConfirmPassword);
                       }}
-                      className={`flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200/20 transition-colors duration-200 ${
+                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                      className={`flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200/20 transition-colors duration-200 bg-transparent border-0 outline-none relative z-[9999] ${
                         theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
                       }`}
-                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                      style={{ 
-                        background: 'transparent',
-                        border: 'none',
-                        outline: 'none',
-                        position: 'relative',
-                        zIndex: 9999
-                      }}
                     >
                       {showConfirmPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
                     </button>
@@ -492,6 +515,15 @@ const Signup: React.FC = () => {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Email Verification Modal */}
+      <EmailVerificationModal
+        isOpen={isVerificationModalOpen}
+        onClose={() => setIsVerificationModalOpen(false)}
+        onVerified={handleVerifyCode}
+        userEmail={formData.email}
+        onResendCode={handleResendCode}
+      />
     </div>
   );
 };

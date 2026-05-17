@@ -1,10 +1,10 @@
 import express from "express";
-import { getCollection } from "../config/db.js";
+import { getCollection } from "../../config/db.js";
 import { ObjectId } from "mongodb";
-import authMiddleware from "../middleware/authMiddleware.js";
+import authMiddleware from "../authMiddleware.js";
 import axios from "axios";
 import crypto from "crypto";
-import sendVerificationEmail from "../utils/sendVerificationEmail.js";
+import sendVerificationEmail from "../../utils/sendVerificationEmail.js";
 
 const router = express.Router();
 

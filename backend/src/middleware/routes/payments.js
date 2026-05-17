@@ -1,12 +1,12 @@
 import express from "express";
-import { verifyAuth } from "../middleware/authMiddleware.js";
-import { validatePaymentPayload } from "../middleware/inputValidation.js";
+import { verifyAuth } from "../authMiddleware.js";
+import { validatePaymentPayload } from "../inputValidation.js";
 import { 
   initializePayment, 
   verifyPayment, 
   handleWebhook, 
   getUserTransactions 
-} from "../controllers/paystackController.js";
+} from "../../controllers/paystackController.js";
 
 const router = express.Router();
 

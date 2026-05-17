@@ -49,7 +49,7 @@ const HelpSupport: React.FC = () => {
         showMenuButton={false}
       />
 
-      <div className="max-w-md mx-auto px-4 py-6">
+      <div className="w-full max-w-sm mx-auto px-4 py-4 overflow-hidden md:max-w-xl md:px-6 md:py-6 lg:max-w-2xl xl:max-w-3xl">
         {helpSections.map((section, sectionIndex) => (
           <motion.div
             key={section.title}
@@ -117,7 +117,7 @@ const HelpSupport: React.FC = () => {
                             transition={{ duration: 0.3 }}
                             className="overflow-hidden"
                           >
-                            <div className={`px-4 pb-4 pl-12 border-t transition-colors duration-200 ${
+                            <div className={`px-4 pb-4 border-t transition-colors duration-200 ${
                               theme === 'dark' 
                                 ? 'border-gray-600 text-gray-300' 
                                 : 'border-gray-200 text-gray-700'

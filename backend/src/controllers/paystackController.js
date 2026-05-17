@@ -8,6 +8,13 @@ import { createSystemNotification } from './notificationController.js';
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_PUBLIC_KEY = process.env.PAYSTACK_PUBLIC_KEY;
 
+const toObjectIdIfValid = (value) => {
+  if (value && ObjectId.isValid(value)) {
+    return new ObjectId(value);
+  }
+  return value;
+};
+
 // GHANA MOBILE MONEY PROVIDERS - PRODUCTION READY
 const GHANA_MOBILE_MONEY_PROVIDERS = {
   MTN: { code: 'mtn', name: 'MTN Mobile Money', prefixes: ['024', '054', '055', '059'] },
@@ -88,18 +95,14 @@ export const initializePayment = async (req, res) => {
     if (amount < 1) errors.push('Minimum payment amount is GHS 1.00');
     if (amount > 10000) errors.push('Maximum payment amount is GHS 10,000.00');
     
-    // Mobile Money specific validation
-    if (paymentMethod === 'mobile_money') {
-      if (!mobileMoneyProvider) {
-        errors.push('Mobile money provider is required (mtn, vod, or tgo)');
-      }
-      if (!mobileMoneyNumber) {
-        errors.push('Mobile money number is required');
+    // Mobile Money number/provider are optional when user completes details on Paystack checkout.
+    let mobileMoneyValidation = null;
+    if (paymentMethod === 'mobile_money' && mobileMoneyNumber && mobileMoneyProvider) {
+      const validation = validateMobileMoneyNumber(mobileMoneyNumber, mobileMoneyProvider);
+      if (!validation.valid) {
+        errors.push(...validation.errors);
       } else {
-        const validation = validateMobileMoneyNumber(mobileMoneyNumber, mobileMoneyProvider);
-        if (!validation.valid) {
-          errors.push(...validation.errors);
-        }
+        mobileMoneyValidation = validation;
       }
     }
     
@@ -134,13 +137,14 @@ export const initializePayment = async (req, res) => {
     
     // Add mobile money specific parameters
     if (paymentMethod === 'mobile_money') {
-      const validation = validateMobileMoneyNumber(mobileMoneyNumber, mobileMoneyProvider);
       paymentParams.channels = ['mobile_money']; // Restrict to mobile money only
-      paymentParams.metadata.mobile_money = {
-        provider: validation.provider.name,
-        providerCode: mobileMoneyProvider,
-        number: validation.cleanNumber
-      };
+      if (mobileMoneyValidation) {
+        paymentParams.metadata.mobile_money = {
+          provider: mobileMoneyValidation.provider.name,
+          providerCode: mobileMoneyProvider,
+          number: mobileMoneyValidation.cleanNumber
+        };
+      }
     }
     
     const params = JSON.stringify(paymentParams);
@@ -174,14 +178,13 @@ export const initializePayment = async (req, res) => {
               const paymentsCollection = await getCollection('payments');
               await paymentsCollection.insertOne({
                 user_id: new ObjectId(userId),
-                form_id: new ObjectId(formId),
+                form_id: toObjectIdIfValid(formId),
                 amount: amountInPesewas,
                 reference: response.data.reference,
                 status: 'pending',
                 payment_method: paymentMethod,
                 mobile_money_provider: mobileMoneyProvider || null,
-                mobile_money_number: paymentMethod === 'mobile_money' ?
-                  validateMobileMoneyNumber(mobileMoneyNumber, mobileMoneyProvider).cleanNumber : null,
+                mobile_money_number: mobileMoneyValidation ? mobileMoneyValidation.cleanNumber : null,
                 paystack_data: response.data,
                 created_at: new Date(),
                 updated_at: new Date(),
@@ -202,8 +205,7 @@ export const initializePayment = async (req, res) => {
                 status: 'pending',
                 payment_method: paymentMethod,
                 mobile_money_provider: mobileMoneyProvider || null,
-                mobile_money_number: paymentMethod === 'mobile_money' ?
-                  validateMobileMoneyNumber(mobileMoneyNumber, mobileMoneyProvider).cleanNumber : null,
+                mobile_money_number: mobileMoneyValidation ? mobileMoneyValidation.cleanNumber : null,
                 paystack_data: response.data,
                 created_at: new Date(),
                 updated_at: new Date(),
@@ -333,7 +335,7 @@ export const verifyPayment = async (req, res) => {
                     payment_id: paymentRecord._id,
                     purchase_date: new Date()
                   });
-                  console.log(`✅ Form ${paymentRecord.form_id} linked to user ${paymentRecord.user_id._toString()}`);
+                  console.log(`✅ Form ${paymentRecord.form_id} linked to user ${String(paymentRecord.user_id)}`);
                 }
               }
             } else {
@@ -344,7 +346,7 @@ export const verifyPayment = async (req, res) => {
                 { reference },
                 {
                   $set: {
-                    status: 'successful',
+                    status: 'success',
                     verified_at: new Date(),
                     paystack_verification: response.data
                   }
@@ -378,10 +380,18 @@ export const verifyPayment = async (req, res) => {
               }
             });
           } else {
-            res.status(400).json({
-              success: false,
-              message: 'Payment verification failed',
-              data: response.data
+            const currentStatus = response?.data?.status;
+            const isFailed = currentStatus === 'failed';
+
+            res.status(200).json({
+              success: !isFailed,
+              message: isFailed ? 'Payment failed' : 'Payment still pending',
+              data: {
+                status: currentStatus || 'pending',
+                amount: response?.data?.amount ? response.data.amount / 100 : undefined,
+                currency: response?.data?.currency,
+                paid_at: response?.data?.paid_at
+              }
             });
           }
         } catch (error) {
@@ -533,15 +543,51 @@ export const handleWebhook = async (req, res) => {
 export const getUserTransactions = async (req, res) => {
   try {
     const userId = req.user.id;
+    const userObjectId = new ObjectId(userId);
     const transactionsCollection = await getCollection('transactions');
-    
-    const transactions = await transactionsCollection.find({
-      user_id: new ObjectId(userId)
-    }).sort({ created_at: -1 }).limit(50).toArray();
+    const paymentsCollection = await getCollection('payments');
+
+    const [transactions, payments] = await Promise.all([
+      transactionsCollection
+        .find({ user_id: userObjectId })
+        .sort({ created_at: -1 })
+        .limit(50)
+        .toArray(),
+      paymentsCollection
+        .find({ user_id: userObjectId })
+        .sort({ created_at: -1 })
+        .limit(50)
+        .toArray()
+    ]);
+
+    const normalizeStatus = (status) => {
+      if (status === 'success' || status === 'successful') return 'success';
+      if (status === 'failed') return 'failed';
+      return 'pending';
+    };
+
+    const normalizedTransactions = transactions.map((tx) => ({
+      ...tx,
+      status: normalizeStatus(tx.status)
+    }));
+
+    const normalizedPayments = payments.map((payment) => ({
+      ...payment,
+      type: 'Form Purchase',
+      amount_paid: payment.amount_paid ?? (typeof payment.amount === 'number' ? payment.amount / 100 : payment.amount),
+      status: normalizeStatus(payment.status),
+      university_name: payment.metadata?.universityName || payment.university_name,
+      form_name: payment.metadata?.formName || payment.form_name,
+      paid_at: payment.paid_at || payment.verified_at || payment.updated_at
+    }));
+
+    const merged = [...normalizedTransactions, ...normalizedPayments]
+      .sort((a, b) => new Date(b.created_at || b.paid_at || b.updated_at || 0) - new Date(a.created_at || a.paid_at || a.updated_at || 0))
+      .slice(0, 100);
 
     res.json({
       success: true,
-      data: transactions
+      data: merged
     });
 
   } catch (error) {

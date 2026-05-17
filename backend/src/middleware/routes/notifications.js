@@ -1,6 +1,6 @@
 // NOTIFICATION ROUTES - PRODUCTION READY
 import express from 'express';
-import authMiddleware from '../middleware/authMiddleware.js';
+import authMiddleware from '../authMiddleware.js';
 import {
   getUserNotifications,
   markAsRead,
@@ -9,8 +9,8 @@ import {
   clearReadNotifications,
   trackNotificationAccess,
   getReadMessages
-} from '../controllers/notificationController.js';
-import { getAdmissionNotifications } from '../utils/admissionNotificationsFetcher.js';
+} from '../../controllers/notificationController.js';
+import { getAdmissionNotifications } from '../../utils/admissionNotificationsFetcher.js';
 
 const router = express.Router();
 

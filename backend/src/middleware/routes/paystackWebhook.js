@@ -10,13 +10,20 @@
 
 import express from 'express';
 import crypto from 'crypto';
-import { getCollection } from '../config/db.js';
+import { getCollection } from '../../config/db.js';
 import { ObjectId } from 'mongodb';
-import { createSystemNotification } from '../controllers/notificationController.js';
+import { createSystemNotification } from '../../controllers/notificationController.js';
 
 const router = express.Router();
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+
+const toObjectIdIfValid = (value) => {
+  if (value && ObjectId.isValid(value)) {
+    return new ObjectId(value);
+  }
+  return value;
+};
 
 /**
  * CRITICAL: Verify Paystack webhook signature
@@ -199,6 +206,7 @@ async function handleChargeSuccess(data, res) {
       // FULFILL ACTION: Grant access to form or digital product
       const userId = paymentRecord.user_id;
       const formId = paymentRecord.form_id;
+      const normalizedFormId = toObjectIdIfValid(formId);
 
       if (userId && formId) {
         const userCollection = await getCollection('users');
@@ -208,9 +216,9 @@ async function handleChargeSuccess(data, res) {
           { _id: new ObjectId(userId) },
           {
             $addToSet: {
-              purchased_forms: new ObjectId(formId),
+              purchased_forms: normalizedFormId,
               payment_history: {
-                form_id: new ObjectId(formId),
+                form_id: normalizedFormId,
                 reference,
                 amount: amount / 100,
                 purchased_at: new Date(),

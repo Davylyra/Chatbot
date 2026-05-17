@@ -4,14 +4,14 @@
  */
 
 import express from "express";
-import { getCollection } from "../config/db.js";
+import { getCollection } from "../../config/db.js";
 import { ObjectId } from "mongodb";
-import authMiddleware from "../middleware/authMiddleware.js";
-import { logAssessment } from "../middleware/conversationLogger.js";
+import authMiddleware from "../authMiddleware.js";
+import { logAssessment } from "../conversationLogger.js";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
-import { matchUniversitiesToProfile, getTopUniversityMatches } from "../utils/universityMatcher.js";
-import { ghanaUniversitiesDatabase, getAllUniversities } from "../data/ghanaUniversitiesDatabase.js";
+import { matchUniversitiesToProfile, getTopUniversityMatches } from "../../utils/universityMatcher.js";
+import { ghanaUniversitiesDatabase, getAllUniversities } from "../../data/ghanaUniversitiesDatabase.js";
 
 dotenv.config();
 

@@ -1,16 +1,15 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import fetch from 'node-fetch';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { connectDB } from './src/config/db.js';
-import authRoutes from './src/routes/auth.js';
-import profileRoutes from './src/routes/profile.js';
-import chatRoutes from './src/routes/chats.js';
-import paymentRoutes from './src/routes/payments.js';
-import paystackWebhookRoutes from './src/routes/paystackWebhook.js';
-import formRoutes from './src/routes/forms.js';
+import authRoutes from './src/middleware/routes/auth.js';
+import profileRoutes from './src/middleware/routes/profile.js';
+import chatRoutes from './src/middleware/routes/chats.js';
+import paymentRoutes from './src/middleware/routes/payments.js';
+import paystackWebhookRoutes from './src/middleware/routes/paystackWebhook.js';
+import formRoutes from './src/middleware/routes/forms.js';
 import { createSystemNotification } from './src/controllers/notificationController.js';
 import notificationService from './src/utils/notificationService.js';
 
@@ -46,9 +45,8 @@ notificationService.setIO(io);
 global.io = io;
 
 const allowedOrigins = [
-  'http://localhost:3000',
+  'http://192.168.0.149:5173',
   'http://localhost:5173',
-  'http://localhost:5174',
   process.env.FRONTEND_URL 
 ];
 
@@ -126,8 +124,8 @@ app.get('/api/universities', (req, res) => {
   res.json({ success: true, data: [] });
 });
 
-import assessmentRoutes from './src/routes/assessments.js';
-import notificationRoutes from './src/routes/notifications.js';
+import assessmentRoutes from './src/middleware/routes/assessments.js';
+import notificationRoutes from './src/middleware/routes/notifications.js';
 import { scheduleAdmissionChecks } from './src/utils/notificationTriggers.js';
 import { startCleanupSchedule } from './src/scripts/cleanupNotifications.js';
 import { startAdmissionNotificationsScheduler } from './src/scripts/admissionNotificationsScheduler.js';

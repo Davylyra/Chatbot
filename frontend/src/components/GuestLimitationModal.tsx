@@ -82,6 +82,7 @@ const GuestLimitationModal: React.FC<GuestLimitationModalProps> = memo(({
           </div>
           <button
             onClick={onClose}
+            title="Close modal"
             className={`p-2 rounded-full transition-colors duration-200 ${
               theme === 'dark' 
                 ? 'hover:bg-white/10 text-gray-400 hover:text-white' 

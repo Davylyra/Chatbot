@@ -12,7 +12,7 @@ const Notifications: React.FC = () => {
   // Hooks and state
   const navigate = useNavigate();
   const { theme } = useTheme();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const { notifications, markAsRead, markAllAsRead } = useSocket();
   
   // Local state for UI feedback
@@ -68,6 +68,40 @@ const Notifications: React.FC = () => {
     }, 2000);
   }, [markAsRead]);
 
+  if (isGuest) {
+    return (
+      <div className="min-h-screen">
+        <Navbar 
+          title="NOTIFICATIONS"
+          showBackButton={true}
+          onBackClick={() => navigate('/')}
+          showMenuButton={false}
+        />
+
+        <div className="w-full max-w-sm mx-auto px-4 py-8 overflow-hidden md:max-w-xl md:px-6 md:py-10 lg:max-w-2xl xl:max-w-3xl">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            className={`rounded-2xl border p-6 text-center backdrop-blur-md ${
+              theme === 'dark'
+                ? 'bg-gray-800/60 border-gray-700 text-gray-100'
+                : 'bg-white/80 border-gray-200 text-gray-800'
+            }`}
+          >
+            <FiAlertCircle className={`mx-auto mb-4 h-12 w-12 ${
+              theme === 'dark' ? 'text-yellow-400' : 'text-yellow-600'
+            }`} />
+            <h3 className="text-xl font-semibold mb-2">Login to view notification</h3>
+            <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+              Sign in to see your updates, alerts, and unread notifications.
+            </p>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen">
       {/* Navigation Header */}
@@ -106,7 +140,7 @@ const Notifications: React.FC = () => {
       </AnimatePresence>
 
       {/* Main Content */}
-      <div className="max-w-md mx-auto px-4 py-6">
+      <div className="w-full max-w-sm mx-auto px-4 py-4 overflow-hidden md:max-w-xl md:px-6 md:py-6 lg:max-w-2xl xl:max-w-3xl">
         {/* Page Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

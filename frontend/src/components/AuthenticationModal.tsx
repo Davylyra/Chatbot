@@ -142,6 +142,8 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
             </h2>
             <button
               onClick={handleClose}
+              aria-label="Close modal"
+              title="Close"
               className={`p-2 rounded-full transition-colors ${
                 theme === 'dark' 
                   ? 'hover:bg-gray-700 text-gray-400' 

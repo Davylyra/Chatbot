@@ -1,10 +1,10 @@
 // src/routes/profile.js
 import express from 'express';
-import authMiddleware from '../middleware/authMiddleware.js';
-import { getCollection } from '../config/db.js';
+import authMiddleware from '../authMiddleware.js';
+import { getCollection } from '../../config/db.js';
 import { ObjectId } from 'mongodb';
 import bcrypt from 'bcrypt';
-import { validateProfilePayload } from '../middleware/inputValidation.js';
+import { validateProfilePayload } from '../inputValidation.js';
 
 const router = express.Router();
 

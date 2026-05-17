@@ -36,6 +36,8 @@ const FormCard: React.FC<FormCardProps> = memo(({
   const { theme } = useTheme();
   const { startUniversityChat } = useUniversityChat();
 
+  const isDisabled = !isAvailable || status === 'expired';
+
   const handleChatClick = () => {
     startUniversityChat({
       name: universityName,
@@ -152,7 +154,7 @@ const FormCard: React.FC<FormCardProps> = memo(({
           onClick={handleChatClick}
           className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-medium transition-all duration-200 ${
             theme === 'dark'
-              ? 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white'
+          ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-md hover:shadow-lg'
               : 'bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-800'
           }`}
         >
@@ -164,9 +166,9 @@ const FormCard: React.FC<FormCardProps> = memo(({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onBuyClick}
-          disabled={!isAvailable}
+          disabled={isDisabled}
           className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-medium transition-all duration-200 ${
-            isAvailable
+            !isDisabled
               ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-md hover:shadow-lg'
               : theme === 'dark'
                 ? 'bg-gray-700 text-gray-400 cursor-not-allowed'

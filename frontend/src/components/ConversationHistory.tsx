@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAppStore } from '../store';
 import ChatBubble from './ChatBubble';
+import GuestLimitationModal from './GuestLimitationModal';
 import { getMarkdownPreview } from '../utils/markdownUtils';
 
 interface Conversation {
@@ -55,8 +56,13 @@ const ConversationHistory: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const { theme } = useTheme();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { isGuest } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+
+  const handleGuestModalClose = useCallback(() => {
+    navigate('/', { replace: true });
+  }, [navigate]);
 
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
@@ -67,6 +73,25 @@ const ConversationHistory: React.FC = () => {
       });
     }
   }, []);
+
+    if (isGuest) {
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <GuestLimitationModal
+            isOpen={true}
+            onClose={handleGuestModalClose}
+            feature="Chat History"
+            description="Access your complete chat history and continue previous conversations."
+            benefits={[
+              'View all your previous chats',
+              'Continue interrupted conversations',
+              'Search through chat history',
+              'Export chat transcripts'
+            ]}
+          />
+        </div>
+      );
+    }
 
   useEffect(() => {
     if (messages.length > 0 && !loadingMessages) {
@@ -277,24 +302,6 @@ const ConversationHistory: React.FC = () => {
   useEffect(() => {
     loadConversations(false);
   }, []);
-  
-  useEffect(() => {
-    if (user) {
-      conversationsCache.clear();
-      loadConversations(true);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        loadConversations(false);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
 
   const handleConversationSelect = async (conversation: Conversation) => {
     setSelectedConversation(conversation);
@@ -426,6 +433,25 @@ const ConversationHistory: React.FC = () => {
     }
     return `${date.toLocaleDateString()} - ${timeString}`;
   };
+
+  if (isGuest) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <GuestLimitationModal
+          isOpen={true}
+          onClose={handleGuestModalClose}
+          feature="Chat History"
+          description="Access your complete chat history and continue previous conversations."
+          benefits={[
+            'View all your previous chats',
+            'Continue interrupted conversations',
+            'Search through chat history',
+            'Export chat transcripts'
+          ]}
+        />
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -776,6 +802,7 @@ const ConversationHistory: React.FC = () => {
           </div>
         )}
       </div>
+
     </div>
   );
 };

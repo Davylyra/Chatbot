@@ -38,7 +38,7 @@ const About: React.FC = () => {
         showMenuButton={false}
       />
 
-      <div className="max-w-md mx-auto px-4 py-6">
+      <div className="w-full max-w-sm mx-auto px-4 py-4 overflow-hidden md:max-w-xl md:px-6 md:py-6 lg:max-w-2xl xl:max-w-3xl">
         {/* App Info */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

@@ -1,15 +1,15 @@
 import React, { memo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FiUser, 
-  FiBell, 
-  FiShoppingCart, 
-  FiClock, 
-  FiSettings, 
-  FiFileText, 
-  FiHelpCircle, 
-  FiInfo, 
+import {
+  FiUser,
+  FiBell,
+  FiShoppingCart,
+  FiClock,
+  FiSettings,
+  FiFileText,
+  FiHelpCircle,
+  FiInfo,
   FiLogOut,
   FiUserPlus,
   FiX
@@ -23,22 +23,24 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   userName?: string;
+  isDesktop?: boolean;
 }
 
 const Sidebar: React.FC<SidebarProps> = memo(({
   isOpen,
   onClose,
-  userName = "User"
+  userName = "User",
+  isDesktop = false
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, isGuest } = useAuth();
   const { theme } = useTheme();
-  const { 
-    showLimitationModal, 
-    limitationData, 
-    checkGuestAccess, 
-    closeLimitationModal 
+  const {
+    showLimitationModal,
+    limitationData,
+    checkGuestAccess,
+    closeLimitationModal
   } = useGuestLimitations();
 
   // All menu items
@@ -104,7 +106,7 @@ const Sidebar: React.FC<SidebarProps> = memo(({
   ];
 
   // Filter menu items based on guest status
-  const menuItems = isGuest 
+  const menuItems = isGuest
     ? allMenuItems.filter(item => item.showInGuest)
     : allMenuItems;
 
@@ -118,27 +120,27 @@ const Sidebar: React.FC<SidebarProps> = memo(({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 z-40"
+            className={`fixed inset-0 z-40 ${isDesktop ? 'hidden' : 'md:hidden'}`}
             style={{
-              background: theme === 'dark' 
+              background: theme === 'dark'
                 ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%)'
                 : 'linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%)',
               backdropFilter: 'blur(12px) saturate(180%)',
               WebkitBackdropFilter: 'blur(12px) saturate(180%)'
             }}
           />
-          
+
           {/* Sidebar */}
           <motion.div
             initial={{ x: -300 }}
             animate={{ x: 0 }}
             exit={{ x: -300 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className={`fixed left-0 top-0 h-full w-80 border-r shadow-2xl z-50 transition-colors duration-200 ${
-              theme === 'dark' 
-                ? 'bg-gray-800/95 border-gray-700' 
+            className={`left-0 top-0 h-full w-80 border-r shadow-2xl z-50 transition-colors duration-200 ${isDesktop ? 'hidden md:relative md:flex md:flex-col md:z-20 md:shadow-none md:translate-x-0 md:top-0 md:left-0 md:w-80' : 'fixed md:hidden'
+              } ${theme === 'dark'
+                ? 'bg-gray-800/95 border-gray-700'
                 : 'bg-white/95 border-white/20'
-            }`}
+              }`}
             style={{
               backdropFilter: 'blur(20px) saturate(180%)',
               WebkitBackdropFilter: 'blur(20px) saturate(180%)'
@@ -146,44 +148,39 @@ const Sidebar: React.FC<SidebarProps> = memo(({
           >
             <div className="flex flex-col h-full">
               {/* Header */}
-              <div className={`p-6 border-b transition-colors duration-200 ${
-                theme === 'dark' ? 'border-gray-700' : 'border-white/20'
-              }`}>
+              <div className={`p-6 border-b transition-colors duration-200 ${theme === 'dark' ? 'border-gray-700' : 'border-white/20'
+                }`}>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className={`text-xl font-bold transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-white' : 'text-gray-800'
-                  }`}>Menu</h2>
+                  <h2 className={`text-xl font-bold transition-colors duration-200 ${theme === 'dark' ? 'text-white' : 'text-gray-800'
+                    }`}>Menu</h2>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={onClose}
-                    className={`p-2 rounded-full transition-colors duration-200 ${
-                      theme === 'dark' 
-                        ? 'bg-gray-700 hover:bg-gray-600' 
+                    className={`p-2 rounded-full transition-colors duration-200 ${isDesktop ? 'md:hidden' : ''} ${theme === 'dark'
+                        ? 'bg-gray-700 hover:bg-gray-600'
                         : 'bg-white/20 hover:bg-white/30'
-                    }`}
+                      }`}
                   >
-                    <FiX className={`w-5 h-5 transition-colors duration-200 ${
-                      theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                    }`} />
+                    <FiX className={`w-5 h-5 transition-colors duration-200 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                      }`} />
                   </motion.button>
                 </div>
-                
+
                 {/* User Profile Card */}
                 <motion.div
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.1 }}
-                  className={`rounded-3xl p-6 border transition-all duration-200 ${
-                    theme === 'dark' 
-                      ? 'bg-gradient-to-br from-gray-800/40 to-gray-900/60 border-gray-700/50 shadow-2xl' 
+                  className={`rounded-3xl p-6 border transition-all duration-200 ${theme === 'dark'
+                      ? 'bg-gradient-to-br from-gray-800/40 to-gray-900/60 border-gray-700/50 shadow-2xl'
                       : 'bg-gradient-to-br from-white/90 to-gray-50/90 border-gray-200/50 shadow-xl'
-                  }`}
+                    }`}
                   style={{
                     backdropFilter: 'blur(20px) saturate(180%)',
                     WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                    boxShadow: theme === 'dark' 
-                      ? '0 20px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)' 
+                    boxShadow: theme === 'dark'
+                      ? '0 20px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
                       : '0 20px 40px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)'
                   }}
                 >
@@ -199,21 +196,18 @@ const Sidebar: React.FC<SidebarProps> = memo(({
                       )}
                     </div>
                     <div className="flex-1">
-                      <h3 className={`font-bold text-lg transition-colors duration-200 ${
-                        theme === 'dark' ? 'text-white' : 'text-gray-800'
-                      }`}>
+                      <h3 className={`font-bold text-lg transition-colors duration-200 ${theme === 'dark' ? 'text-white' : 'text-gray-800'
+                        }`}>
                         {isGuest ? 'Guest User' : (user?.name || userName)}
                       </h3>
                       {isGuest && (
                         <div className="mt-1">
-                          <p className={`text-sm font-medium transition-colors duration-200 ${
-                            theme === 'dark' ? 'text-yellow-300' : 'text-yellow-600'
-                          }`}>
+                          <p className={`text-sm font-medium transition-colors duration-200 ${theme === 'dark' ? 'text-yellow-300' : 'text-yellow-600'
+                            }`}>
                             Guest Mode
                           </p>
-                          <p className={`text-xs transition-colors duration-200 ${
-                            theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                          }`}>
+                          <p className={`text-xs transition-colors duration-200 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                            }`}>
                             Limited features available
                           </p>
                         </div>
@@ -229,7 +223,7 @@ const Sidebar: React.FC<SidebarProps> = memo(({
                   {menuItems.map((item, index) => {
                     const Icon = item.icon;
                     const isActive = location.pathname === item.path;
-                    
+
                     return (
                       <motion.div
                         key={item.path}
@@ -246,43 +240,39 @@ const Sidebar: React.FC<SidebarProps> = memo(({
                             }
                             onClose();
                           }}
-                          className={`block p-4 rounded-2xl transition-all duration-200 group ${
-                            isActive 
+                          className={`block p-4 rounded-2xl transition-all duration-200 group ${isActive
                               ? theme === 'dark'
                                 ? 'bg-primary-600/20 border border-primary-500/30'
                                 : 'bg-primary-100 border border-primary-200'
                               : theme === 'dark'
                                 ? 'hover:bg-white/10 border border-transparent'
                                 : 'hover:bg-white/50 border border-transparent'
-                          }`}
+                            }`}
                           style={{
                             backdropFilter: isActive ? 'blur(8px) saturate(180%)' : 'blur(4px) saturate(180%)',
                             WebkitBackdropFilter: isActive ? 'blur(8px) saturate(180%)' : 'blur(4px) saturate(180%)'
                           }}
                         >
                           <div className="flex items-center space-x-3">
-                            <div className={`p-2 rounded-xl transition-colors duration-200 ${
-                              isActive 
-                                ? 'bg-primary-500 text-white' 
+                            <div className={`p-2 rounded-xl transition-colors duration-200 ${isActive
+                                ? 'bg-primary-500 text-white'
                                 : theme === 'dark'
                                   ? 'bg-gray-700 text-gray-300 group-hover:bg-primary-500/20 group-hover:text-primary-400'
                                   : 'bg-gray-100 text-gray-600 group-hover:bg-primary-100 group-hover:text-primary-600'
-                            }`}>
+                              }`}>
                               <Icon className="w-5 h-5" />
                             </div>
                             <div className="flex-1">
-                              <h4 className={`font-medium transition-colors duration-200 ${
-                                isActive 
+                              <h4 className={`font-medium transition-colors duration-200 ${isActive
                                   ? theme === 'dark' ? 'text-primary-400' : 'text-primary-700'
                                   : theme === 'dark' ? 'text-white' : 'text-gray-800'
-                              }`}>
+                                }`}>
                                 {item.label}
                               </h4>
-                              <p className={`text-sm transition-colors duration-200 ${
-                                isActive 
+                              <p className={`text-sm transition-colors duration-200 ${isActive
                                   ? theme === 'dark' ? 'text-primary-300' : 'text-primary-600'
                                   : theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                              }`}>
+                                }`}>
                                 {item.description}
                               </p>
                             </div>
@@ -295,9 +285,8 @@ const Sidebar: React.FC<SidebarProps> = memo(({
               </div>
 
               {/* Footer */}
-              <div className={`p-6 border-t transition-colors duration-200 ${
-                theme === 'dark' ? 'border-gray-700' : 'border-white/20'
-              }`}>
+              <div className={`p-6 border-t transition-colors duration-200 ${theme === 'dark' ? 'border-gray-700' : 'border-white/20'
+                }`}>
                 {isGuest ? (
                   <motion.button
                     whileHover={{ scale: 1.02 }}
@@ -307,11 +296,10 @@ const Sidebar: React.FC<SidebarProps> = memo(({
                       // Navigate to signup page using React Router
                       navigate('/signup');
                     }}
-                    className={`w-full flex items-center justify-center space-x-2 py-2 px-3 border rounded-xl transition-colors duration-200 ${
-                      theme === 'dark'
+                    className={`w-full flex items-center justify-center space-x-2 py-2 px-3 border rounded-xl transition-colors duration-200 ${theme === 'dark'
                         ? 'border-primary-500 text-primary-400 hover:bg-primary-900/20'
                         : 'border-primary-500 text-primary-600 hover:bg-primary-50'
-                    }`}
+                      }`}
                     style={{
                       backdropFilter: 'blur(8px) saturate(180%)',
                       WebkitBackdropFilter: 'blur(8px) saturate(180%)'
@@ -328,11 +316,10 @@ const Sidebar: React.FC<SidebarProps> = memo(({
                       logout();
                       onClose();
                     }}
-                    className={`w-full flex items-center justify-center space-x-2 py-2 px-3 border rounded-xl transition-colors duration-200 ${
-                      theme === 'dark'
+                    className={`w-full flex items-center justify-center space-x-2 py-2 px-3 border rounded-xl transition-colors duration-200 ${theme === 'dark'
                         ? 'border-red-700 text-red-400 hover:bg-red-900/20'
                         : 'border-red-200 text-red-600 hover:bg-red-50'
-                    }`}
+                      }`}
                     style={{
                       backdropFilter: 'blur(8px) saturate(180%)',
                       WebkitBackdropFilter: 'blur(8px) saturate(180%)'
@@ -342,11 +329,10 @@ const Sidebar: React.FC<SidebarProps> = memo(({
                     <span className="text-sm font-medium">Sign Out</span>
                   </motion.button>
                 )}
-                
+
                 <div className="text-center mt-4">
-                  <p className={`text-sm transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                  }`}>Glinax v2.1.0</p>
+                  <p className={`text-sm transition-colors duration-200 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                    }`}>Glinax v2.1.0</p>
                 </div>
               </div>
             </div>

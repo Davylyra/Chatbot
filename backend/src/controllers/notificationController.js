@@ -3,7 +3,32 @@ import { ObjectId } from 'mongodb';
 import { buildNotification } from '../utils/notificationBuilder.js';
 import notificationService from '../utils/notificationService.js';
 
-// Note: createNotification removed - use notificationService.sendUserNotification() instead
+export const createNotification = async (userId, notificationData) => {
+  try {
+    const notificationObj = buildNotification({
+      title: notificationData.title,
+      message: notificationData.message,
+      type: notificationData.type,
+      category: notificationData.category,
+      priority: notificationData.priority,
+      actionUrl: notificationData.actionUrl,
+      link: notificationData.link,
+      linkText: notificationData.linkText,
+      metadata: notificationData.metadata,
+      fetchedAt: notificationData.fetchedAt,
+      expiresAt: notificationData.expiresAt
+    });
+
+    const result = await notificationService.sendToUser(userId, notificationObj);
+    if (result.success) {
+      return { success: true, notificationId: result.notificationId };
+    }
+    return { success: false, error: result.error };
+  } catch (error) {
+    console.error('❌ Create notification error:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 export const getUserNotifications = async (req, res) => {
   try {
@@ -461,6 +486,7 @@ export const createSystemNotification = async (userId, type, data) => {
 };
 
 export default {
+  createNotification,
   getUserNotifications,
   markAsRead,
   markAllAsRead,
