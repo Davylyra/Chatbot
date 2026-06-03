@@ -32,7 +32,7 @@ const Profile: React.FC = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ;
         const token = localStorage.getItem('token');
         
         if (!token) {
@@ -126,7 +126,7 @@ const Profile: React.FC = () => {
     
     setIsSaving(true);
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ;
       const token = localStorage.getItem('token');
       
       if (!token) {

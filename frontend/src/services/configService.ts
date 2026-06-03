@@ -159,24 +159,19 @@ class ConfigService {
    */
   private getDefaultConfig(key: string): string | null {
     const defaultConfigs: Record<string, string> = {
-      // API Configuration
-      'api.base_url': 'http://localhost:3000/api/v1',
-      'api.timeout': '10000',
-      'api.chat_url': 'https://api.chat.glinax.com',
-      'api.universities_url': 'https://api.universities.gh',
-      'api.forms_url': 'https://api.forms.gh',
-      'api.payment_gateway_url': 'https://api.paymentgateway.com',
-      'api.email_service_url': 'https://api.emailservice.com',
+      // API Configuration - from environment variables
+      'api.base_url': import.meta.env.VITE_API_BASE_URL,
+      'api.timeout': import.meta.env.VITE_API_TIMEOUT ,
       
-      // Contact Information
-      'contact.support_email': 'support@glinax.com',
-      'contact.support_phone': '+233 24 123 4567',
-      'contact.website': 'https://glinax.com',
+      // Contact Information - from environment variables
+      'contact.support_email': import.meta.env.VITE_CONTACT_EMAIL ,
+      'contact.support_phone': import.meta.env.VITE_CONTACT_PHONE ,
+      'contact.website': import.meta.env.VITE_CONTACT_WEBSITE,
       
-      // Social Media
-      'social.twitter': '@glinax_gh',
-      'social.facebook': 'Glinax Ghana',
-      'social.instagram': '@glinax_gh',
+      // Social Media - from environment variables
+      'social.twitter': import.meta.env.VITE_SOCIAL_TWITTER ,
+      'social.facebook': import.meta.env.VITE_SOCIAL_FACEBOOK ,
+      'social.instagram': import.meta.env.VITE_SOCIAL_INSTAGRAM ,
       
       // App Information
       'app.name': 'Glinax Chatbot',

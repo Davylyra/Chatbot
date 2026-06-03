@@ -76,13 +76,13 @@ const Assessment: React.FC = () => {
       try {
         // Update user profile with assessment interests (auto-fill profile page)
         if (isAuthenticated && user && assessmentData.interests?.length > 0) {
-          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
           const token = localStorage.getItem('token');
           
           console.log(' Token exists:', !!token);
           console.log(' Sending interests to backend:', assessmentData.interests);
           
-          if (token) {
+          if (token && API_BASE_URL) {
             try {
               const response = await fetch(`${API_BASE_URL}/profile/update`, {
                 method: 'PUT',
@@ -124,10 +124,10 @@ const Assessment: React.FC = () => {
         
         // Update profile even if chat fails
         if (isAuthenticated && user && assessmentData.interests?.length > 0) {
-          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
           const token = localStorage.getItem('token');
           
-          if (token) {
+          if (token && API_BASE_URL) {
             try {
               const response = await fetch(`${API_BASE_URL}/profile/update`, {
                 method: 'PUT',

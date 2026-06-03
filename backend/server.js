@@ -30,7 +30,7 @@ const server = createServer(app);
 const io = new Server(server, {
   path: '/socket.io/',
   cors: {
-    origin: true,
+    origin: (process.env.FRONTEND_URL).split(',').map(url => url.trim()).filter(Boolean),
     credentials: true,
     methods: ['GET', 'POST']
   },
@@ -44,11 +44,12 @@ notificationService.setIO(io);
 // Make io globally available for notification system
 global.io = io;
 
-const allowedOrigins = [
-  'http://192.168.0.149:5173',
-  'http://localhost:5173',
-  process.env.FRONTEND_URL 
-];
+const allowedOrigins = (process.env.FRONTEND_URL )
+  .split(',')
+  .map(url => url.trim())
+  .filter(Boolean);
+
+console.log('✅ Allowed CORS Origins:', allowedOrigins);
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -76,39 +77,6 @@ const PORT = process.env.PORT || 5000;
 
 app.get('/health', (req, res) => res.send('OK'));
 app.get('/api/health', (req, res) => res.send('OK'));
-
-app.use('/api/config', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      name: "Glinax Chatbot",
-      version: "2.1.0",
-      description: "AI-powered university admission assistant for Ghana",
-      supportEmail: "support@glinax.com",
-      supportPhone: "+233 123 456 789",
-      website: "https://glinax.com",
-      socialMedia: {
-        twitter: "@glinax_gh",
-        facebook: "Glinax Ghana",
-        instagram: "@glinax_gh"
-      },
-      features: {
-        chatEnabled: true,
-        formsEnabled: true,
-        assessmentEnabled: true,
-        paymentsEnabled: true
-      },
-      maintenance: {
-        isActive: false,
-        message: "",
-        startTime: null,
-        endTime: null
-      },
-      api_base_url: "http://localhost:5000/api",
-      timeout: 10000
-    }
-  });
-});
 
 app.use('/api/content', (req, res) => {
   res.json({

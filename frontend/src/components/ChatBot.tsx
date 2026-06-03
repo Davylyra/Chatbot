@@ -94,7 +94,11 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
       if (!resumeConversationId) return;
 
       try {
-        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+        if (!API_BASE_URL) {
+          console.error('API_BASE_URL is not configured');
+          return;
+        }
         // Create or set the conversation in store immediately
         const conversationTitle = resumeConversationTitle || 'Conversation';
         const resumedConversation = {
@@ -601,7 +605,11 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
 
   const sendMessageWithFiles = async (message: string, files: File[], conversationId: string, universityName?: string): Promise<EnhancedChatResponse> => {
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+      if (!API_BASE_URL) {
+        console.error('API_BASE_URL is not configured');
+        throw new Error('API configuration is missing');
+      }
       
       const maxFileSize = 10 * 1024 * 1024;
       const allowedTypes = [

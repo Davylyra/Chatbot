@@ -1,6 +1,6 @@
 // API Service Layer
 
-let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+let API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 let API_TIMEOUT = 10000; // 10 seconds
 
 // load config dynamically

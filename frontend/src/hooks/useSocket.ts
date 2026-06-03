@@ -22,7 +22,7 @@ export const useSocket = () => {
     if (hasLoadedInitial.current) return;
     
     try {
-      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ;
       const token = localStorage.getItem('token');
       if (!token) {
         return;
@@ -86,7 +86,7 @@ export const useSocket = () => {
 
     isConnectingRef.current = true;
     // Remove /api path from base URL for Socket.io connection
-    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+    const apiUrl = import.meta.env.VITE_API_BASE_URL ;
     const API_BASE_URL = apiUrl.replace(/\/api$/, '');
 
     // Cleanup existing socket if any
@@ -307,7 +307,7 @@ export const useSocket = () => {
   // Fetch a replacement notification to fill the gap
   const fetchReplacementNotification = useCallback(async () => {
     try {
-      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ;
       const token = localStorage.getItem('token');
       if (!token) return;
 
@@ -389,7 +389,7 @@ export const useSocket = () => {
 
     // Call backend to persist read + 2s deletion scheduling
     try {
-      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL;
       const token = localStorage.getItem('token');
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -435,7 +435,7 @@ export const useSocket = () => {
   // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
     try {
-      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ;
       const token = localStorage.getItem('token');
       if (!token) {
         return { success: false };
@@ -498,7 +498,7 @@ export const useSocket = () => {
   // Access full read message (24-hour window)
   const accessReadMessage = useCallback(async (notificationId: string) => {
     try {
-      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ;
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('Not authenticated');
@@ -582,7 +582,7 @@ export const useSocket = () => {
   // Fetch read messages (24-hour window)
   const fetchReadMessages = useCallback(async () => {
     try {
-      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ;
       const token = localStorage.getItem('token');
       if (!token) return;
 
