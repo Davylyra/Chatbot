@@ -412,7 +412,7 @@ export const getReadMessages = async (req, res) => {
 export const createSystemNotification = async (userId, type, data) => {
   const notificationTemplates = {
     welcome: {
-      title: 'Welcome to Glinax! 🎓',
+      title: 'Welcome to CERKYL! 🎓',
       message: 'Start exploring Ghanaian universities and get personalized admission guidance.',
       type: 'success',
       category: 'general',

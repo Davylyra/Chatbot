@@ -347,7 +347,7 @@ What would you like to know?`;
 Need specific program details? Just ask!`;
   }
   
-  return `**Welcome to Glinax! 🎓**
+  return `**Welcome to CERKYL! 🎓**
 
 I help with fair, personalized Ghanaian university recommendations:
 

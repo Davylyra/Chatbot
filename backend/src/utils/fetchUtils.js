@@ -1,7 +1,7 @@
 import fetch from 'node-fetch';
 import crypto from 'crypto';
 
-export const DEFAULT_USER_AGENT = 'GlinaxBot/2.0 (University Admission Assistant; +https://glinax.com)';
+export const DEFAULT_USER_AGENT = 'CERKYL/2.0 (University Admission Assistant; +https://glinax.com)';
 
 export const fetchWithRetry = async (url, options = {}, retries = 2, timeout = 10000) => {
   const controller = new AbortController();

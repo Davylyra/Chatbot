@@ -7,7 +7,7 @@ const { fetchWithRetry, DEFAULT_USER_AGENT } = fetchUtils;
 const CONFIG = {
   REQUEST_TIMEOUT: 10000,
   REQUEST_DELAY: 2000,
-  USER_AGENT: 'Glinax-ChatBot/1.0 (+https://glinax.com/bot)',
+  USER_AGENT: 'CERKYL/2.0 (+https://glinax.com/bot)',
   MAX_RETRIES: 2,
   DATA_RETENTION_DAYS: 14,
   SOURCES: [
