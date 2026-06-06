@@ -421,9 +421,9 @@ export const MOCK_RECENT_CHATS = [
 // These are fallback values only, actual values come from dynamic configuration
 export const APP_CONFIG = {
   name: "CERKYL", 
-  version: "1.0.0", 
+  version: "2.0.0", 
   description: "AI-powered university admission assistant for Ghana", 
-  supportEmail: "support@glinax.com", 
+  supportEmail: "glinaxtechinnovations@gmail.com", 
   supportPhone: "+233 123 456 789", 
   website: "https://glinax.com", 
   socialMedia: {

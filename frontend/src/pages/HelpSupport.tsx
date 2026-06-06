@@ -204,7 +204,7 @@ const HelpSupport: React.FC = () => {
                 <p className={`text-sm transition-colors duration-200 ${
                   theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                 }`}>
-                  {pageContent?.sections.find(s => s.id === 'email-support')?.content || 'support@glinax.com'}
+                  {pageContent?.sections.find(s => s.id === 'email-support')?.content }
                 </p>
               </div>
             </div>

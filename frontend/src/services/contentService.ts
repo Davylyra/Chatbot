@@ -340,7 +340,7 @@ class ContentService {
           {
             id: 'email-support',
             title: 'Email',
-            content: 'support@glinax.com', // Will be replaced by dynamic config
+            content: 'glinaxtechinnovations@gmail.com', 
             type: 'text'
           },
           {

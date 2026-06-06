@@ -72,7 +72,6 @@ const validateMobileMoneyNumber = (phoneNumber, provider) => {
 };
 
 // Initialize payment with Paystack - ENHANCED FOR GHANA
-// FIXED: Enhanced payment initialization with Mobile Money support and form purchases
 export const initializePayment = async (req, res) => {
   try {
     const {

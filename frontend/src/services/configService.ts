@@ -247,7 +247,7 @@ class ConfigService {
           {
             id: 'contact-support-email',
             key: 'contact.support_email',
-            value: 'support@glinax.com',
+            value: 'glinaxtechinnovations@gmail.com',
             type: 'string',
             category: 'contact',
             description: 'Support email address',
