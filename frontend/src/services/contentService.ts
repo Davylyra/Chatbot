@@ -213,7 +213,7 @@ class ContentService {
         sections: [
           {
             id: 'app-title',
-            title: 'Glinax Chatbot',
+            title: 'CERKYL',
             content: 'Your AI Assistant for Ghana University Admissions',
             type: 'text'
           },

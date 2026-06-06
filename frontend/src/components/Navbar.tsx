@@ -24,7 +24,7 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = memo(({
-  title = "GLINAX",
+  title = "CERKYL",
   showBackButton = false,
   onBackClick,
   showMenuButton = true,
@@ -164,7 +164,6 @@ const Navbar: React.FC<NavbarProps> = memo(({
                    </motion.div>
                  </div>
 
-                 {/* Right side - Profile, Mark All Read, or Glinax Logo G */}
                  <div className="flex items-center space-x-2 md:space-x-3">
                    {showMarkAllReadButton ? (
                      <div className="relative">

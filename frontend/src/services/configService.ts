@@ -174,7 +174,7 @@ class ConfigService {
       'social.instagram': import.meta.env.VITE_SOCIAL_INSTAGRAM ,
       
       // App Information
-      'app.name': 'Glinax Chatbot',
+      'app.name': 'CERKYL',
       'app.version': '2.1.0',
       'app.description': 'AI-powered university admission assistant for Ghana',
       

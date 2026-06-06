@@ -217,7 +217,7 @@ const Signup: React.FC = () => {
                 theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
               }`}
             >
-              Join Glinax and start your university journey
+              Join CERKYL and start your university journey
             </motion.p>
           </div>
 

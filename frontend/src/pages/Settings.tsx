@@ -335,7 +335,7 @@ const Settings: React.FC = () => {
             <div className="text-center mb-6">
               <h4 className={`font-bold mb-1 transition-colors duration-200 ${
                 theme === 'dark' ? 'text-white' : 'text-gray-800'
-              }`}>Glinax Chatbot</h4>
+              }`}>CERKYL</h4>
               <p className={`text-sm transition-colors duration-200 ${
                 theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
               }`}>Your AI Assistant for Ghana University Admissions</p>

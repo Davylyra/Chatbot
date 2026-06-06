@@ -1,4 +1,3 @@
-// Utility functions for the Glinax Chatbot app
 
 /**
  * Format currency amount

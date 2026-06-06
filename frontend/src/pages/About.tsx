@@ -32,7 +32,7 @@ const About: React.FC = () => {
         : 'bg-gradient-to-b from-transparent via-white/50 to-white'
     }`}>
       <Navbar 
-        title="ABOUT GLINAX"
+        title="ABOUT CERKYL"
         showBackButton={true}
         onBackClick={() => navigate('/')}
         showMenuButton={false}
@@ -56,7 +56,7 @@ const About: React.FC = () => {
           <h2 className={`text-2xl font-bold mb-2 transition-colors duration-200 ${
             theme === 'dark' ? 'text-white' : 'text-gray-800'
           }`}>
-            {pageContent?.sections.find(s => s.id === 'app-title')?.title || 'Glinax Chatbot'}
+            {pageContent?.sections.find(s => s.id === 'app-title')?.title }
           </h2>
           <p className={`mb-4 transition-colors duration-200 ${
             theme === 'dark' ? 'text-gray-300' : 'text-gray-600'

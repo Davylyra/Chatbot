@@ -146,7 +146,7 @@ const Home: React.FC = () => {
   return (
     <div className="fixed-height-container flex flex-col overflow-hidden">
       <Navbar
-        title="GLINAX"
+        title="CERKYL"
         onMenuClick={() => setSidebarOpen(true)}
         showProfileButton={true}
         onProfileClick={() => navigate('/profile')}

@@ -161,7 +161,7 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
             }`}>
               {mode === 'login' 
                 ? 'Sign in to access all features and save your conversations'
-                : 'Join Glinax to get personalized university recommendations'
+                : 'Join CERKYL to get personalized university recommendations'
               }
             </p>
 

@@ -1,5 +1,4 @@
 /**
- * GLINAX CHATBOT - 2025/2026 ADMISSION CYCLE DATA
  * Updated: December 15, 2025
  * 
  * This file contains current admission data for Ghanaian universities

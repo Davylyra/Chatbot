@@ -991,7 +991,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
                 theme === 'dark' ? 'bg-gray-500' : 'bg-gray-400'
               }`}></div>
             </div>
-            <span className="text-sm">Glinax is typing...</span>
+            <span className="text-sm">CERKYL is typing...</span>
           </motion.div>
         )}
 
@@ -1138,7 +1138,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Message Glinax Assistant..."
+              placeholder="Message CERKYL..."
               className={`w-full px-4 py-3 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 ${
                 theme === 'dark' 
                   ? 'glass-unified-dark text-white placeholder-gray-400' 

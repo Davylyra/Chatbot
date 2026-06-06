@@ -29,7 +29,7 @@ const AppContent = memo(() => {
       id="main-content"
       className="relative min-h-screen w-full overflow-hidden scrollbar-hide"
       role="main"
-      aria-label="Glinax Chatbot Application"
+      aria-label=" Application"
     >
       <div 
         className={`absolute inset-0 transition-colors duration-200 ${

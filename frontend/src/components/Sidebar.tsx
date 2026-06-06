@@ -98,7 +98,7 @@ const Sidebar: React.FC<SidebarProps> = memo(({
     },
     {
       icon: FiInfo,
-      label: "About Glinax",
+      label: "About CERKYL ",
       description: "App info & version",
       path: "/about",
       showInGuest: true
@@ -332,7 +332,7 @@ const Sidebar: React.FC<SidebarProps> = memo(({
 
                 <div className="text-center mt-4">
                   <p className={`text-sm transition-colors duration-200 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                    }`}>Glinax v2.1.0</p>
+                    }`}>CERKYL v2.1.0</p>
                 </div>
               </div>
             </div>

@@ -18,10 +18,11 @@ const sendVerificationEmail = async (to, otp) => {
   await transporter.verify();
 
   const mailOptions = {
-    from: `"Glinax AI Chatbot" <${process.env.EMAIL_USER}>`,
+    from: `"CERKYL" <${process.env.EMAIL_USER}>`,
     to,
-    subject: "Email Verification - AI Chatbot",
-    text: `Your verification code is ${otp}. It will expire in 10 minutes.`,
+    subject: "Email Verification ",
+    text: `Your verification code is ${otp}. It will expire in 10 minutes.\nPlease enter this code to verify your email address.
+    \nIf you did not request this code, please ignore this email.`,
   };
 
   await transporter.sendMail(mailOptions);

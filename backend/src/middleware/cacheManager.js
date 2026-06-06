@@ -1,5 +1,4 @@
 /**
- * INTELLIGENT CACHING SYSTEM FOR GLINAX CHATBOT
  * Implements multi-tier caching for optimal performance
  * - In-memory cache for frequent queries
  * - MongoDB cache for complex AI responses  

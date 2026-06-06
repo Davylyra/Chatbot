@@ -717,7 +717,7 @@ function generateDemoFallbackResponse(message) {
   const messageLower = message.toLowerCase();
   
   if (messageLower.includes('hello') || messageLower.includes('hi') || messageLower.includes('hey')) {
-    return `Hello! 👋 Welcome to Glinax - your AI assistant for Ghanaian university admissions!
+    return `Hello! 👋 Welcome to CERKYL - your AI assistant for Ghanaian university admissions!
 
 I can help you with:
 🎓 University information (UG, KNUST, UCC, UDS, etc.)
@@ -817,7 +817,7 @@ Need info about a specific university or program?`;
   }
   
   // General response
-  return `**Welcome to Glinax University Assistant! 🎓**
+  return `**Welcome to CERKYL🎓**
 
 I'm here to help with Ghanaian university admissions. Here's what I can help you with:
 

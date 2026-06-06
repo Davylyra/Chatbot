@@ -1,5 +1,4 @@
 /**
- * Database Setup and Data Verification for Glinax Chatbot
  * Ensures all collections are created and receiving data properly
  */
 
@@ -19,7 +18,7 @@ const REQUIRED_COLLECTIONS = {
 };
 
 async function createCollectionsAndVerifyData() {
-    console.log('🚀 Setting up Glinax Chatbot Database Collections...\n');
+    console.log('🚀 Setting up CERKYL Database Collections...\n');
     
     try {
         // Test database connection

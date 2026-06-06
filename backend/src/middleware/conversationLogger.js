@@ -1,7 +1,6 @@
 /**
  * CONVERSATION LOGGING MIDDLEWARE - PRODUCTION READY
  * Automatically saves all conversations and user assessments to MongoDB
- * Built for Glinax - Ghanaian University Chatbot
  */
 
 import { getCollection } from '../config/db.js';

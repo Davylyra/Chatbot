@@ -420,16 +420,16 @@ export const MOCK_RECENT_CHATS = [
 // App configuration constants - Now managed by configService
 // These are fallback values only, actual values come from dynamic configuration
 export const APP_CONFIG = {
-  name: "Glinax Chatbot", // Will be replaced by configService.getConfig('app.name')
-  version: "1.0.0", // Will be replaced by configService.getConfig('app.version')
-  description: "AI-powered university admission assistant for Ghana", // Will be replaced by configService.getConfig('app.description')
-  supportEmail: "support@glinax.com", // Will be replaced by configService.getConfig('contact.support_email')
-  supportPhone: "+233 123 456 789", // Will be replaced by configService.getConfig('contact.support_phone')
-  website: "https://glinax.com", // Will be replaced by configService.getConfig('contact.website')
+  name: "CERKYL", 
+  version: "1.0.0", 
+  description: "AI-powered university admission assistant for Ghana", 
+  supportEmail: "support@glinax.com", 
+  supportPhone: "+233 123 456 789", 
+  website: "https://glinax.com", 
   socialMedia: {
-    twitter: "@glinax_gh", // Will be replaced by configService.getConfig('social.twitter')
-    facebook: "Glinax Ghana", // Will be replaced by configService.getConfig('social.facebook')
-    instagram: "@glinax_gh" // Will be replaced by configService.getConfig('social.instagram')
+    twitter: "@glinax_gh",
+    facebook: "Glinax Ghana", 
+    instagram: "@glinax_gh" 
   }
 };
 

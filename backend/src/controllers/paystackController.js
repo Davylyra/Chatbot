@@ -125,7 +125,7 @@ export const initializePayment = async (req, res) => {
       amount: amountInPesewas,
       currency,
       reference: `glinax_${Date.now()}_${userId}`,
-      callback_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment/callback`,
+      callback_url: `${process.env.FRONTEND_URL}/payment/callback`,
       metadata: {
         userId,
         service: 'glinax_premium',
