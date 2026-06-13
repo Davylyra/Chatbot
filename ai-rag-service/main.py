@@ -11,18 +11,12 @@ from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, HTTPException, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
 import requests
 from dotenv import load_dotenv
 import motor.motor_asyncio
-from sentence_transformers import SentenceTransformer
-import numpy as np
 from groq import Groq
 
-# Load environment variables
 load_dotenv()
-
-# URL sanitization for markdown links
 def sanitize_markdown_urls(text: str) -> str:
     if not text:
         return text
@@ -143,8 +137,6 @@ def sanitize_markdown_urls(text: str) -> str:
     cleaned_text = re.sub(markdown_link_pattern, clean_url, text)
     
     return cleaned_text
-
-# Initialize FastAPI
 app = FastAPI(title="Glinax RAG+CAG Service", version="2.0.0")
 
 from fastapi import Path, Query, Depends, status
@@ -172,7 +164,6 @@ def get_current_user(creds: HTTPAuthorizationCredentials = Depends(auth_scheme))
 def resolve_user_id(token_user: Optional[str], fallback_user: Optional[str]) -> str:
     return token_user or (fallback_user or "")
 
-# CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -180,8 +171,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Global variables for services
 embedding_model = None
 groq_client = None
 db_client = None
@@ -222,8 +211,6 @@ def configure_tesseract_path_if_needed(pytesseract_module) -> None:
                 return
 
     # If still unset, leave as-is; pytesseract will use PATH
-
-# Request/Response Models
 class ChatRequest(BaseModel):
     message: str
     conversation_id: str
@@ -729,15 +716,6 @@ async def initialize_services():
     print("🚀 Initializing Glinax RAG+CAG Services...")
     
     try:
-        # Initialize embedding model (with fallback on error)
-        try:
-            print("📊 Loading embedding model...")
-            embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-            print("✅ Embedding model loaded successfully")
-        except Exception as embed_error:
-            print(f"⚠️ Embedding model loading failed: {embed_error}")
-            print("⚠️ Will use fallback similarity matching")
-            embedding_model = None
         
         # Initialize Groq client
         groq_api_key = os.getenv('GROQ_API_KEY')
@@ -769,6 +747,81 @@ async def initialize_services():
     except Exception as e:
         print(f"❌ Critical service initialization error: {e}")
         raise
+# Shared university name/alias mapping — used by search and fallback functions
+UNI_NAME_VARIATIONS = {
+    "university of ghana": "University of Ghana",
+    "ug": "University of Ghana",
+    "legon": "University of Ghana",
+    "knust": "Kwame Nkrumah University of Science and Technology",
+    "kwame nkrumah": "Kwame Nkrumah University of Science and Technology",
+    "kumasi": "Kwame Nkrumah University of Science and Technology",
+    "ucc": "University of Cape Coast",
+    "cape coast": "University of Cape Coast",
+    "uds": "University for Development Studies",
+    "tamale": "University for Development Studies",
+    "upsa": "University of Professional Studies",
+    "uenr": "University of Energy and Natural Resources",
+    "sunyani": "University of Energy and Natural Resources",
+    "uhas": "University of Health and Allied Sciences",
+    "ho": "University of Health and Allied Sciences",
+    "gimpa": "Ghana Institute of Management and Public Administration",
+    "ashesi": "Ashesi University",
+    "berekuso": "Ashesi University",
+    "gtuc": "Ghana Technology University College",
+    "central": "Central University",
+    "valley view": "Valley View University",
+    "presbyterian": "Presbyterian University",
+    "methodist": "Methodist University",
+    "academic city": "Academic City University",
+}
+def build_university_context(uni_name: str, uni_data: dict) -> str:
+    """Build a clean, readable context string for the LLM instead of raw JSON."""
+    current_year = datetime.now().year
+    fees_key = f"current_fees_{current_year}"
+    fees = uni_data.get(fees_key, {})
+    programs = uni_data.get("programs", {})
+    admission = uni_data.get("admission_requirements", {})
+    contact = uni_data.get("contact", {})
+    scholarships = uni_data.get("scholarships", {})
+
+    program_lines = []
+    for prog_name, prog_data in programs.items():
+        program_lines.append(
+            f"  - {prog_name} ({prog_data.get('duration', 'N/A')}): "
+            f"Requirements: {prog_data.get('requirements', 'N/A')} | "
+            f"Careers: {prog_data.get('career_prospects', 'N/A')}"
+        )
+
+    scholarship_lines = [f"  - {k}: {v}" for k, v in scholarships.items()]
+
+    return f"""UNIVERSITY: {uni_name}
+Location: {uni_data.get('location', 'Ghana')}
+Established: {uni_data.get('established', 'N/A')}
+Website: {uni_data.get('website', 'N/A')}
+
+PROGRAMS OFFERED:
+{chr(10).join(program_lines) or '  - See university website'}
+
+ADMISSION REQUIREMENTS:
+  - General: {admission.get('general', 'WASSCE with minimum credits')}
+  - Application Deadline: {admission.get('application_deadline', 'Check university website')}
+  - Application Fee: {admission.get('application_fee', 'Contact university')}
+  - Entrance Exam: {admission.get('entrance_exam', 'Not specified')}
+  - Online Portal: {admission.get('online_portal', uni_data.get('website', ''))}
+
+FEES ({current_year}):
+  - Ghanaian Students: {fees.get('ghanaian_students', 'Contact university for current rates')}
+  - International Students: {fees.get('international_students', 'Contact university for current rates')}
+  - Accommodation: {fees.get('residential_fees', 'Contact university for current rates')}
+
+SCHOLARSHIPS:
+{chr(10).join(scholarship_lines) or '  - Contact university for scholarship information'}
+
+CONTACT:
+  - Phone: {contact.get('phone', 'N/A')}
+  - Email: {contact.get('email', 'N/A')}
+  - Address: {contact.get('address', 'N/A')}
+"""
 
 def search_local_knowledge(query: str, university_name: str = None) -> Dict[str, Any]:
     """Search local Ghana universities knowledge base"""
@@ -777,27 +830,7 @@ def search_local_knowledge(query: str, university_name: str = None) -> Dict[str,
     results = []
     confidence = 0.0
     
-    # Check for university name variations - UNBIASED, all universities equal
-    uni_name_variations = {
-        "university of ghana": "University of Ghana",
-        "ug": "University of Ghana", 
-        "legon": "University of Ghana",
-        "knust": "Kwame Nkrumah University of Science and Technology",
-        "kwame nkrumah": "Kwame Nkrumah University of Science and Technology",
-        "kumasi": "Kwame Nkrumah University of Science and Technology",
-        "ucc": "University of Cape Coast",
-        "cape coast": "University of Cape Coast",
-        "uds": "University for Development Studies",
-        "tamale": "University for Development Studies",
-        "upsa": "University of Professional Studies",
-        "uenr": "University of Energy and Natural Resources",
-        "sunyani": "University of Energy and Natural Resources",
-        "uhas": "University of Health and Allied Sciences",
-        "ho": "University of Health and Allied Sciences",
-        "gimpa": "Ghana Institute of Management and Public Administration",
-        "ashesi": "Ashesi University",
-        "berekuso": "Ashesi University"
-    }
+    uni_name_variations =UNI_NAME_VARIATIONS 
     
     # Find university from query if not provided
     if not university_name:
@@ -953,152 +986,110 @@ async def search_with_serpapi(query: str, api_key: str) -> Dict[str, Any]:
         print(f"❌ SerpAPI error: {e}")
         return {"results": [], "confidence": 0.0}
 
-# Removed simulated web search in favor of real DuckDuckGo and SerpAPI
-# async def search_web_direct(query: str) -> Dict[str, Any]:
+def generate_response_with_groq(query: str, context: str, sources: List[Dict], user_profile: Dict = None) -> str:
+    """Generate response using Groq LLM."""
 
-    pass  # deprecated simulated search body removed
-def generate_response_with_groq(query: str, context: str, sources: List[Dict]) -> str:
-    """Generate response using Groq LLM with enhanced file processing capabilities"""
-    
     try:
         if not groq_client:
-            return generate_smart_fallback_response(query, context, sources)
-        
-        # Enhanced system prompt for Ghana context with STRICT UNBIASED RECOMMENDATIONS
-        system_prompt = """You are Glinax, a highly professional AI assistant specializing in Ghanaian university admissions and education. You have advanced capabilities to analyze uploaded files and provide contextual guidance.
+            return generate_smart_fallback_response(query, context, sources, user_profile)
 
-Your core competencies:
-- Expert knowledge of Ghana's university system and admission requirements
-- Professional analysis of academic documents, certificates, and images
-- Personalized guidance based on uploaded content
-- Current knowledge of fees, deadlines, and application procedures
+        current_year = datetime.now().year
 
-**CRITICAL: UNBIASED UNIVERSITY RECOMMENDATIONS**
-You MUST provide fair, assessment-driven recommendations for ALL Ghanaian universities:
-- NEVER default to recommending only University of Ghana, KNUST, or UCC
-- Base ALL recommendations on the user's specific assessment data: subjects, SHS program, WASSCE grade, career goals, interests, location preference
-- Consider the FULL range of Ghana universities: UG, KNUST, UCC, UDS, UPSA, UENR, UHAS, Ashesi, GIMPA, GTUC, Central University, Valley View, Presbyterian, Methodist, Academic City, etc.
-- Match programs to user profile, NOT university prestige
-- For technical/vocational interests → recommend technical universities, polytechnics, TVET institutions
-- For agriculture → emphasize UDS, UENR, agricultural colleges
-- For health sciences → include UHAS, nursing training colleges, not just UG/KNUST Medicine
-- For education → highlight UCC, University of Education Winneba, not just big three
-- For business/accounting → include UPSA, GIMPA, not just UG/KNUST
-- For arts/humanities → recommend universities with strong arts programs
-- For lower WASSCE grades → suggest universities with flexible admission, distance learning, mature student programs
+        system_prompt = f"""You are Cerkyl — a smart, friendly, and knowledgeable AI admission counsellor built specifically for Ghanaian SHS graduates. You are the trusted senior friend every student wishes they had when choosing a university — someone who truly understands the Ghanaian education system, speaks plainly, and gives honest, personalised advice.
 
-**Assessment-Driven Matching Rules:**
-1. If user studied General Science + wants Engineering → KNUST, UG Engineering, UENR, UDS Engineering
-2. If user studied Business + wants Accounting → UPSA, GIMPA, UCC, UG, private business colleges
-3. If user studied Agriculture Science + wants Farming → UDS, UENR, UCC Agriculture, agricultural colleges
-4. If user studied General Arts + wants Teaching → UCC, UEW, teacher training colleges
-5. If user studied Technical + wants hands-on work → Technical universities, TVET institutions
-6. If user has low WASSCE grade → Community colleges, diploma programs, mature student options
-7. If user prefers Northern Ghana → UDS, UEW Kumasi, northern campuses
-8. If user prefers Ashanti Region → KNUST, UEW Kumasi, Ashesi (Berekuso)
-9. If user wants affordable → Public universities, distance learning, scholarship programs at all institutions
+Your personality:
+- Warm, encouraging, and supportive — never cold or robotic
+- Formal but conversational — like a knowledgeable older sibling or mentor
+- Honest — if a program is competitive or a grade may be insufficient, say so kindly and suggest alternatives
+- Proactive — anticipate follow-up questions and address them before the student has to ask
+- Concise — never dump information the student did not ask for
 
-**Explanation Requirements:**
-For EVERY recommendation, you MUST explain:
-- Why this specific university matches their SUBJECTS studied
-- How this program aligns with their CAREER GOALS
-- Why their WASSCE GRADE makes them eligible
-- How their INTERESTS and SHS PROGRAM fit
-- Location consideration relative to their preference
+What makes you better than Google:
+- Google gives everyone the same results. You give personalised advice based on THIS student's specific subjects, grades, career goals, and location.
+- You understand Ghanaian grading (WASSCE aggregates, A1–F9 grades), SHS programmes (General Science, General Arts, Business, Home Economics, Visual Arts, Agricultural Science, Technical), and how they map to university programmes.
+- You remember the student's profile within the conversation and refer back to it naturally.
+- You explain the WHY behind every recommendation — not just what, but why it fits them specifically.
+- You flag things students miss — application deadlines, entrance exams, hidden fees, scholarship opportunities.
 
-**Forbidden Patterns:**
-- "I recommend University of Ghana, KNUST, and UCC" (without assessing profile)
-- "These are the top three universities in Ghana" (biased statement)
--  "The best universities for you are UG, KNUST, UCC" (ignoring other options)
+RESPONSE RULES — STRICTLY FOLLOW:
+1. Answer ONLY what was asked. Do not volunteer all 7 categories of information for every message.
+2. For a simple question (e.g. "What is the deadline for KNUST?") — give a direct, focused answer in 2–4 sentences or a short list.
+3. For recommendation requests — recommend ONLY 2–4 universities that genuinely fit the student's profile. Explain why each fits THEIR subjects, grade, and goals. Do not list every university in Ghana.
+4. For greetings or general openers — respond warmly, introduce yourself briefly, and ask what they need help with.
+5. If the student has NOT provided their profile and asks for a recommendation — ask 2–3 short, friendly questions to gather: SHS programme, WASSCE aggregate or expected grade, and career interest. Do not guess.
+6. Never start a response with "I" — vary your opening naturally.
+7. Use markdown formatting (bold headings, bullet points) only when it genuinely improves readability. Short answers should be plain prose.
 
-File Analysis Capabilities:
-- Academic transcripts and certificates: Analyze grades and recommend suitable programs
-- University brochures and websites: Extract relevant admission information
-- Personal statements and essays: Provide feedback and improvement suggestions
-- Images of documents: Extract and interpret text content for admission guidance
+UNIVERSITY MATCHING RULES (use when profile is available):
+- General Science → Engineering (KNUST, UG, UENR, UDS), Medicine (UG, KNUST, UHAS, UDS), Computer Science (KNUST, UG, Ashesi, GTUC, Academic City)
+- Business → Accounting/Finance (UPSA, UCC, UG, GIMPA), Marketing (UPSA, UCC), Banking (UPSA, UG)
+- General Arts → Law (UG, KNUST, UCC), Education (UCC, UEW), Social Sciences (UG, UCC, GIMPA), Journalism (GIJ, UG)
+- Agricultural Science → Agriculture (UDS, UCC, UENR), Agricultural Engineering (KNUST, UDS, UENR)
+- Home Economics → Nursing (UHAS, UCC), Food Science (KNUST, UG), Hospitality (Ho Technical, Accra Technical)
+- Visual Arts → Fine Art (KNUST), Communication Design (KNUST, UG), Architecture (KNUST)
+- Technical → Engineering Technology (KNUST, technical universities), TVET programmes
+- Low aggregate (24–36) → Distance learning, diploma programmes, mature student entry, community colleges
+- Location preference: Northern Ghana → UDS (Tamale); Ashanti → KNUST, Ashesi; Volta → UHAS (Ho); Bono → UENR (Sunyani); Accra → UG, UPSA, GIMPA, Ashesi, Academic City
 
-CRITICAL RULE: When analyzing CVs or Transcripts, you MUST first identify and explicitly state the name of the University/Institution and the Program of Study found at the top of the document before analyzing grades.
+WASSCE GRADE ELIGIBILITY GUIDE:
+- Aggregate 6–12: Very competitive — qualifies for Medicine, Engineering at KNUST/UG
+- Aggregate 13–18: Good — qualifies for most Science and Business programmes
+- Aggregate 19–24: Average — qualifies for most Arts and Business programmes, some Science
+- Aggregate 25–36: Below average — target diploma programmes, distance learning, or universities with flexible entry
+- Always state clearly whether the student's grade meets the requirement for each recommended programme
 
-If the user uploads a document, prioritize the information found in the document text over your general knowledge base.
+LINK FORMATTING:
+- Use proper markdown links: [University Admissions Portal](https://admissions.ug.edu.gh)
+- Never use the URL as link text
+- Only include links when genuinely relevant
 
-Response Standards - STRICTLY ENFORCED:
-- ALWAYS maintain a professional, formal, and encouraging tone
-- NEVER use slang, casual language, or informal expressions
-- NEVER use emojis or text speak in your responses
-- Use proper grammar, complete sentences, and formal English language
-- Address users respectfully with professional language
-- Provide accurate, up-to-date information with specific details
-- Structure responses clearly with headings and bullet points using markdown formatting
-- Include actionable next steps and contact information
-- When analyzing files, be specific about what you observed and how it relates to admission requirements
+DOCUMENT ANALYSIS:
+- When a document is uploaded, first state what type of document it is and the institution/programme at the top
+- Then extract and analyse the relevant information
+- Prioritise information from the document over your general knowledge
 
-**CRITICAL LINK FORMATTING RULES:**
-- ALL website links must use proper markdown: [descriptive text](URL)
-- NEVER use the URL as the link text: ❌ [https://example.com](https://example.com)
-- ALWAYS use descriptive text: ✅ [University Admissions Portal](https://example.com)
-- NEVER nest brackets or duplicate URLs: ❌ [[URL](URL)](URL)
-- Each URL should appear only ONCE in the link
-- Examples:
-  * ✅ University of Ghana: [Visit Admissions Portal](https://admissions.ug.edu.gh/)
-  * ✅ KNUST: [Official Website](https://www.knust.edu.gh/)
-  * ❌ University of Ghana: [https://admissions.ug.edu.gh/](https://admissions.ug.edu.gh/)
-  * ❌ KNUST: [[https://www.knust.edu.gh/](https://www.knust.edu.gh/)](https://www.knust.edu.gh/)
-- ALWAYS include complete URLs when referencing websites or online resources
+Current year: {current_year}"""
 
-For university information, ALWAYS provide:
-1. **Program Overview**: Duration, focus areas, and specializations
-2. **Admission Requirements**: Specific grades, subjects, and additional criteria
-3. **Current Fees ({datetime.now().year})**: Tuition, accommodation, registration, and other costs
-4. **Application Process**: Deadlines, required documents, and submission methods
-5. **Contact Information**: Phone, email, physical address, and website
-6. **Financial Aid**: Scholarships, grants, and payment options
-7. **Career Prospects**: Employment opportunities and earning potential
+        # Build student profile section
+        profile_section = ""
+        if user_profile:
+            field_labels = {
+                "shs_program": "SHS Programme",
+                "subjects": "Subjects Studied",
+                "wassce_grade": "WASSCE Aggregate/Grade",
+                "career_goal": "Career Goal",
+                "interests": "Interests",
+                "location_preference": "Location Preference",
+                "preferred_program": "Preferred Programme",
+                "budget": "Budget / Financial Situation",
+                "name": "Student Name",
+            }
+            profile_lines = []
+            for key, label in field_labels.items():
+                val = user_profile.get(key)
+                if val:
+                    profile_lines.append(f"  - {label}: {val}")
+            for key, val in user_profile.items():
+                if key not in field_labels and val and key not in ("raw_context",):
+                    profile_lines.append(f"  - {key.replace('_', ' ').title()}: {val}")
+            if profile_lines:
+                profile_section = "STUDENT PROFILE:\n" + "\n".join(profile_lines) + "\n\n"
 
-When files are uploaded, provide specific analysis and recommendations based on the content.
+        user_message = f"""{profile_section}Student's question: {query}
 
-PROFESSIONAL FILE ANALYSIS PROTOCOL:
-1. **Document Identification**: Clearly state what type of document was uploaded
-2. **Content Summary**: Provide a brief overview of key information extracted
-3. **Admission Relevance**: Explain how the document content relates to university admissions
-4. **Recommendations**: Give specific, actionable advice based on the document
-5. **Next Steps**: Outline clear steps for the user to take
-
-For academic transcripts/certificates:
-- Identify the institution and program
-- Analyze grades and performance
-- Compare against university requirements
-- Recommend suitable programs and universities
-- Suggest areas for improvement if applicable
-
-For images of documents:
-- Extract and interpret visible text
-- Identify document type and purpose
-- Provide guidance on document quality and completeness
-- Explain how the document fits into the admission process
-
-Maintain the highest standards of professionalism and accuracy in all responses."""
-
-        # Prepare user message with context
-        user_message = f"""
-Question: {query}
-
-Available Information:
+Available university information:
 {context}
 
-Sources: {json.dumps(sources, indent=2)}
+Respond naturally and helpfully. Answer only what was asked. If this is a recommendation request, base it strictly on the student profile above — explain why each recommendation fits their specific subjects, grade, and goals."""
 
-Please provide a helpful, accurate response based on the available information.
-"""
-
-        # Generate response with current supported model
         chat_completion = groq_client.chat.completions.create(
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}
             ],
-            model="llama-3.1-8b-instant",  # Current working model
-            temperature=0.3,
-            max_tokens=1024
+            model="llama-3.1-8b-instant",
+            temperature=0.4,
+            max_tokens=2048
         )
         
         raw_response = chat_completion.choices[0].message.content
@@ -1107,15 +1098,10 @@ Please provide a helpful, accurate response based on the available information.
         
     except Exception as e:
         print(f"❌ Groq generation error: {e}")
-        return generate_smart_fallback_response(query, context, sources)
+        return generate_smart_fallback_response(query, context, sources, user_profile)
 
-def generate_smart_fallback_response(query: str, context: str, sources: List[Dict]) -> str:
-    """Generate intelligent fallback response that actually uses provided sources.
-
-    - Prefer official university sources from web search when LLM is unavailable.
-    - Fall back to local knowledge base summaries.
-    - Include URLs and snippets where available.
-    """
+def generate_smart_fallback_response(query: str, context: str, sources: List[Dict], user_profile: Dict = None) -> str:
+    
 
     query_lower = query.lower()
 
@@ -1162,30 +1148,8 @@ def generate_smart_fallback_response(query: str, context: str, sources: List[Dic
     relevant_universities = []
 
     # Identify universities mentioned in query - EXPANDED MAPPING
-    university_keywords = {
-        "university of ghana": "University of Ghana",
-        "ug": "University of Ghana",
-        "legon": "University of Ghana",
-        "knust": "Kwame Nkrumah University of Science and Technology",
-        "kwame nkrumah": "Kwame Nkrumah University of Science and Technology",
-        "kumasi": "Kwame Nkrumah University of Science and Technology",
-        "ucc": "University of Cape Coast",
-        "cape coast": "University of Cape Coast",
-        "uds": "University for Development Studies",
-        "tamale": "University for Development Studies",
-        "upsa": "University of Professional Studies",
-        "uenr": "University of Energy and Natural Resources",
-        "uhas": "University of Health and Allied Sciences",
-        "gimpa": "Ghana Institute of Management and Public Administration",
-        "ashesi": "Ashesi University",
-        "gtuc": "Ghana Technology University College",
-        "central": "Central University",
-        "valley view": "Valley View University",
-        "presbyterian": "Presbyterian University",
-        "methodist": "Methodist University",
-        "academic city": "Academic City University",
-        "berekuso": "Ashesi University"
-    }
+    university_keywords = UNI_NAME_VARIATIONS 
+     
     
     # Find mentioned universities
     for keyword, uni_name in university_keywords.items():
@@ -1193,25 +1157,22 @@ def generate_smart_fallback_response(query: str, context: str, sources: List[Dic
             if uni_name in GHANA_UNIVERSITIES_KNOWLEDGE:
                 relevant_universities.append(uni_name)
     
-    # If no specific university mentioned, DON'T default to just UG/KNUST - let LLM handle OR show all
-    # The system prompt will guide unbiased recommendations based on actual query content
     if not relevant_universities:
         # Include ALL universities for comprehensive responses
         relevant_universities = list(GHANA_UNIVERSITIES_KNOWLEDGE.keys())
     
-    # Computer Science specific queries - UNBIASED: Show ALL universities with tech programs
     if any(word in query_lower for word in ["computer science", "computer", "programming", "software", "tech", "technology"]):
         response = "COMPUTER SCIENCE / TECHNOLOGY PROGRAMS IN GHANA\n\n"
         
-        # Show universities with technology/computer programs - NOT just UG and KNUST
         tech_universities = [
-            "Kwame Nkrumah University of Science and Technology",  # KNUST
-            "University of Ghana",  # UG
-            "Ashesi University",  # Ashesi
-            "Ghana Technology University College",  # GTUC
-            "University of Professional Studies",  # UPSA (IT/Business)
+            "Kwame Nkrumah University of Science and Technology",  
+            "University of Ghana",  
+            "Ashesi University",  
+            "Ghana Technology University College",
+            "University of Professional Studies",  
             "Central University",
-            "Academic City University"
+            "Academic City University",
+            "University of Mines and Techonology"
         ]
         
         shown_count = 0
@@ -1583,27 +1544,18 @@ async def respond_to_query(request: ChatRequest):
     start_time = datetime.now()
 
     try:
-        # CHECK: Is this an assessment request from the backend?
-        is_assessment = False
-        assessment_data = None
-        
+        # Extract student profile from user_context — used to personalise recommendations
+        user_profile = {}
         if request.user_context and isinstance(request.user_context, dict):
-            is_assessment = request.user_context.get('is_assessment_request', False)
             assessment_data = request.user_context.get('assessment_data', None)
-            
-            if is_assessment and assessment_data:
-                print("✅ Assessment request detected - returning structured data from backend")
-                # For assessment requests, the backend should have already done the matching
-                # Return a response that references the assessment
-                return ChatResponse(
-                    success=True,
-                    reply="Assessment data received. Recommendations will be processed by the backend assessment engine.",
-                    sources=[],
-                    confidence=1.0,
-                    timestamp=datetime.now().isoformat(),
-                    processing_time=0.01,
-                    model_used="assessment-engine"
-                )
+            # Merge assessment_data fields into user_profile
+            if assessment_data and isinstance(assessment_data, dict):
+                user_profile.update(assessment_data)
+            # Also pull any top-level profile fields from user_context directly
+            skip_keys = {'is_assessment_request', 'assessment_data', 'has_files', 'file_count', 'file_info'}
+            for k, v in request.user_context.items():
+                if k not in skip_keys and v:
+                    user_profile.setdefault(k, v)
         
         user_message = (request.message or "").strip()
         if not user_message:
@@ -1636,18 +1588,19 @@ async def respond_to_query(request: ChatRequest):
                 "type": "local_knowledge",
                 "confidence": result.get("relevance", 0.0)
             })
-            context_parts.append(f"University: {result.get('source')}\n{json.dumps(result.get('data', {}), indent=2)}")
+            context_parts.append(build_university_context(result.get('source', ''), result.get('data', {})))
 
-        # Step B: Fast Path if local confidence > 0.7
-        if local_results.get('confidence', 0.0) > 0.7:
-            print("⚡ Fast Path: Skipping web search due to high local confidence")
+        # Step B: Fast Path — only skip web search on exact university name match
+        if local_results.get('confidence', 0.0) > 0.95:
+            print("⚡ Fast Path: Skipping web search due to exact university match")
             combined_context = "\n\n".join(context_parts)
+            combined_context = combined_context[:6000]
             final_confidence = local_results.get('confidence', 0.8)
             # Generate response
             if groq_client and (final_confidence > 0.3 or combined_context):
-                response_text = generate_response_with_groq(user_message, combined_context, all_sources)
+                response_text = generate_response_with_groq(user_message, combined_context, all_sources, user_profile)
             else:
-                response_text = generate_smart_fallback_response(user_message, combined_context, all_sources)
+                response_text = generate_smart_fallback_response(user_message, combined_context, all_sources, user_profile)
         else:
             # Step C: Fallback – perform real web search and combine contexts
             print("🌐 Fallback path: Running real-time web search via DDG/SerpAPI...")
@@ -1665,12 +1618,13 @@ async def respond_to_query(request: ChatRequest):
                 context_parts.append(f"Web Result: {snippet}")
 
             combined_context = "\n\n".join(context_parts)
+            combined_context = combined_context[:6000]
             final_confidence = max(local_results.get("confidence", 0.0), web_results.get("confidence", 0.0))
 
             if groq_client and (final_confidence > 0.3 or combined_context):
-                response_text = generate_response_with_groq(user_message, combined_context, all_sources)
+                response_text = generate_response_with_groq(user_message, combined_context, all_sources, user_profile)
             else:
-                response_text = generate_smart_fallback_response(user_message, combined_context, all_sources)
+                response_text = generate_smart_fallback_response(user_message, combined_context, all_sources, user_profile)
 
         # Calculate processing time
         processing_time = (datetime.now() - start_time).total_seconds()
@@ -1693,12 +1647,9 @@ async def respond_to_query(request: ChatRequest):
             except Exception as e:
                 print(f"⚠️ Failed to save to MongoDB: {e}")
 
-        # CRITICAL: Sanitize URLs in response before returning to client
-        sanitized_reply = sanitize_markdown_urls(response_text)
-
         return ChatResponse(
             success=True,
-            reply=sanitized_reply,
+            reply=response_text,
             sources=all_sources,
             confidence=final_confidence,
             timestamp=datetime.now().isoformat(),
@@ -1712,17 +1663,15 @@ async def respond_to_query(request: ChatRequest):
         # Even on error, try to provide a helpful fallback response
         try:
             fallback_response = generate_smart_fallback_response(
-                request.message, 
-                "", 
-                []
+                request.message,
+                "",
+                [],
+                user_profile if 'user_profile' in dir() else {}
             )
-            
-            # Sanitize fallback response too
-            sanitized_fallback = sanitize_markdown_urls(fallback_response)
             
             return ChatResponse(
                 success=True,
-                reply=sanitized_fallback,
+                reply=fallback_response,
                 sources=[{"source": "Local Knowledge Base", "type": "fallback", "confidence": 0.5}],
                 confidence=0.5,
                 timestamp=datetime.now().isoformat(),
@@ -1948,20 +1897,16 @@ Please let me know what specific aspect of this document you'd like me to help y
                 context_data = json.loads(user_context)
             except:
                 context_data = {"raw_context": user_context}
-        
-        # Create enhanced request
-        enhanced_request = ChatRequest(
-            message=enhanced_message,
-            conversation_id=conversation_id,
-            user_id=user_id,
-            university_name=university_name,
-            user_context={
-                **context_data,
-                "has_files": len(file_info) > 0,
-                "file_count": len(file_info),
-                "file_info": file_info
-            }
-        )
+
+        # Extract student profile for personalised recommendations
+        file_user_profile = {}
+        skip_keys = {'is_assessment_request', 'assessment_data', 'has_files', 'file_count', 'file_info', 'raw_context'}
+        assessment_data = context_data.get('assessment_data', {})
+        if assessment_data and isinstance(assessment_data, dict):
+            file_user_profile.update(assessment_data)
+        for k, v in context_data.items():
+            if k not in skip_keys and v:
+                file_user_profile.setdefault(k, v)
         
         # Process with standard RAG pipeline
         local_results = search_local_knowledge(
@@ -1995,7 +1940,7 @@ Please let me know what specific aspect of this document you'd like me to help y
                 "type": "local_knowledge",
                 "confidence": result["relevance"]
             })
-            context_parts.append(f"University: {result['source']}\n{json.dumps(result['data'], indent=2)}")
+            context_parts.append(build_university_context(result['source'], result['data']))
         
         # Add web sources
         for result in web_results["results"]:
@@ -2008,8 +1953,7 @@ Please let me know what specific aspect of this document you'd like me to help y
             context_parts.append(f"Web Result: {result.get('snippet', '')}")
         
         combined_context = "\n\n".join(context_parts)
-        
-        # Generate response with file context
+        combined_context = combined_context[:6000]
         final_confidence = max(local_results["confidence"], web_results["confidence"])
         if file_info:
             final_confidence = max(final_confidence, 0.8)  # Boost confidence with files
@@ -2017,16 +1961,18 @@ Please let me know what specific aspect of this document you'd like me to help y
         if groq_client and (final_confidence > 0.3 or combined_context):
             print("🤖 Generating response with Groq LLM (including file context)...")
             response_text = generate_response_with_groq(
-                enhanced_message, 
-                combined_context, 
-                all_sources
+                enhanced_message,
+                combined_context,
+                all_sources,
+                file_user_profile
             )
         else:
             print("🧠 Generating smart fallback response (with file acknowledgment)...")
             response_text = generate_smart_fallback_response(
-                enhanced_message, 
-                combined_context, 
-                all_sources
+                enhanced_message,
+                combined_context,
+                all_sources,
+                file_user_profile
             )
         
         # ENHANCED PROFESSIONAL FILE ANALYSIS
