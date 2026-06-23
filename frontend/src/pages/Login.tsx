@@ -74,8 +74,8 @@ const Login: React.FC = () => {
               className="w-20 h-20 mx-auto mb-6 rounded-3xl flex items-center justify-center"
             >
               <img 
-                src="/glinax-logo.jpeg" 
-                alt="Glinax Logo" 
+                src="/cerkyl-logo.jpeg" 
+                alt="Cerkyl Logo" 
                 className="w-16 h-16 rounded-2xl object-cover"
               />
             </motion.div>
