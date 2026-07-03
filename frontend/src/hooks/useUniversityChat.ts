@@ -16,7 +16,7 @@ export const useUniversityChat = () => {
   const { currentConversation, saveCurrentConversation } = useAppStore();
 
   const startUniversityChat = (university: UniversityChatOptions) => {
-    // Save current conversation before starting new one
+
     if (currentConversation) {
       saveCurrentConversation();
     }

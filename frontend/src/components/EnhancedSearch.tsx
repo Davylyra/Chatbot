@@ -90,13 +90,13 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = memo(({
   const getResultIcon = (type: string) => {
     switch (type) {
       case 'university':
-        return '🏫';
+        return '';
       case 'form':
-        return '📋';
+        return '';
       case 'program':
-        return '🎓';
+        return '';
       default:
-        return '🔍';
+        return '';
     }
   };
 

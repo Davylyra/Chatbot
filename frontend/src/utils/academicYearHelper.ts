@@ -80,7 +80,6 @@ export const AcademicYearCycle = {
     const cycleStartYear = now.getMonth() >= 8 ? currentYear : currentYear - 1;
     
     return {
-      // Application period
       applicationStart: new Date(cycleStartYear, 5, 1), // June 1
       applicationDeadline: new Date(cycleStartYear, 8, 30), // September 30
       

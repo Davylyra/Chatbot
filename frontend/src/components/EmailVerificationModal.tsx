@@ -57,7 +57,7 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
     setError(null);
 
     try {
-      // Call the onVerified callback with the code
+
       await onVerified(verificationCode);
       setSuccess(true);
       setTimeout(() => {

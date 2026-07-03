@@ -31,7 +31,6 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(({
   };
   const processedText = autolinkText(text);
   
-  // Check if this is a greeting message (contains greeting patterns)
   const isGreetingMessage = !isUser && (
     text.includes('Good morning') || 
     text.includes('Good afternoon') || 
@@ -59,7 +58,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(({
                 ? theme === 'dark' ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'
                 : theme === 'dark' ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-600'
             }`}>
-              {file.type.startsWith('image/') ? '🖼️' : '📎'}
+              {file.type.startsWith('image/') ? '️' : ''}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium truncate">{file.name}</p>

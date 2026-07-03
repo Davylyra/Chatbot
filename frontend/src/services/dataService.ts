@@ -31,15 +31,14 @@ class DataService {
    */
   async getData(type: string, id: string): Promise<DynamicData | null> {
     const cacheKey = `${type}:${id}`;
-    
-    // Check cache first
+
     const cached = this.dataCache.get(cacheKey);
     if (cached && this.isCacheValid(cached.lastUpdated)) {
       return cached;
     }
 
     try {
-      // Fetch from AI service
+
       const response = await SmartApiService.getDynamicData(type, id);
       
       if (response.success && response.data) {
@@ -56,7 +55,6 @@ class DataService {
         return dynamicData;
       }
       
-      // Fallback to default data
       return this.getDefaultData(type, id);
     } catch (error) {
       console.error('Failed to fetch dynamic data:', error);
@@ -68,14 +66,14 @@ class DataService {
    * Get collection of dynamic data
    */
   async getDataCollection(type: string, filters?: Record<string, any>): Promise<DataCollection> {
-    // Check cache first
+
     const cached = this.collectionCache.get(type);
     if (cached && this.isCacheValid(cached.lastUpdated)) {
       return cached;
     }
 
     try {
-      // Fetch from AI service
+
       const response = await SmartApiService.getDynamicDataCollection(type, filters);
       
       if (response.success && response.data) {
@@ -96,7 +94,6 @@ class DataService {
         return collection;
       }
       
-      // Fallback to default collection
       return this.getDefaultDataCollection(type);
     } catch (error) {
       console.error('Failed to fetch dynamic data collection:', error);
@@ -144,7 +141,7 @@ class DataService {
       const response = await SmartApiService.updateDynamicData(type, id, data);
       
       if (response.success) {
-        // Update cache
+
         const existing = this.dataCache.get(`${type}:${id}`);
         if (existing) {
           existing.data = { ...existing.data, ...data };
@@ -173,7 +170,7 @@ class DataService {
       const response = await SmartApiService.deleteDynamicData(type, id);
       
       if (response.success) {
-        // Remove from cache
+
         this.dataCache.delete(`${type}:${id}`);
         
         // Invalidate collection cache

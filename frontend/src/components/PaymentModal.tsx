@@ -291,7 +291,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             <p className={`text-xs text-center ${
               theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
             }`}>
-              🔒 Secured by Paystack. Your payment information is safe and encrypted.
+               Secured by Paystack. Your payment information is safe and encrypted.
             </p>
           </form>
         </motion.div>

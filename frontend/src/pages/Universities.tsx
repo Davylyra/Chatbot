@@ -33,25 +33,19 @@ const Universities: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { startUniversityChat } = useUniversityChat();
   
-  // Use dynamic universities hook
   const { universities, error, refreshUniversities } = useUniversities();
 
-  // Performance optimization
   const { shouldReduceAnimations } = usePerformance();
   
-  // Use dynamic universities from API/hook, or fallback to constants.ts (single source of truth)
-  // Normalize the data structure to handle both API response and constants format
   const displayUniversities = useMemo(() => {
     const dataSource = universities.length > 0 ? universities : UNIVERSITIES_DATA;
     return dataSource.map((uni: any) => ({
       ...uni,
-      // Ensure 'name' field exists for backward compatibility
       name: uni.name || uni.universityName || uni.id,
       universityName: uni.universityName || uni.name || uni.id
     }));
   }, [universities]);
   
-  // Memoize filtered universities for better performance
   const filteredUniversities = useMemo(() => {
     if (!searchQuery.trim()) return displayUniversities;
     

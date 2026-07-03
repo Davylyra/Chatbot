@@ -105,7 +105,6 @@ const Sidebar: React.FC<SidebarProps> = memo(({
     }
   ];
 
-  // Filter menu items based on guest status
   const menuItems = isGuest
     ? allMenuItems.filter(item => item.showInGuest)
     : allMenuItems;
@@ -234,7 +233,6 @@ const Sidebar: React.FC<SidebarProps> = memo(({
                         <Link
                           to={item.path}
                           onClick={() => {
-                            // Only check guest access if the item has a guestFeature and is not explicitly shown in guest mode
                             if (item.guestFeature && !item.showInGuest && !checkGuestAccess(item.guestFeature)) {
                               return;
                             }

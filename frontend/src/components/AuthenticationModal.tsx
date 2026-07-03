@@ -81,7 +81,6 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
         // LOGIN MODE
         const result = await login(formData.email, formData.password);
         if (result.success) {
-          // Close modal and navigate only on successful login
           handleClose();
           navigate('/');
         } else {

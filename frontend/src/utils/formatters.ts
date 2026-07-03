@@ -48,7 +48,6 @@ export const formatPrice = (
     
     return formatted;
   } catch {
-    // Fallback formatting
     return `${currency} ${amount.toFixed(precision)}`;
   }
 };
@@ -196,7 +195,7 @@ export const getCurrencySymbol = (currency: string): string => {
  * Parse price string to number
  */
 export const parsePrice = (priceString: string): number => {
-  // Remove currency symbols and parse
+
   const cleaned = priceString.replace(/[^\d.,]/g, '');
   return parseFloat(cleaned.replace(',', '.')) || 0;
 };

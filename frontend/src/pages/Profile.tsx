@@ -488,7 +488,6 @@ const Profile: React.FC = () => {
               </div>
             </div>
 
-
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <FiShield className={`w-5 h-5 transition-colors duration-200 ${

@@ -11,7 +11,6 @@ const About: React.FC = () => {
   const { theme } = useTheme();
   const [pageContent, setPageContent] = useState<PageContent | null>(null);
 
-  // Load page content
   useEffect(() => {
     const loadPageContent = async () => {
       try {

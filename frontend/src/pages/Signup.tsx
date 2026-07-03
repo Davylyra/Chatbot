@@ -45,13 +45,11 @@ const Signup: React.FC = () => {
     
     // Clear previous errors
     const newErrors: {[key: string]: string} = {};
-    
-    // Validate name
+
     if (!formData.name.trim() || formData.name.trim().length < 2) {
       newErrors.name = 'Name must be at least 2 characters';
     }
-    
-    // Validate email
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
@@ -59,7 +57,6 @@ const Signup: React.FC = () => {
       newErrors.email = 'Email must be a Gmail address (@gmail.com)';
     }
     
-    // Validate password strength (must match backend requirements)
     const passwordErrors: string[] = [];
     if (formData.password.length < 8) {
       passwordErrors.push('at least 8 characters');
@@ -80,8 +77,7 @@ const Signup: React.FC = () => {
     if (passwordErrors.length > 0) {
       newErrors.password = `Password must have: ${passwordErrors.join(', ')}`;
     }
-    
-    // Validate password match
+
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
@@ -94,10 +90,10 @@ const Signup: React.FC = () => {
 
     try {
       setErrors({});
-      // Send verification code to email
+
       const result = await sendSignupVerification(formData.email);
       if (result.success) {
-        // Show verification modal
+
         setIsVerificationModalOpen(true);
       } else {
         // Parse backend errors
@@ -123,7 +119,6 @@ const Signup: React.FC = () => {
 
   const handleVerifyCode = async (verificationCode: string) => {
     try {
-      // Verify code and create account
       const result = await verifySignup(
         formData.email,
         verificationCode,
@@ -139,7 +134,7 @@ const Signup: React.FC = () => {
           password: '',
           confirmPassword: ''
         });
-        // Redirect to login after small delay to allow modal to close
+
         setTimeout(() => {
           navigate('/login', { state: { signupSuccess: true, message: 'Account created successfully! Please log in.' } });
         }, 2000);
@@ -264,7 +259,7 @@ const Signup: React.FC = () => {
                 </div>
                 {errors.name && (
                   <p className="text-red-500 text-sm mt-1 flex items-center">
-                    <span className="mr-1">⚠️</span> {errors.name}
+                    <span className="mr-1">️</span> {errors.name}
                   </p>
                 )}
               </div>
@@ -300,7 +295,7 @@ const Signup: React.FC = () => {
                 </div>
                 {errors.email && (
                   <p className="text-red-500 text-sm mt-1 flex items-center">
-                    <span className="mr-1">⚠️</span> {errors.email}
+                    <span className="mr-1">️</span> {errors.email}
                   </p>
                 )}
               </div>
@@ -360,7 +355,7 @@ const Signup: React.FC = () => {
                 </div>
                 {errors.password && (
                   <p className="text-red-500 text-sm mt-1 flex items-center">
-                    <span className="mr-1">⚠️</span> {errors.password}
+                    <span className="mr-1">️</span> {errors.password}
                   </p>
                 )}
               </div>
@@ -415,7 +410,7 @@ const Signup: React.FC = () => {
                 </div>
                 {errors.confirmPassword && (
                   <p className="text-red-500 text-sm mt-1 flex items-center">
-                    <span className="mr-1">⚠️</span> {errors.confirmPassword}
+                    <span className="mr-1">️</span> {errors.confirmPassword}
                   </p>
                 )}
               </div>

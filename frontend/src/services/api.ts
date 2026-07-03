@@ -3,7 +3,6 @@
 let API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 let API_TIMEOUT = 10000; // 10 seconds
 
-// load config dynamically
 const initializeApiConfig = async () => {
   try {
     const { configService } = await import('./configService');
@@ -20,7 +19,6 @@ const initializeApiConfig = async () => {
 // Initialize configuration on module load
 initializeApiConfig();
 
-// Types for API responses
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -291,7 +289,6 @@ export class ApiService {
     return httpClient.post('/assessment/submit', answers);
   }
 
-
       // AI Assessment API
       static async getAIRecommendations(assessmentData: any): Promise<ApiResponse<any>> {
         return httpClient.post('/assessment/ai-recommendations', assessmentData);
@@ -379,17 +376,14 @@ export class ApiService {
   }
 }
 
-// Fallback to mock data when API is not available
 export class FallbackService {
   static async getUniversities(): Promise<ApiResponse<University[]>> {
-    // Import constants.ts as single source of truth
     const { UNIVERSITIES_DATA } = await import('../data/constants');
     return {
       success: true,
       data: UNIVERSITIES_DATA.map(uni => ({
         ...uni,
         name: uni.universityName, // Map universityName to name for consistency
-        // Ensure all fields are present
         id: uni.id,
         fullName: uni.fullName,
         location: uni.location,
@@ -493,7 +487,6 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.getUniversity(id);
     }
-    // Fallback using constants.ts as single source of truth
     const { UNIVERSITIES_DATA } = await import('../data/constants');
     const university = UNIVERSITIES_DATA.find(u => u.id === id);
     return {
@@ -501,7 +494,6 @@ export class SmartApiService {
       data: university ? {
         ...university,
         name: university.universityName, // Map universityName to name for consistency
-        // Ensure logo from constants.ts is used
         logo: university.logo,
       } as University : undefined as any,
     };
@@ -512,7 +504,6 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.searchUniversities(query);
     }
-    // Fallback to local search using constants.ts as single source of truth
     const { UNIVERSITIES_DATA } = await import('../data/constants');
     const filtered = UNIVERSITIES_DATA.filter(uni => 
       uni.universityName.toLowerCase().includes(query.toLowerCase()) ||
@@ -524,7 +515,6 @@ export class SmartApiService {
       data: filtered.map(uni => ({
         ...uni,
         name: uni.universityName, // Map universityName to name for consistency
-        // Ensure logo from constants.ts is used
         logo: uni.logo,
       })) as University[],
     };
@@ -535,7 +525,6 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.purchaseForm(formId, paymentData);
     }
-    // Fallback implementation
     return {
       success: true,
       data: {
@@ -550,7 +539,6 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.getAppConfig();
     }
-    // Fallback to static config
     const { APP_CONFIG } = await import('../data/constants');
     return {
       success: true,
@@ -564,7 +552,6 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.getConfig(key);
     }
-    // Fallback implementation
     return {
       success: false,
       data: null,
@@ -577,7 +564,6 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.getConfigCategory(category);
     }
-    // Fallback implementation
     return {
       success: false,
       data: null,
@@ -590,7 +576,6 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.updateConfig(key, config);
     }
-    // Fallback implementation
     return {
       success: false,
       data: null,
@@ -604,7 +589,6 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.getPageContent(pageId);
     }
-    // Fallback implementation
     return {
       success: false,
       data: null,
@@ -617,7 +601,6 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.updatePageContent(pageId, content);
     }
-    // Fallback implementation
     return {
       success: false,
       data: null,
@@ -631,7 +614,6 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.getDynamicData(type, id);
     }
-    // Fallback implementation
     return {
       success: false,
       data: null,
@@ -644,7 +626,6 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.getDynamicDataCollection(type, filters);
     }
-    // Fallback implementation
     return {
       success: false,
       data: null,
@@ -657,7 +638,6 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.createDynamicData(type, data);
     }
-    // Fallback implementation
     return {
       success: false,
       data: null,
@@ -670,7 +650,6 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.updateDynamicData(type, id, data);
     }
-    // Fallback implementation
     return {
       success: false,
       data: null,
@@ -683,7 +662,6 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.deleteDynamicData(type, id);
     }
-    // Fallback implementation
     return {
       success: false,
       data: null,
@@ -697,7 +675,6 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.getAIRecommendations(assessmentData);
     }
-    // Fallback implementation
     return {
       success: false,
       data: null,

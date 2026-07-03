@@ -14,10 +14,8 @@ export const useAutoCloseError = (
   delayMs: number = 5000
 ): void => {
   useEffect(() => {
-    // Only set timer if there's an error
     if (!error) return;
 
-    // Set timeout to clear error after specified delay
     const timeoutId = setTimeout(() => {
       onClear();
     }, delayMs);

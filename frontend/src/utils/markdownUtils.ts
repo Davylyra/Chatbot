@@ -52,7 +52,6 @@ export function stripMarkdown(text: string): string {
   cleaned = cleaned.replace(/^[\s]*[-*+]\s+/gm, '');
   cleaned = cleaned.replace(/^[\s]*\d+\.\s+/gm, '');
   
-  // Normalize whitespace (multiple spaces/newlines -> single space)
   cleaned = cleaned.replace(/\s+/g, ' ').trim();
   
   return cleaned;

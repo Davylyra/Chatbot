@@ -6,8 +6,7 @@ import ChatBot from '../components/ChatBot';
 const Chat: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // Get university context and assessment data from location state
+
   const universityContext = location.state?.universityContext;
   const assessmentData = location.state?.assessmentData;
   const initialMessage = location.state?.initialMessage;

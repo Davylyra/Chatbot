@@ -59,18 +59,16 @@ class AssessmentService {
    */
   async submitAssessment(data: AssessmentData): Promise<RecommendedProgram[]> {
     try {
-      // Send assessment data to AI model
+
       const aiResponse = await this.sendToAIModel(data);
       
       if (aiResponse && aiResponse.recommendations) {
         return aiResponse.recommendations;
       }
       
-      // Fallback to mock recommendations if AI fails
       return this.generateMockRecommendations(data);
     } catch (error) {
       console.error('AI assessment failed:', handleApiError(error, 'Assessment processing failed'));
-      // Fallback to mock recommendations
       return this.generateMockRecommendations(data);
     }
   }
@@ -80,10 +78,8 @@ class AssessmentService {
    */
   private async sendToAIModel(data: AssessmentData): Promise<{ recommendations: RecommendedProgram[] } | null> {
     try {
-      // Prepare assessment data for AI model
       const assessmentPrompt = this.buildAssessmentPrompt(data);
-      
-      // Send to AI service using SmartApiService
+
       const response = await SmartApiService.getAIRecommendations({
         assessmentData: data,
         prompt: assessmentPrompt
@@ -315,45 +311,36 @@ class AssessmentService {
     const goals = data.careerGoals;
     const location = data.preferredLocation;
 
-    // Create a personalized message based on their answers
     let message = `Hi! I just completed my university assessment and I'm excited to discuss my options with you. `;
-    
-    // Add subject strengths
+
     if (subjects) {
       message += `My strongest subjects are ${subjects}. `;
     }
 
-    // Add SHS program background
     if (shsProgram) {
       message += `In SHS I studied the ${shsProgram} program. `;
     }
 
-    // Add WASSCE grade
     if (wassceGrade) {
       message += `I obtained ${wassceGrade} in my WASSCE. `;
     }
-    
-    // Add career interests
+
     if (interests) {
       message += `I'm particularly interested in ${interests}. `;
     }
-    
-    // Add career goals
+
     if (goals) {
       message += `My career goal is to ${goals.toLowerCase()}. `;
     }
-    
-    // Add location preference
+
     if (location) {
       message += `I prefer to study in ${location}. `;
     }
-    
-    // Add request for guidance
+
     message += `Based on my assessment, could you help me understand which university programs would be the best fit for me? I'd love to hear your recommendations and learn more about the application process.`;
     
     return message;
   }
-
 
   /**
    * Get assessment statistics

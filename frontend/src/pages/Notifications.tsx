@@ -20,10 +20,8 @@ const Notifications: React.FC = () => {
   const [recentlyMarkedRead, setRecentlyMarkedRead] = useState<Set<string>>(new Set());
   const [pageContent, setPageContent] = useState<PageContent | null>(null);
 
-  // Socket handles notification loading automatically via WebSocket connection
   // No need to manually load - they come in real-time
 
-  // Load page content
   useEffect(() => {
     const loadPageContent = async () => {
       try {
@@ -37,10 +35,8 @@ const Notifications: React.FC = () => {
     loadPageContent();
   }, []);
 
-  // Calculate unread count
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
-  // Handle marking all notifications as read with feedback
   const handleMarkAllAsRead = useCallback(async () => {
     if (!user?.id) return;
     
@@ -55,7 +51,6 @@ const Notifications: React.FC = () => {
     }
   }, [user?.id, markAllAsRead]);
 
-  // Handle marking individual notification as read with visual feedback
   const handleMarkAsRead = useCallback((notificationId: string) => {
     markAsRead(notificationId);
     setRecentlyMarkedRead(prev => new Set([...prev, notificationId]));

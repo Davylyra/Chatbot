@@ -31,7 +31,6 @@ interface ChatBotProps {
     is_assessment_result?: boolean;
     assessment_data?: any;
   };
-  // resume an existing conversation
   resumeConversationId?: string;
   resumeConversationTitle?: string;
 }
@@ -50,13 +49,11 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
   const { user, isGuest, isAuthenticated } = useAuth();
   const location = useLocation();
   
-  // Raw data from location/props
   const rawUniversityContext = location.state?.universityContext || propUniversityContext;
   const rawAssessmentData = location.state?.assessmentData || propAssessmentData;
   const rawInitialMessage = location.state?.initialMessage || propInitialMessage;
   const locationForceNewConversation = location.state?.forceNewConversation || forceNewConversation;
 
-  // Session context suppression to prevent leakage into new chats
   const [suppressContext, setSuppressContext] = useState(false);
 
   // Effective context used by this component
@@ -64,14 +61,12 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
   const assessmentData = suppressContext ? undefined : rawAssessmentData;
   const initialMessage = suppressContext ? undefined : rawInitialMessage;
 
-  // Stabilize functions to prevent infinite re-renders
   const stableAddMessage = useCallback(addMessage, [addMessage]);
   const stableCreateConversation = useCallback(createConversation, [createConversation]);
   const stableSetCurrentConversation = useCallback(setCurrentConversation, [setCurrentConversation]);
   const stableSaveCurrentConversation = useCallback(saveCurrentConversation, [saveCurrentConversation]);
   const stableSendChatMessage = useCallback(sendChatMessage, [sendChatMessage]);
 
-  // Add state to prevent duplicate message processing
   const [processedMessages, setProcessedMessages] = useState<Set<string>>(new Set());
   const [isInitialized, setIsInitialized] = useState(false);
   
@@ -87,7 +82,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
   const imageInputRef = useRef<HTMLInputElement>(null);
   const { theme } = useTheme();
 
-
   // 0. Resume existing conversation if passed from navigation
   useEffect(() => {
     const doResume = async () => {
@@ -99,7 +93,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
           console.error('API_BASE_URL is not configured');
           return;
         }
-        // Create or set the conversation in store immediately
+
         const conversationTitle = resumeConversationTitle || 'Conversation';
         const resumedConversation = {
           id: resumeConversationId,
@@ -183,8 +177,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
         newConversation.universityContext = universityContext?.name;
         stableSetCurrentConversation(newConversation);
       }
-      
-      // Add welcome message
+
       let welcomeText = '';
       if (assessmentData) {
         welcomeText = `${greeting}! I can see you've completed your assessment. I'm here to help you understand your results and discuss your university options.${guestNote}`;
@@ -213,8 +206,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
     if (!locationForceNewConversation || !isInitialized) return;
     
     const { greeting } = getPersonalizedGreeting(user?.name);
-    
-    // Save current conversation if it has messages
+
     if (currentConversation && currentMessages.length > 0) {
       stableSaveCurrentConversation();
     }
@@ -227,20 +219,18 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
       }));
     }
     
-    // Generate professional title based on context
     const conversationTitle = 'New Conversation';
     const newConversationId = stableCreateConversation(conversationTitle);
     
     const newConversation = useAppStore.getState().conversations.find(c => c.id === newConversationId);
     if (newConversation) {
-      // Set university context if provided
+
       if (universityContext) {
         newConversation.universityContext = universityContext.name;
       }
       stableSetCurrentConversation(newConversation);
     }
-    
-    // Create appropriate welcome message
+
     let welcomeText = '';
     if (universityContext) {
       welcomeText = `${greeting}! I'm now focused on ${universityContext.name}. How can I help you with their admissions and information?`;
@@ -319,8 +309,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
           return timeA - timeB; // Oldest first for proper chat flow
         })
     : [];
-  
-  // Handle initial message response function
+
   const handleInitialMessageResponse = useCallback(async (message: string, conversationId: string) => {
     setIsTyping(true);
     try {
@@ -439,11 +428,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
     const hasNewMessages = currentMessages.length > lastMessageCountRef.current;
     
     if (hasNewMessages) {
-      // Check if the new message is from the user (user's message triggers scroll only)
       const latestMessage = currentMessages[currentMessages.length - 1];
       const isUserMessage = latestMessage?.isUser === true;
       
-      // Only auto-scroll if: user is at bottom AND new message is from user
       if (isUserMessage && isUserAtBottom) {
         const timer = setTimeout(() => scrollToBottom(), 150);
         lastMessageCountRef.current = currentMessages.length;

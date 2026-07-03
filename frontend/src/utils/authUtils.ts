@@ -13,8 +13,7 @@ export const isTokenValid = (token: string | null): boolean => {
     // Decode payload to check expiration
     const payload = JSON.parse(atob(parts[1]));
     const currentTime = Math.floor(Date.now() / 1000);
-    
-    // Check if token is expired
+
     if (payload.exp && payload.exp < currentTime) {
       return false;
     }
@@ -49,12 +48,11 @@ export const getValidToken = (): string | null => {
 };
 
 export const setupTokenValidation = (): void => {
-  // Check token validity every 5 minutes
+
   setInterval(() => {
     clearExpiredToken();
   }, 5 * 60 * 1000);
-  
-  // Check on page focus
+
   window.addEventListener('focus', () => {
     clearExpiredToken();
   });

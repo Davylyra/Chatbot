@@ -54,7 +54,6 @@ export const useUniversities = (): UseUniversitiesReturn => {
       return [];
     } catch {
       // University search error - handled gracefully
-      // Fallback to local search
       return universities.filter(uni => 
         uni.name.toLowerCase().includes(query.toLowerCase()) ||
         uni.fullName.toLowerCase().includes(query.toLowerCase()) ||

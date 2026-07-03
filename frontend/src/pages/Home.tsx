@@ -74,7 +74,6 @@ const Home: React.FC = () => {
     loadInitialData();
   }, [isAuthenticated, forms.length, loadForms]);
 
-  // Load page content
   useEffect(() => {
     const loadPageContent = async () => {
       try {
@@ -88,7 +87,6 @@ const Home: React.FC = () => {
     loadPageContent();
   }, []);
 
-  // Use forms data from store, fallback to static data
   const allUniversities = forms.length > 0 ? forms.slice(0, 6) : [
     {
       id: "1",
@@ -195,9 +193,9 @@ const Home: React.FC = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
-                    // Save current conversation and start a new one
+
                     if (checkGuestAccess('chat')) {
-                      // Save current conversation if it exists and has messages
+
                       if (currentConversation) {
                         saveCurrentConversation();
                       }
@@ -366,7 +364,6 @@ const Home: React.FC = () => {
                             : 'bg-gray-50/50 border border-gray-200/50 hover:bg-gray-50/70'
                           }`}
                         onClick={() => {
-                          // Save current conversation and start university-specific chat
                           if (currentConversation) {
                             saveCurrentConversation();
                           }

@@ -57,7 +57,6 @@ const LazyImage: React.FC<LazyImageProps> = memo(({
     return () => observer.disconnect();
   }, [priority, isInView]);
 
-  // Load image when in view
   useEffect(() => {
     if (!isInView) return;
 
@@ -70,15 +69,13 @@ const LazyImage: React.FC<LazyImageProps> = memo(({
     };
     
     img.onerror = () => {
-      // Only set error if the image truly failed to load
       // Don't treat offline cached images as errors
       console.warn(`Failed to load image: ${src}`);
       setIsError(true);
       setIsLoaded(false);
       onError?.();
     };
-    
-    // Set the src to start loading
+
     // The browser will use cached version if available (from service worker)
     img.src = src;
     
@@ -89,7 +86,6 @@ const LazyImage: React.FC<LazyImageProps> = memo(({
     };
   }, [src, isInView, onLoad, onError]);
 
-  // Handle React element fallback
   if (isError && fallback && typeof fallback !== 'string') {
     return (
       <div ref={imgRef} className={`relative overflow-hidden ${className}`}>

@@ -39,7 +39,7 @@ class ContentService {
    * Get content for a specific page
    */
   async getPageContent(pageId: string): Promise<PageContent> {
-    // Check cache first
+
     const cacheManager = this.getCacheManager(pageId);
     const cached = cacheManager.get();
     if (cached) {
@@ -47,7 +47,7 @@ class ContentService {
     }
 
     try {
-      // Fetch from AI service
+
       const response = await SmartApiService.getPageContent(pageId);
       
       if (response.success && response.data) {
@@ -62,7 +62,6 @@ class ContentService {
         return content;
       }
       
-      // Fallback to default content with dynamic configuration
       return await this.getDefaultContentWithConfig(pageId);
     } catch (error) {
       console.error('Failed to fetch page content:', error);
@@ -86,7 +85,7 @@ class ContentService {
       const response = await SmartApiService.updatePageContent(pageId, { sections });
       
       if (response.success) {
-        // Update cache
+
         const content: PageContent = {
           pageId,
           sections,
@@ -117,15 +116,13 @@ class ContentService {
    */
   private async getDefaultContentWithConfig(pageId: string): Promise<PageContent> {
     const defaultContent = this.getDefaultContent(pageId);
-    
-    // Load dynamic configuration for contact information
+
     if (pageId === 'help-support') {
       try {
         const { configService } = await import('./configService');
         const supportEmail = await configService.getConfig('contact.support_email');
         const supportPhone = await configService.getConfig('contact.support_phone');
-        
-        // Update contact information with dynamic config
+
         const emailSection = defaultContent.sections.find(s => s.id === 'email-support');
         const phoneSection = defaultContent.sections.find(s => s.id === 'phone-support');
         

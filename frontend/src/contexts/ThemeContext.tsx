@@ -24,7 +24,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   const [theme, setTheme] = useState<Theme>('light');
 
-  // Handle system theme changes
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     
@@ -47,7 +46,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     };
   }, [themeMode]);
 
-  // Handle theme mode changes
   useEffect(() => {
     localStorage.setItem('theme-mode', themeMode);
 

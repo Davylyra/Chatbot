@@ -33,50 +33,48 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isGuest, setIsGuest] = useState(false);
+  const [user, setUser] = useState<User | null>(() => {
+    const token = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    if (token && storedUser) {
+      try {
+        return JSON.parse(storedUser);
+      } catch {
+        return null;
+      }
+    }
+    const isGuestSession = sessionStorage.getItem('glinax-guest') === 'true';
+    const storedGuestUser = sessionStorage.getItem('guest-user');
+    if (isGuestSession && storedGuestUser) {
+      try {
+        return JSON.parse(storedGuestUser);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('token') !== null;
+  });
+  const [isGuest, setIsGuest] = useState(() => {
+    return sessionStorage.getItem('glinax-guest') === 'true';
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const checkSession = () => {
-      const token = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
-      const isGuestSession = localStorage.getItem('glinax-guest') === 'true';
-
-      if (token) {
-        if (storedUser) {
-          try {
-            const userData = JSON.parse(storedUser);
-            setUser(userData);
-            setIsAuthenticated(true);
-            setIsGuest(false);
-          } catch (err) {
-            console.error('Failed to parse stored user:', err);
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            localStorage.removeItem('glinax-guest');
-          }
-        }
-        return;
-      }
-
-      if (isGuestSession && storedUser) {
-        try {
-          const userData = JSON.parse(storedUser);
-          setUser(userData);
-          setIsGuest(true);
-          setIsAuthenticated(false);
-        } catch (err) {
-          console.error('Failed to parse guest user:', err);
-          localStorage.removeItem('user');
-          localStorage.removeItem('glinax-guest');
-        }
-      }
-    };
-
-    checkSession();
+    const token = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    if (token && !storedUser) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('guest-user');
+      sessionStorage.removeItem('glinax-guest');
+      setUser(null);
+      setIsAuthenticated(false);
+      setIsGuest(false);
+    }
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; message: string }> => {
@@ -100,7 +98,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.removeItem('glinax-guest');
+      sessionStorage.removeItem('guest-user');
+      sessionStorage.removeItem('glinax-guest');
       
       setUser(data.user);
       setIsAuthenticated(true);
@@ -163,8 +162,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (!res.ok) throw new Error(data.message || 'Guest login failed');
 
         const guestUser = data.user;
-        localStorage.setItem('user', JSON.stringify(guestUser));
-        localStorage.setItem('glinax-guest', 'true');
+        sessionStorage.setItem('guest-user', JSON.stringify(guestUser));
+        sessionStorage.setItem('glinax-guest', 'true');
 
         setUser(guestUser);
         setIsGuest(true);
@@ -180,7 +179,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    localStorage.removeItem('glinax-guest');
+    sessionStorage.removeItem('guest-user');
+    sessionStorage.removeItem('glinax-guest');
     
     setUser(null);
     setIsAuthenticated(false);

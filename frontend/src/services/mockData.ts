@@ -6,7 +6,6 @@
 
 import { UNIVERSITIES_DATA, ASSESSMENT_QUESTIONS } from '../data/constants';
 
-// Types for mock data
 export interface MockUser {
   id: string;
   name: string;
@@ -109,7 +108,6 @@ export class ChatResponseGenerator {
       }
     }
 
-    // Add responses for other universities
     const universityResponses: Record<string, Record<string, string>> = {
       'ucc': {
         'program': 'UCC specializes in Education, Arts, Science, Business, and Agriculture programs. Our Education programs are particularly strong.',
@@ -243,7 +241,6 @@ export class ChatResponseGenerator {
       };
     }
 
-    // Default response
     return {
       message: "I understand you're looking for information about Ghanaian universities. I can help you with university selection, programs, admission requirements, fees, and application processes. What specific information do you need?",
       suggestions: [
@@ -278,14 +275,12 @@ export class MockApiService {
     return null;
   }
 
-  // Get user profile
   static async getUserProfile(userId: string): Promise<MockUser | null> {
     await new Promise(resolve => setTimeout(resolve, 300));
     
     return mockUsers.find(u => u.id === userId) || null;
   }
 
-  // Update user profile
   static async updateUserProfile(userId: string, updates: Partial<MockUser>): Promise<MockUser | null> {
     await new Promise(resolve => setTimeout(resolve, 500));
     
@@ -297,13 +292,11 @@ export class MockApiService {
     return null;
   }
 
-  // Get universities
   static async getUniversities(): Promise<any[]> {
     await new Promise(resolve => setTimeout(resolve, 300));
     return UNIVERSITIES_DATA;
   }
 
-  // Get assessment questions
   static async getAssessmentQuestions(): Promise<any[]> {
     await new Promise(resolve => setTimeout(resolve, 200));
     return ASSESSMENT_QUESTIONS;
@@ -313,7 +306,6 @@ export class MockApiService {
   static async submitAssessment(assessmentData: any): Promise<MockAssessmentResult> {
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Generate mock recommendations based on assessment data
     const recommendations = [
       {
         university: "KNUST",
@@ -347,11 +339,9 @@ export class MockApiService {
     };
   }
 
-  // Get user's purchased forms
   static async getUserForms(_userId: string): Promise<any[]> {
     await new Promise(resolve => setTimeout(resolve, 300));
     
-    // Return mock purchased forms
     return [
       {
         id: "1",

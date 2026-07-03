@@ -41,7 +41,6 @@ const Forms: React.FC = () => {
     loadFormsData();
   }, [forms.length, loadForms]);
 
-  // Load page content
   useEffect(() => {
     const loadPageContent = async () => {
       try {
@@ -256,8 +255,6 @@ const Forms: React.FC = () => {
           </div>
         </motion.div>
 
-
-
         {/* Forms List */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -331,7 +328,6 @@ const Forms: React.FC = () => {
           onError={handlePaymentError}
         />
       )}
-
 
     </div>
   );

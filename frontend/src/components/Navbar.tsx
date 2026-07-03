@@ -67,7 +67,7 @@ const Navbar: React.FC<NavbarProps> = memo(({
       const headerElement = headerRef.current;
       
       if (headerElement) {
-        // Add frosted glass effect after 10px scroll
+
         if (scrollY > 10) {
           headerElement.classList.add('header-scrolled');
         } else {
@@ -76,7 +76,6 @@ const Navbar: React.FC<NavbarProps> = memo(({
       }
     };
 
-    // Add scroll listener for glassmorphism effect
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);

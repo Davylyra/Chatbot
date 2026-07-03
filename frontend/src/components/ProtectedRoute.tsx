@@ -35,13 +35,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
-  
-  // Redirect to login if authentication is required but user is not authenticated
+
   if (requireAuth && !isAuthenticated) {
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
-  // Redirect to home if user is authenticated (but not guest) and trying to access auth pages
   if (!requireAuth && isAuthenticated && !isGuest) {
     const from = location.state?.from?.pathname || '/';
     return <Navigate to={from} replace />;

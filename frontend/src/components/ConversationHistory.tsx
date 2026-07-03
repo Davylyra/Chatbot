@@ -59,7 +59,6 @@ const ConversationHistory: React.FC = () => {
   const { isGuest } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-
   const handleGuestModalClose = useCallback(() => {
     navigate('/', { replace: true });
   }, [navigate]);
@@ -278,7 +277,6 @@ const ConversationHistory: React.FC = () => {
       
       setMessages(dedupedMessages);
 
-      // Update selected conversation metadata
       setSelectedConversation(prev => {
         if (!prev || prev.id !== conversationId) return prev;
         const last = dedupedMessages[dedupedMessages.length - 1];

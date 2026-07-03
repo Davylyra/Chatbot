@@ -27,11 +27,10 @@ const Login: React.FC = () => {
     try {
       const result = await login(email, password);
       
-      // Only navigate if login was successful
       if (result.success) {
         navigate('/');
       } else {
-        // Show error message inline instead of redirecting
+
         setError(result.message || 'Login failed. Please check your credentials and try again.');
       }
     } catch (err) {

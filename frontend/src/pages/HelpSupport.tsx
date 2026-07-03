@@ -13,10 +13,8 @@ const HelpSupport: React.FC = () => {
   const [pageContent, setPageContent] = useState<PageContent | null>(null);
   const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);
 
-  // Use dynamic help sections from constants
   const helpSections = HELP_SECTIONS;
 
-  // Load page content
   useEffect(() => {
     const loadPageContent = async () => {
       try {
@@ -220,7 +218,7 @@ const HelpSupport: React.FC = () => {
                 <p className={`text-sm transition-colors duration-200 ${
                   theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                 }`}>
-                  {pageContent?.sections.find(s => s.id === 'phone-support')?.content || '+233 24 123 4567'}
+                  {import.meta.env.VITE_CONTACT_PHONE || pageContent?.sections.find(s => s.id === 'phone-support')?.content || ''}
                 </p>
               </div>
             </div>

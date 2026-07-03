@@ -17,7 +17,6 @@ export const useSocket = () => {
   const isConnectingRef = useRef(false);
   const hasLoadedInitial = useRef(false);
 
-  // Load initial notifications from API
   const loadInitialNotifications = useCallback(async () => {
     if (hasLoadedInitial.current) return;
     
@@ -73,7 +72,6 @@ export const useSocket = () => {
     }
   }, []);
 
-  // Connect to Socket.io server
   const connect = useCallback(() => {
     if (!isAuthenticated || !user?.id) {
       return;
@@ -122,7 +120,6 @@ export const useSocket = () => {
         // Join user-specific room for notifications
         socket.emit('join-user-room', user.id);
 
-        // Load initial notifications from database
         loadInitialNotifications();
       });
 
@@ -133,9 +130,7 @@ export const useSocket = () => {
         }
       });
 
-      // Handle room join confirmation
       socket.on('room-joined', (_data: any) => {
-        // Room joined successfully
       });
 
     socket.on('disconnect', (reason: string) => {
@@ -212,9 +207,8 @@ export const useSocket = () => {
         isRealTime: true
       };
 
-      // Add to notifications state with duplicate prevention
       setNotifications(prev => {
-        // Check if notification already exists
+
         const exists = prev.some(n => 
           n.id === notification.id || 
           (n.title === notification.title && n.message === notification.message)
@@ -229,7 +223,6 @@ export const useSocket = () => {
       
       setUnreadCount(prev => prev + 1);
 
-      // Show browser notification if permission granted
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification(notification.title, {
           body: notification.message,
@@ -260,9 +253,8 @@ export const useSocket = () => {
         isRealTime: true
       };
 
-      // Add to notifications state with duplicate prevention
       setNotifications(prev => {
-        // Check if notification already exists
+
         const exists = prev.some(n => 
           n.id === notification.id || 
           (n.title === notification.title && n.message === notification.message)
@@ -277,7 +269,6 @@ export const useSocket = () => {
       
       setUnreadCount(prev => prev + 1);
 
-      // Show browser notification for broadcast
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification(notification.title, {
           body: notification.message,
@@ -290,11 +281,9 @@ export const useSocket = () => {
     // Listen for notification deletion events from backend
     socket.on('notification_deleted', async (data: any) => {
       const { notificationId } = data;
-      
-      // Remove from local state
+
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
-      
-      // Fetch replacement notification to fill the gap
+
       await fetchReplacementNotification();
     });
   } catch (error) {
@@ -304,7 +293,6 @@ export const useSocket = () => {
   }
   }, [user?.id, isAuthenticated, loadInitialNotifications]);
 
-  // Fetch a replacement notification to fill the gap
   const fetchReplacementNotification = useCallback(async () => {
     try {
       const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ;
@@ -314,7 +302,6 @@ export const useSocket = () => {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       headers['Authorization'] = `Bearer ${token}`;
 
-      // Fetch multiple notifications to ensure we get at least one new one
       const resp = await fetch(`${API_BASE_URL}/notifications?limit=5`, {
         method: 'GET',
         headers,
@@ -353,7 +340,6 @@ export const useSocket = () => {
               newNotifications.push(notification);
               currentIds.add(newNotif.id);
               
-              // Only add one replacement at a time
               if (newNotifications.length >= 1) break;
             }
           }
@@ -420,13 +406,11 @@ export const useSocket = () => {
     // Local removal after 2 seconds + fetch replacement
     setTimeout(async () => {
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
-      
-      // Fetch replacement notification to fill the gap
+
       await fetchReplacementNotification();
     }, 2 * 1000); // Changed from 5 to 2 seconds
   }, [fetchReplacementNotification]);
 
-  // Remove a single notification
   const removeNotification = useCallback((notificationId: string) => {
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
     setUnreadCount(prev => Math.max(0, prev - 1));
@@ -444,7 +428,6 @@ export const useSocket = () => {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       headers['Authorization'] = `Bearer ${token}`;
 
-      // Count how many unread notifications will be marked
       const unreadCount = notifications.filter(n => !n.isRead).length;
 
       // Optimistically update all to read
@@ -461,7 +444,6 @@ export const useSocket = () => {
       );
       setUnreadCount(0);
 
-      // Call backend
       const resp = await fetch(`${API_BASE_URL}/notifications/read-all`, {
         method: 'PUT',
         headers,
@@ -473,8 +455,7 @@ export const useSocket = () => {
       // Schedule batch deletion after 2 seconds
       setTimeout(async () => {
         setNotifications([]);
-        
-        // Fetch replacements to refill
+
         for (let i = 0; i < Math.min(unreadCount, 5); i++) {
           await fetchReplacementNotification();
           // Small delay between fetches to prevent duplicates
@@ -528,8 +509,7 @@ export const useSocket = () => {
       }
 
       const data = await response.json();
-      
-      // Update notification with access info
+
       setNotifications(prev =>
         prev.map(n => n.id === notificationId ? {
           ...n,

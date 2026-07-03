@@ -39,20 +39,15 @@ export const usePerformance = (): UsePerformanceReturn => {
   const detectDeviceCapabilities = useCallback(() => {
     const startTime = performance.now();
     
-    // Check hardware concurrency (CPU cores)
     const cores = navigator.hardwareConcurrency || 2;
     
-    // Check memory (if available)
     const memory = (navigator as any).deviceMemory || 4;
-    
-    // Check connection speed
+
     const connection = (navigator as any).connection;
     const connectionSpeed = connection ? connection.effectiveType : 'unknown';
     
-    // Check if device is low-end
     const isLowEnd = cores <= 2 || memory <= 2 || connectionSpeed === 'slow-2g' || connectionSpeed === '2g';
-    
-    // Check for reduced motion preference
+
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     
     const endTime = performance.now();

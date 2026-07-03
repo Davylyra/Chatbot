@@ -7,7 +7,6 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { assessmentService, type AssessmentQuestion } from '../services/assessmentService';
 
-
 interface AssessmentData {
   bestSubject: string[];
   shsProgram: string;
@@ -33,7 +32,6 @@ const Assessment: React.FC = () => {
     preferredLocation: ''
   });
 
-  // Load dynamic assessment questions
   useEffect(() => {
     const loadQuestions = async () => {
       try {
@@ -42,7 +40,6 @@ const Assessment: React.FC = () => {
         setQuestions(dynamicQuestions);
       } catch {
         // Failed to load assessment questions - handled gracefully
-        // Fallback to empty questions
         setQuestions([]);
       } finally {
         setLoading(false);
@@ -74,7 +71,6 @@ const Assessment: React.FC = () => {
       console.log('User object:', user);
       
       try {
-        // Update user profile with assessment interests (auto-fill profile page)
         if (isAuthenticated && user && assessmentData.interests?.length > 0) {
           const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
           const token = localStorage.getItem('token');
@@ -108,6 +104,34 @@ const Assessment: React.FC = () => {
         
         const chatMessage = await assessmentService.sendAssessmentToChat(assessmentData);
         
+        // Save user's assessment in the database
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+        const token = localStorage.getItem('token');
+        if (API_BASE_URL) {
+          try {
+            await fetch(`${API_BASE_URL}/assessments/submit`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+              },
+              body: JSON.stringify({
+                userId: isAuthenticated && user ? user.id : 'anonymous',
+                assessmentData: {
+                  subjects: assessmentData.bestSubject,
+                  shsProgram: assessmentData.shsProgram,
+                  wassceGrade: assessmentData.wassceGrade,
+                  interests: assessmentData.interests,
+                  careerGoals: assessmentData.careerGoals,
+                  preferredLocation: assessmentData.preferredLocation
+                }
+              })
+            });
+          } catch (err) {
+            console.error('Failed to save assessment to database:', err);
+          }
+        }
+
         // Navigate to chat with assessment data
         navigate('/chat', { 
           state: { 
@@ -121,8 +145,7 @@ const Assessment: React.FC = () => {
         });
       } catch (error) {
         console.error('Failed to send assessment to chat:', error);
-        
-        // Update profile even if chat fails
+
         if (isAuthenticated && user && assessmentData.interests?.length > 0) {
           const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
           const token = localStorage.getItem('token');
@@ -151,7 +174,6 @@ const Assessment: React.FC = () => {
           }
         }
         
-        // Fallback: navigate to chat with basic assessment data
         const fallbackMessage = `I just completed my assessment. My strong subjects are ${assessmentData.bestSubject?.join(', ') || 'various subjects'} and I studied ${assessmentData.shsProgram || 'an SHS program'}. I obtained ${assessmentData.wassceGrade || 'good grades'} in WASSCE. I'm interested in ${assessmentData.interests?.join(', ') || 'multiple fields'} and my career goal is to ${assessmentData.careerGoals || 'pursue higher education'}. Could you help me with university recommendations?`;
         
         navigate('/chat', { 
@@ -186,7 +208,6 @@ const Assessment: React.FC = () => {
     return questions.length > 0 ? ((currentStep + 1) / questions.length) * 100 : 0;
   };
 
-  // Show loading state while questions are being loaded
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
@@ -227,7 +248,6 @@ const Assessment: React.FC = () => {
     );
   }
 
-  // Show error state if no questions loaded
   if (questions.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">

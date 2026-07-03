@@ -32,14 +32,14 @@ class ConfigService {
    * Get configuration value by key
    */
   async getConfig(key: string): Promise<string | null> {
-    // Check cache first
+
     const cached = this.configCache.get(key);
     if (cached && this.isCacheValid(cached.lastUpdated)) {
       return cached.value;
     }
 
     try {
-      // Fetch from AI service
+
       const response = await SmartApiService.getConfig(key);
       
       if (response.success && response.data) {
@@ -59,7 +59,6 @@ class ConfigService {
         return config.value;
       }
       
-      // Fallback to default config
       return this.getDefaultConfig(key);
     } catch (error) {
       console.error('Failed to fetch config:', error);
@@ -71,14 +70,14 @@ class ConfigService {
    * Get all configurations for a category
    */
   async getConfigCategory(category: string): Promise<ConfigCategory> {
-    // Check cache first
+
     const cached = this.categoryCache.get(category);
     if (cached && this.isCacheValid(cached.lastUpdated)) {
       return cached;
     }
 
     try {
-      // Fetch from AI service
+
       const response = await SmartApiService.getConfigCategory(category);
       
       if (response.success && response.data) {
@@ -98,7 +97,6 @@ class ConfigService {
         return configCategory;
       }
       
-      // Fallback to default category
       return this.getDefaultConfigCategory(category);
     } catch (error) {
       console.error('Failed to fetch config category:', error);
@@ -114,7 +112,7 @@ class ConfigService {
       const response = await SmartApiService.updateConfig(key, { value, type });
       
       if (response.success) {
-        // Update cache
+
         const existing = this.configCache.get(key);
         const config: AppConfig = {
           id: existing?.id || key,
@@ -163,12 +161,10 @@ class ConfigService {
       'api.base_url': import.meta.env.VITE_API_BASE_URL,
       'api.timeout': import.meta.env.VITE_API_TIMEOUT ,
       
-      // Contact Information - from environment variables
       'contact.support_email': import.meta.env.VITE_CONTACT_EMAIL ,
       'contact.support_phone': import.meta.env.VITE_CONTACT_PHONE ,
       'contact.website': import.meta.env.VITE_CONTACT_WEBSITE,
       
-      // Social Media - from environment variables
       'social.twitter': import.meta.env.VITE_SOCIAL_TWITTER ,
       'social.facebook': import.meta.env.VITE_SOCIAL_FACEBOOK ,
       'social.instagram': import.meta.env.VITE_SOCIAL_INSTAGRAM ,
@@ -198,7 +194,6 @@ class ConfigService {
       'security.refresh_token_expiry': '7d',
       'security.max_login_attempts': '5',
       
-      // Performance
       'performance.cache_duration': '3600000',
       'performance.max_file_size': '5242880',
       'performance.allowed_file_types': 'image/jpeg,image/png,image/gif,application/pdf',

@@ -19,8 +19,14 @@ const AppRoutes = () => {
   return (
     <Router>
       <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Home />} />
+        <Route 
+          path="/" 
+          element={
+            <ProtectedRoute allowGuest={true}>
+              <Home />
+            </ProtectedRoute>
+          } 
+        />
         <Route path="/about" element={<About />} />
         <Route path="/help-support" element={<HelpSupport />} />
         

@@ -18,7 +18,6 @@ const Transactions: React.FC = () => {
     }
   }, [loadTransactions, user?.id]);
 
-  // Calculate summary statistics
   const totalSpent = transactions
     .filter(t => t.status === 'completed')
     .reduce((sum, t) => sum + parseFloat(t.amount.replace('GHC ', '')), 0);
@@ -157,7 +156,7 @@ const Transactions: React.FC = () => {
                           <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-colors duration-200 ${
                             theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'
                           }`}>
-                            <span className="text-xs">💳</span>
+                            <span className="text-xs"></span>
                           </div>
                           <span className={`transition-colors duration-200 ${
                             theme === 'dark' ? 'text-gray-300' : 'text-gray-600'

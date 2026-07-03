@@ -74,7 +74,6 @@ export interface Transaction {
   reference: string;
 }
 
-// Application state interface
 interface AppState {
   // User state
   user: User | null;
@@ -551,7 +550,6 @@ export const useAppStore = create<AppState>()(
       {
         name: 'glinax-store', // Local storage key
         partialize: (state) => ({
-          // Only persist essential data
           user: state.user,
           isAuthenticated: state.isAuthenticated,
           isGuest: state.isGuest,

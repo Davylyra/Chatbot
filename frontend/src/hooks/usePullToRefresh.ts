@@ -86,7 +86,6 @@ export const usePullToRefresh = ({
       setCanRefresh(false);
     };
 
-    // Add event listeners to document
     document.addEventListener('touchstart', handleTouchStart, { passive: false });
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
     document.addEventListener('touchend', handleTouchEnd);
