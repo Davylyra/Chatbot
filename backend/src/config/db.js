@@ -66,4 +66,16 @@ export const getCollection = async (collectionName) => {
   }
 };
 
-export default { connectDB, getDB, closeDB, getCollection };
+export const getClient = async () => {
+  if (!client) {
+    try {
+      await connectDB();
+    } catch (error) {
+      console.error('Database connection pending:', error.message);
+      return null;
+    }
+  }
+  return client;
+};
+
+export default { connectDB, getDB, closeDB, getCollection, getClient };

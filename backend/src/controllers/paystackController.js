@@ -1,8 +1,9 @@
 import https from 'https';
 import crypto from 'crypto';
-import { getCollection } from '../config/db.js';
+import { getCollection, getClient } from '../config/db.js';
 import { ObjectId } from 'mongodb';
 import { createSystemNotification } from './notificationController.js';
+import { sendPurchaseEmail, sendAdminAlertEmail } from '../utils/sendPurchaseEmail.js';
 
 // Paystack configuration
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
@@ -262,6 +263,74 @@ export const initializePayment = async (req, res) => {
   }
 };
 
+// Helper to assign Authentic PIN from inventory and send email
+const fulfillFormPurchase = async (paymentRecord, metadata) => {
+  const client = await getClient();
+  if (!client) {
+    console.error('❌ Could not get MongoDB client for transaction');
+    return;
+  }
+
+  const session = client.startSession();
+
+  try {
+    await session.withTransaction(async () => {
+      const userFormsCollection = await getCollection('user_forms');
+      const formInventoryCollection = await getCollection('form_inventory');
+      const usersCollection = await getCollection('users');
+      
+      // Ensure we haven't already fulfilled this payment
+      const formCheck = await userFormsCollection.findOne({ payment_id: paymentRecord._id }, { session });
+      if (formCheck) return; // Already processed
+      
+      const universityName = metadata?.universityName || 'University';
+      
+      // 1. Try to pop an authentic PIN from the inventory
+      const inventoryItem = await formInventoryCollection.findOneAndUpdate(
+        { university_name: universityName, is_used: false },
+        { $set: { is_used: true, assigned_to: paymentRecord.user_id, payment_id: paymentRecord._id } },
+        { returnDocument: 'after', session }
+      );
+      
+      // Use .value for mongodb ^6.0 findOneAndUpdate
+      const assignedPin = inventoryItem?.value || inventoryItem; 
+      
+      // 2. Link form to user
+      await userFormsCollection.insertOne({
+        user_id: paymentRecord.user_id,
+        form_id: paymentRecord.form_id,
+        payment_id: paymentRecord._id,
+        purchase_date: new Date(),
+        university_name: universityName,
+        serial_key: assignedPin && assignedPin.serial_key ? assignedPin.serial_key : null,
+        pin: assignedPin && assignedPin.pin ? assignedPin.pin : null,
+        status: assignedPin && assignedPin.serial_key ? 'fulfilled' : 'pending_pin'
+      }, { session });
+      console.log(`✅ Form ${paymentRecord.form_id} linked to user ${String(paymentRecord.user_id)}`);
+      
+      // 3. Send Email
+      const user = await usersCollection.findOne({ _id: paymentRecord.user_id }, { session });
+      if (user && user.email) {
+        await sendPurchaseEmail(
+          user.email, 
+          universityName, 
+          assignedPin && assignedPin.serial_key ? assignedPin.serial_key : null, 
+          assignedPin && assignedPin.pin ? assignedPin.pin : null
+        );
+      }
+
+      // Handle Depletion Alert
+      if (!assignedPin || !assignedPin.serial_key) {
+        await sendAdminAlertEmail(universityName);
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fulfilling form purchase:', error);
+  } finally {
+    await session.endSession();
+  }
+};
+
 // Verify payment
 export const verifyPayment = async (req, res) => {
   try {
@@ -320,22 +389,9 @@ export const verifyPayment = async (req, res) => {
                 }
               );
 
-              // Link form to user if payment successful
+              // Process form fulfillment (assign PIN from inventory and email)
               if (paymentRecord.form_id) {
-                const formCheck = await userFormsCollection.findOne({
-                  user_id: paymentRecord.user_id,
-                  form_id: paymentRecord.form_id
-                });
-
-                if (!formCheck) {
-                  await userFormsCollection.insertOne({
-                    user_id: paymentRecord.user_id,
-                    form_id: paymentRecord.form_id,
-                    payment_id: paymentRecord._id,
-                    purchase_date: new Date()
-                  });
-                  console.log(`✅ Form ${paymentRecord.form_id} linked to user ${String(paymentRecord.user_id)}`);
-                }
+                await fulfillFormPurchase(paymentRecord, metadata);
               }
             } else {
               // This is a general payment (premium subscription)
@@ -481,14 +537,8 @@ export const handleWebhook = async (req, res) => {
           });
 
           if (!formCheck) {
-            await userFormsCollection.insertOne({
-              user_id: paymentRecord.user_id,
-              form_id: paymentRecord.form_id,
-              payment_id: paymentRecord._id,
-              purchase_date: new Date()
-            });
-            console.log(`✅ Form ${paymentRecord.form_id} linked to user via webhook`);
-
+            await fulfillFormPurchase(paymentRecord, metadata);
+            
             // Send success notification
             await createSystemNotification(paymentRecord.user_id.toString(), 'payment_success', {
               amount: (amount / 100).toFixed(2), // Convert from pesewas

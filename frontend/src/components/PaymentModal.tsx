@@ -94,6 +94,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   };
 
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
   const startPaymentVerification = async (ref: string) => {
     setVerifying(true);
     let attempts = 0;
@@ -132,7 +140,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         // Continue polling
         attempts++;
         if (attempts < maxAttempts) {
-          setTimeout(verify, 5000); // Check every 5 seconds
+          timeoutRef.current = setTimeout(verify, 5000); // Check every 5 seconds
         } else {
           throw new Error('Payment verification timeout. Please check your transaction history.');
         }

@@ -1,19 +1,19 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Home from '../pages/Home';
-import Chat from '../pages/Chat';
-import Forms from '../pages/Forms';
-import About from '../pages/About';
-import Settings from '../pages/Settings';
-import Profile from '../pages/Profile';
-import Notifications from '../pages/Notifications';
-import Transactions from '../pages/Transactions';
-import HelpSupport from '../pages/HelpSupport';
-import Login from '../pages/Login';
-import Signup from '../pages/Signup';
-import Universities from '../pages/Universities';
-import Assessment from '../pages/Assessment';
-import ConversationHistoryPage from '../pages/ConversationHistory';
-import ProtectedRoute from '../components/ProtectedRoute';
+import Home from '../Home';
+import Chat from '../Chat';
+import Forms from '../Forms';
+import About from '../About';
+import Settings from '../Settings';
+import Profile from '../Profile';
+import Notifications from '../Notifications';
+import Transactions from '../Transactions';
+import HelpSupport from '../HelpSupport';
+import Login from '../Login';
+import Signup from '../Signup';
+import Universities from '../Universities';
+import Assessment from '../Assessment';
+import ConversationHistoryPage from '../ConversationHistory';
+import ProtectedRoute from '../../components/ProtectedRoute';
 
 const AppRoutes = () => {
   return (

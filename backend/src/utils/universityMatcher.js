@@ -13,7 +13,7 @@
  * - Financial situation
  */
 
-import { ghanaUniversitiesDatabase, getAllUniversities, getUniversitiesByCareerField } from '../data/ghanaUniversitiesDatabase.js';
+import { ghanaUniversitiesDatabase, getAllUniversities } from '../data/ghanaUniversitiesDatabase.js';
 
 /**
  * Main matching function - completely assessment-driven

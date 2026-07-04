@@ -11,7 +11,6 @@ import {
 } from 'react-icons/fi';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
-// LoadingSpinner removed - app loads instantly
 import LazyImage from '../components/LazyImage';
 import { useAppStore } from '../store';
 import { useAuth } from '../contexts/AuthContext';
@@ -144,7 +143,8 @@ const Home: React.FC = () => {
   return (
     <div className="fixed-height-container flex flex-col overflow-hidden">
       <Navbar
-        title="CERKYL"
+        logoSrc="/cerkyl-logo.png"
+        logoAlt="CERKYL"
         onMenuClick={() => setSidebarOpen(true)}
         showProfileButton={true}
         onProfileClick={() => navigate('/profile')}
@@ -193,22 +193,43 @@ const Home: React.FC = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
-
                     if (checkGuestAccess('chat')) {
-
                       if (currentConversation) {
                         saveCurrentConversation();
                       }
-
-                      // Force a new conversation start
                       navigate('/chat', { state: { forceNewConversation: true } });
                     }
                   }}
                   className="w-32 bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-4 rounded-2xl transition-all duration-200 shadow-md flex flex-col items-center justify-center space-y-2"
                 >
                   <FiMessageCircle className="w-5 h-5" />
-                  <span className="text-xs">
-                    {pageContent?.sections.find(s => s.id === 'start-chat-button')?.content || 'Start New Chat'}
+                  <span className="text-xs text-center">
+                    {pageContent?.sections.find(s => s.id === 'start-chat-button')?.content || 'Start Chat'}
+                  </span>
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    if (checkGuestAccess('chat')) {
+                      if (currentConversation) {
+                        saveCurrentConversation();
+                      }
+                      navigate('/chat', { 
+                        state: { 
+                          forceNewConversation: true, 
+                          forceCoachMode: true,
+                          initialMessage: "I am confused about my career path and need help finding out what I'm good at."
+                        } 
+                      });
+                    }
+                  }}
+                  className="w-32 bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-4 rounded-2xl transition-all duration-200 shadow-md flex flex-col items-center justify-center space-y-2"
+                >
+                  <FiStar className="w-5 h-5" />
+                  <span className="text-xs text-center leading-tight">
+                    Career Coach
                   </span>
                 </motion.button>
 
@@ -219,7 +240,7 @@ const Home: React.FC = () => {
                   className="w-32 bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-4 rounded-2xl transition-all duration-200 shadow-md flex flex-col items-center justify-center space-y-2"
                 >
                   <FiShoppingCart className="w-5 h-5" />
-                  <span className="text-xs">
+                  <span className="text-xs text-center">
                     {pageContent?.sections.find(s => s.id === 'buy-forms-button')?.content || 'Buy Forms'}
                   </span>
                 </motion.button>

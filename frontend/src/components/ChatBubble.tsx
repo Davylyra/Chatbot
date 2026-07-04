@@ -88,15 +88,14 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(({
         </div>
         )}
 
-        {/* Message Bubble */}
         <div className={`p-4 rounded-2xl transition-all duration-300 ${
           isUser 
             ? theme === 'dark'
               ? 'bg-primary-600/90 text-white shadow-lg border border-primary-400/30 backdrop-blur-sm shadow-primary-500/20 hover:border-primary-400/50'
               : 'bg-primary-500/90 text-white shadow-lg border border-primary-400/20 backdrop-blur-sm shadow-primary-500/20 hover:border-primary-400/40'
             : theme === 'dark' 
-              ? 'glass-card-unified-dark bg-gray-700/80 text-gray-200' 
-              : 'glass-card-unified bg-white/80 text-gray-800'
+              ? 'glass-card-unified-dark bg-gray-700/80 text-white' 
+              : 'glass-card-unified bg-gray-800/90 text-white'
         }`}>
           {isTyping ? (
             <div className="flex items-center space-x-1">
@@ -122,15 +121,15 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(({
           ) : (
             <>
               {isGreetingMessage ? (
-                <div className="text-sm leading-relaxed font-semibold text-primary-600">
+                <div className="text-sm leading-relaxed font-semibold text-white">
                   <ReactMarkdown
                     components={{
                       p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
                       strong: ({ children }) => <strong className="font-bold">{children}</strong>,
                       em: ({ children }) => <em className="italic">{children}</em>,
-                      h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-primary-600">{children}</h1>,
-                      h2: ({ children }) => <h2 className="text-base font-bold mb-2 text-primary-600">{children}</h2>,
-                      h3: ({ children }) => <h3 className="text-sm font-bold mb-1 text-primary-600">{children}</h3>,
+                      h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-white">{children}</h1>,
+                      h2: ({ children }) => <h2 className="text-base font-bold mb-2 text-white">{children}</h2>,
+                      h3: ({ children }) => <h3 className="text-sm font-bold mb-1 text-white">{children}</h3>,
                       ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 ml-2">{children}</ul>,
                       ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 ml-2">{children}</ol>,
                       li: ({ children }) => <li className="text-sm">{children}</li>,
@@ -163,9 +162,9 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(({
                       p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
                       strong: ({ children }) => <strong className="font-bold">{children}</strong>,
                       em: ({ children }) => <em className="italic">{children}</em>,
-                      h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-primary-600">{children}</h1>,
-                      h2: ({ children }) => <h2 className="text-base font-bold mb-2 text-primary-600">{children}</h2>,
-                      h3: ({ children }) => <h3 className="text-sm font-bold mb-1 text-primary-600">{children}</h3>,
+                      h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-white">{children}</h1>,
+                      h2: ({ children }) => <h2 className="text-base font-bold mb-2 text-white">{children}</h2>,
+                      h3: ({ children }) => <h3 className="text-sm font-bold mb-1 text-white">{children}</h3>,
                       ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 ml-2">{children}</ul>,
                       ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 ml-2">{children}</ol>,
                       li: ({ children }) => <li className="text-sm">{children}</li>,

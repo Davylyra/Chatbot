@@ -1,10 +1,9 @@
 /**
  * Content Service
  * Description: Centralized service for managing all dynamic content and text
- * Integration: Replaces all hardcoded text with AI-managed content
+ * Integration: Replaces all hardcoded text with local content definitions
  */
 
-import { SmartApiService } from './api';
 import { CacheManager } from '../utils/apiHelpers';
 
 export interface ContentSection {
@@ -46,27 +45,7 @@ class ContentService {
       return cached;
     }
 
-    try {
-
-      const response = await SmartApiService.getPageContent(pageId);
-      
-      if (response.success && response.data) {
-        const content: PageContent = {
-          pageId,
-          sections: response.data.sections || [],
-          lastUpdated: new Date().toISOString()
-        };
-        
-        // Cache the content
-        cacheManager.set(content);
-        return content;
-      }
-      
-      return await this.getDefaultContentWithConfig(pageId);
-    } catch (error) {
-      console.error('Failed to fetch page content:', error);
-      return await this.getDefaultContentWithConfig(pageId);
-    }
+    return await this.getDefaultContentWithConfig(pageId);
   }
 
   /**
@@ -82,21 +61,14 @@ class ContentService {
    */
   async updateContent(pageId: string, sections: ContentSection[]): Promise<boolean> {
     try {
-      const response = await SmartApiService.updatePageContent(pageId, { sections });
-      
-      if (response.success) {
-
-        const content: PageContent = {
-          pageId,
-          sections,
-          lastUpdated: new Date().toISOString()
-        };
-        const cacheManager = this.getCacheManager(pageId);
-        cacheManager.set(content);
-        return true;
-      }
-      
-      return false;
+      const content: PageContent = {
+        pageId,
+        sections,
+        lastUpdated: new Date().toISOString()
+      };
+      const cacheManager = this.getCacheManager(pageId);
+      cacheManager.set(content);
+      return true;
     } catch (error) {
       console.error('Failed to update content:', error);
       return false;
@@ -270,8 +242,8 @@ class ContentService {
           },
           {
             id: 'start-chat-button',
-            title: 'Start New Chat',
-            content: 'Start New Chat',
+            title: 'Start Chat',
+            content: 'Chat with Cerkyl',
             type: 'text'
           },
           {

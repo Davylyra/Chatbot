@@ -454,7 +454,7 @@ const ConversationHistory: React.FC = () => {
   if (loading) {
     return (
       <div className="h-full flex">
-        <div className={`w-1/3 border-r flex flex-col ${
+        <div className={`w-full md:w-1/3 border-r flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'} ${
           theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
         }`}>
           <div className={`p-4 border-b ${
@@ -538,7 +538,7 @@ const ConversationHistory: React.FC = () => {
 
   return (
     <div className="h-full flex">
-      <div className={`w-1/3 border-r flex flex-col ${
+      <div className={`w-full md:w-1/3 border-r flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'} ${
         theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
       }`}>
         <div className={`p-4 border-b ${
@@ -723,22 +723,30 @@ const ConversationHistory: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col">
+      <div className={`flex-1 flex flex-col w-full ${selectedConversation ? 'flex' : 'hidden md:flex'}`}>
         {selectedConversation ? (
           <>
-            <div className={`p-4 border-b ${
+            <div className={`p-4 border-b flex items-center ${
               theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
             }`}>
-              <h3 className={`font-semibold ${
-                theme === 'dark' ? 'text-white' : 'text-gray-800'
-              }`}>
-                {selectedConversation.title}
-              </h3>
-              <p className={`text-sm ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                {selectedConversation.messageCount} messages • Last active {formatTimestamp(selectedConversation.timestamp)}
-              </p>
+              <button 
+                onClick={() => setSelectedConversation(null)} 
+                className={`md:hidden p-2 mr-3 rounded-full flex-shrink-0 ${theme === 'dark' ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-200 text-gray-500'}`}
+              >
+                <FiX className="w-5 h-5" />
+              </button>
+              <div className="flex-1 min-w-0">
+                <h3 className={`font-semibold truncate ${
+                  theme === 'dark' ? 'text-white' : 'text-gray-800'
+                }`}>
+                  {selectedConversation.title}
+                </h3>
+                <p className={`text-sm ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  {selectedConversation.messageCount} messages • Last active {formatTimestamp(selectedConversation.timestamp)}
+                </p>
+              </div>
             </div>
             
             <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4">

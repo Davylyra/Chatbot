@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import AppRoutes from './routes/AppRoutes';
+import AppRoutes from './pages/routes/AppRoutes';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { ConfigProvider } from './contexts/ConfigContext';

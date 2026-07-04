@@ -14,6 +14,7 @@ const Chat: React.FC = () => {
   const userContext = location.state?.userContext;
   const resumeConversationId = location.state?.conversationId;
   const resumeConversationTitle = location.state?.conversationTitle;
+  const forceCoachMode = location.state?.forceCoachMode;
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
@@ -33,6 +34,7 @@ const Chat: React.FC = () => {
           userContext={userContext}
           resumeConversationId={resumeConversationId}
           resumeConversationTitle={resumeConversationTitle}
+          forceCoachMode={forceCoachMode}
         />
       </div>
     </div>

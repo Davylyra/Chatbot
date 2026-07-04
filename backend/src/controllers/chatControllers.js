@@ -192,18 +192,73 @@ export const sendMessageToRag = async (req, res) => {
     const userMsgResult = await messagesCollection.insertOne(userMessage);
     console.log('Saved user message to MongoDB, ID:', userMsgResult.insertedId);
 
+    // Load User Assessment Profile from user_assessments collection
+    let assessmentProfile = null;
+    try {
+      const assessmentsCollection = await getCollection('user_assessments');
+      let userQueryObjId = null;
+      if (/^[a-fA-F0-9]{24}$/.test(userId)) {
+        try { userQueryObjId = new ObjectId(userId); } catch {}
+      }
+      
+      const query = userQueryObjId ? { $or: [{ user_id: userQueryObjId }, { user_id: userId }] } : { user_id: userId };
+      
+      // Get the most recent assessment
+      const assessment = await assessmentsCollection.findOne(query, { sort: { created_at: -1 } });
+      if (assessment && assessment.assessment_data) {
+        assessmentProfile = assessment.assessment_data;
+        console.log(`📎 Found assessment for user ${userId}`);
+      }
+    } catch (e) {
+      console.warn("Could not load user assessment profile", e);
+    }
+
+    // Load Chat History (last 20 messages)
+    let chatHistory = [];
+    try {
+      const previousMessages = await messagesCollection.find({
+        conversation_id: conversation_id
+      })
+      .sort({ created_at: -1 })
+      .limit(20) // fetch last 20 messages
+      .toArray();
+      
+      // Reverse to chronological order and map to role/content
+      chatHistory = previousMessages.reverse().map(msg => ({
+        role: msg.is_bot ? 'assistant' : 'user',
+        content: msg.message
+      }));
+      
+      // Remove the very last one because it is the message we just inserted 
+      // (which will be processed as the current prompt query)
+      if (chatHistory.length > 0 && chatHistory[chatHistory.length - 1].content === message) {
+        chatHistory.pop();
+      }
+    } catch (e) {
+      console.warn("Could not load chat history", e);
+    }
+
+    let finalMessage = message;
+    if (req.body?.user_context?.is_coach_mode) {
+      if (chatHistory.length === 0) {
+        finalMessage = `[SYSTEM NOTE: Act strictly as a Socratic career coach. Ask me one question at a time to uncover my strengths. Do not list universities yet.]\n\nUser: ${message}`;
+      } else {
+        finalMessage = `[SYSTEM NOTE: Continue acting strictly as a Socratic career coach. Uncover my strengths. Keep answers short.]\n\nUser: ${message}`;
+      }
+    }
+
     // Prepare enhanced RAG request
     const ragRequest = {
-      message: message,
+      message: finalMessage,
       conversation_id: conversation_id,
       university_name: university_name || null,
+      chat_history: chatHistory,
       user_context: {
         ...(req.body?.user_context || {}),
         user_id: userId,
         preferred_university: university_name,
-        conversation_history_length: await messagesCollection.countDocuments({
-          conversation_id: conversation_id
-        })
+        assessment_data: assessmentProfile || req.body?.user_context?.assessment_data,
+        conversation_history_length: chatHistory.length
       }
     };
 

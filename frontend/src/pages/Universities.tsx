@@ -31,7 +31,16 @@ const Universities: React.FC = () => {
   
   const { theme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 6;
   const { startUniversityChat } = useUniversityChat();
+
+  const getCdnUrl = (path: string) => {
+    const cdnBase = import.meta.env.VITE_CDN_URL || '';
+    if (!path) return '';
+    if (path.startsWith('http') || path.startsWith('data:')) return path;
+    return `${cdnBase}${path}`;
+  };
   
   const { universities, error, refreshUniversities } = useUniversities();
 
@@ -56,6 +65,14 @@ const Universities: React.FC = () => {
       uni.location.toLowerCase().includes(query)
     );
   }, [displayUniversities, searchQuery]);
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
+  const paginatedUniversities = useMemo(() => {
+    return filteredUniversities.slice(0, page * ITEMS_PER_PAGE);
+  }, [filteredUniversities, page]);
 
   return (
     <div className={`min-h-screen ${
@@ -145,7 +162,7 @@ const Universities: React.FC = () => {
           initial="initial"
           animate="animate"
         >
-          {filteredUniversities.map((university) => (
+          {paginatedUniversities.map((university: any) => (
             <motion.div
               key={university.id}
               variants={staggerItem}
@@ -159,7 +176,7 @@ const Universities: React.FC = () => {
               <div className="flex items-start space-x-4 mb-4">
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center glass-effect flex-shrink-0">
                   <LazyImage 
-                    src={university.logo}
+                    src={getCdnUrl(university.logo)}
                     alt={`${university.universityName || university.name} logo`}
                     className="w-12 h-12 rounded-xl"
                     priority={false}
@@ -296,6 +313,24 @@ const Universities: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-800 mb-2">No universities found</h3>
               <p className="text-gray-600">Try adjusting your search terms</p>
             </motion.div>
+          )}
+
+          {/* Load More Button */}
+          {filteredUniversities.length > paginatedUniversities.length && (
+            <div className="col-span-full flex justify-center mt-6">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setPage(p => p + 1)}
+                className={`px-6 py-2 rounded-full font-medium transition-colors ${
+                  theme === 'dark' 
+                    ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                    : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                }`}
+              >
+                Load More Universities
+              </motion.button>
+            </div>
           )}
         </motion.div>
       </div>

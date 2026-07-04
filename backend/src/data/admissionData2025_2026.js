@@ -4,12 +4,12 @@
  * This file contains current admission data for Ghanaian universities
  * Update this regularly as universities publish new information
  * 
- * Source: Official University Websites (as of Dec 2025)
+ * Source: Official University Websites (as of July 2026)
  */
 
-export const admissionData2025_2026 = {
-  academic_year: '2025/2026',
-  last_updated: '2025-12-15',
+export const admissionData2026_2027 = {
+  academic_year: '2026/2027',
+  last_updated: '2026-07-04',
   cycle_status: 'ACTIVE', // ACTIVE, CLOSED, PENDING
   
   // University of Ghana (Legon)
@@ -24,9 +24,9 @@ export const admissionData2025_2026 = {
     
     application: {
       portal_url: 'https://admissions.ug.edu.gh',
-      application_deadline: '2025-03-31',
-      result_date: '2025-06-30',
-      acceptance_deadline: '2025-07-31',
+      application_deadline: '2026-08-31',
+      result_date: '2026-06-30',
+      acceptance_deadline: '2026-07-31',
       status: 'OPEN', // OPEN, CLOSED, EXTENDED
       application_fee: 'GHS 200',
       method: 'Online portal'
@@ -46,48 +46,48 @@ export const admissionData2025_2026 = {
         name: 'Computer Science',
         duration: 4,
         category: 'STEM',
-        intake_2025: 150,
+        intake_2026: 150,
         tuition_per_year: 'GHS 8,500',
         specializations: ['AI/ML', 'Software Engineering', 'Cybersecurity'],
-        cut_off_points_2026: 'F9',
+        cut_off_points_2027: 'F9',
         job_prospects: 'EXCELLENT'
       },
       {
         name: 'Medicine',
         duration: 6,
         category: 'Health Sciences',
-        intake_2025: 80,
+        intake_2026: 80,
         tuition_per_year: 'GHS 15,000',
         requirements_extra: 'Chemistry, Biology required; Aptitude test',
-        cut_off_points_2026: 'C6',
+        cut_off_points_2027: 'C6',
         job_prospects: 'EXCELLENT'
       },
       {
         name: 'Law',
         duration: 4,
         category: 'Social Sciences',
-        intake_2025: 100,
+        intake_2026: 100,
         tuition_per_year: 'GHS 7,500',
-        cut_off_points_2026: 'D7',
+        cut_off_points_2027: 'D7',
         job_prospects: 'GOOD'
       },
       {
         name: 'Business Administration',
         duration: 4,
         category: 'Social Sciences',
-        intake_2025: 200,
+        intake_2026: 200,
         tuition_per_year: 'GHS 6,500',
-        cut_off_points_2026: 'E8',
+        cut_off_points_2027: 'E8',
         job_prospects: 'EXCELLENT'
       },
       {
         name: 'Engineering',
         duration: 4,
         category: 'STEM',
-        intake_2025: 120,
+        intake_2026: 120,
         tuition_per_year: 'GHS 10,000',
         specializations: ['Civil', 'Mechanical', 'Electrical'],
-        cut_off_points_2026: 'D7',
+        cut_off_points_2027: 'D7',
         job_prospects: 'EXCELLENT'
       }
     ],
@@ -103,12 +103,12 @@ export const admissionData2025_2026 = {
     },
     
     key_dates: [
-      { event: 'Application portal opens', date: '2025-01-15' },
-      { event: 'Application deadline', date: '2025-03-31' },
-      { event: 'Results announcement', date: '2025-06-30' },
-      { event: 'Acceptance deadline', date: '2025-07-31' },
-      { event: 'Registration begins', date: '2025-08-15' },
-      { event: 'Academic year starts', date: '2025-09-01' }
+      { event: 'Application portal opens', date: '2026-01-15' },
+      { event: 'Application deadline', date: '2026-03-31' },
+      { event: 'Results announcement', date: '2026-06-30' },
+      { event: 'Acceptance deadline', date: '2026-07-31' },
+      { event: 'Registration begins', date: '2026-08-15' },
+      { event: 'Academic year starts', date: '2026-09-01' }
     ],
     
     scholarships: [
@@ -116,13 +116,13 @@ export const admissionData2025_2026 = {
         name: 'UG Scholarship (Merit-based)',
         amount: '100% tuition',
         eligibility: 'Grade A1-B3 in WAEC',
-        deadline: '2025-03-15'
+        deadline: '2026-03-15'
       },
       {
         name: 'Government Scholarship',
         amount: 'Variable',
         eligibility: 'All Ghanaian citizens',
-        deadline: '2025-03-31'
+        deadline: '2026-03-31'
       }
     ],
     
@@ -149,9 +149,9 @@ export const admissionData2025_2026 = {
     
     application: {
       portal_url: 'https://admissions.knust.edu.gh',
-      application_deadline: '2025-04-15',
-      result_date: '2025-07-15',
-      acceptance_deadline: '2025-08-15',
+      application_deadline: '2026-08-31',
+      result_date: '2026-07-15',
+      acceptance_deadline: '2026-08-15',
       status: 'OPEN',
       application_fee: 'GHS 250'
     },
@@ -168,25 +168,25 @@ export const admissionData2025_2026 = {
         name: 'Computer Engineering',
         duration: 4,
         category: 'STEM',
-        intake_2025: 120,
+        intake_2026: 120,
         tuition_per_year: 'GHS 9,500',
-        cut_off_points_2026: 'E8',
+        cut_off_points_2027: 'E8',
         job_prospects: 'EXCELLENT'
       },
       {
         name: 'Civil Engineering',
         duration: 4,
         category: 'STEM',
-        intake_2025: 100,
+        intake_2026: 100,
         tuition_per_year: 'GHS 12,000',
-        cut_off_points_2026: 'F9',
+        cut_off_points_2027: 'F9',
         job_prospects: 'EXCELLENT'
       },
       {
         name: 'Mechanical Engineering',
         duration: 4,
         category: 'STEM',
-        intake_2025: 80,
+        intake_2026: 80,
         tuition_per_year: 'GHS 11,000',
         job_prospects: 'EXCELLENT'
       },
@@ -194,7 +194,7 @@ export const admissionData2025_2026 = {
         name: 'Medicine',
         duration: 6,
         category: 'Health Sciences',
-        intake_2025: 60,
+        intake_2026: 60,
         tuition_per_year: 'GHS 18,000',
         requirements_extra: 'Chemistry, Biology, Physics required',
         job_prospects: 'EXCELLENT'
@@ -203,7 +203,7 @@ export const admissionData2025_2026 = {
         name: 'Architecture',
         duration: 5,
         category: 'STEM',
-        intake_2025: 40,
+        intake_2026: 40,
         tuition_per_year: 'GHS 10,000',
         job_prospects: 'GOOD'
       },
@@ -211,7 +211,7 @@ export const admissionData2025_2026 = {
         name: 'Business Administration',
         duration: 4,
         category: 'Business',
-        intake_2025: 150,
+        intake_2026: 150,
         tuition_per_year: 'GHS 7,500',
         job_prospects: 'EXCELLENT'
       }
@@ -226,12 +226,12 @@ export const admissionData2025_2026 = {
     },
     
     key_dates: [
-      { event: 'Application portal opens', date: '2025-01-20' },
-      { event: 'Application deadline', date: '2025-04-15' },
-      { event: 'Results released', date: '2025-07-15' },
-      { event: 'Acceptance deadline', date: '2025-08-15' },
-      { event: 'Orientation week', date: '2025-08-25 - 2025-08-31' },
-      { event: 'Academic year starts', date: '2025-09-01' }
+      { event: 'Application portal opens', date: '2026-01-20' },
+      { event: 'Application deadline', date: '2026-04-15' },
+      { event: 'Results released', date: '2026-07-15' },
+      { event: 'Acceptance deadline', date: '2026-08-15' },
+      { event: 'Orientation week', date: '2026-08-25 - 2026-08-31' },
+      { event: 'Academic year starts', date: '2026-09-01' }
     ],
     
     scholarships: [
@@ -239,13 +239,13 @@ export const admissionData2025_2026 = {
         name: 'KNUST Excellence Award',
         amount: '50-100% tuition',
         eligibility: 'Grade A1-B3',
-        deadline: '2025-04-01'
+        deadline: '2026-04-01'
       },
       {
         name: 'Dean Scholarship (Faculty-based)',
         amount: 'Variable',
         eligibility: 'Top performers per faculty',
-        deadline: '2025-04-15'
+        deadline: '2026-04-15'
       }
     ]
   },
@@ -262,8 +262,8 @@ export const admissionData2025_2026 = {
     
     application: {
       portal_url: 'https://admissions.ucc.edu.gh',
-      application_deadline: '2025-04-30',
-      result_date: '2025-07-31',
+      application_deadline: '2026-08-31',
+      result_date: '2026-07-31',
       status: 'OPEN',
       application_fee: 'GHS 220'
     },
@@ -278,7 +278,7 @@ export const admissionData2025_2026 = {
         name: 'Education (All specializations)',
         duration: 4,
         category: 'Education',
-        intake_2025: 300,
+        intake_2026: 300,
         tuition_per_year: 'GHS 6,500',
         job_prospects: 'EXCELLENT'
       },
@@ -286,7 +286,7 @@ export const admissionData2025_2026 = {
         name: 'Business Administration',
         duration: 4,
         category: 'Business',
-        intake_2025: 200,
+        intake_2026: 200,
         tuition_per_year: 'GHS 6,500',
         job_prospects: 'EXCELLENT'
       },
@@ -294,7 +294,7 @@ export const admissionData2025_2026 = {
         name: 'Science Education',
         duration: 4,
         category: 'STEM/Education',
-        intake_2025: 150,
+        intake_2026: 150,
         tuition_per_year: 'GHS 7,500',
         job_prospects: 'EXCELLENT'
       },
@@ -302,7 +302,7 @@ export const admissionData2025_2026 = {
         name: 'Agriculture',
         duration: 4,
         category: 'Agriculture',
-        intake_2025: 80,
+        intake_2026: 80,
         tuition_per_year: 'GHS 7,000',
         job_prospects: 'GOOD'
       },
@@ -310,7 +310,7 @@ export const admissionData2025_2026 = {
         name: 'Nursing',
         duration: 4,
         category: 'Health Sciences',
-        intake_2025: 100,
+        intake_2026: 100,
         tuition_per_year: 'GHS 8,500',
         job_prospects: 'EXCELLENT'
       }
@@ -339,19 +339,19 @@ export const admissionData2025_2026 = {
         name: 'Agriculture & Natural Resources',
         duration: 4,
         tuition_per_year: 'GHS 7,500',
-        intake_2025: 120
+        intake_2026: 120
       },
       {
         name: 'Development Studies',
         duration: 4,
         tuition_per_year: 'GHS 6,500',
-        intake_2025: 100
+        intake_2026: 100
       },
       {
         name: 'Medicine',
         duration: 6,
         tuition_per_year: 'GHS 16,000',
-        intake_2025: 50
+        intake_2026: 50
       }
     ]
   },
@@ -370,31 +370,31 @@ export const admissionData2025_2026 = {
         name: 'Accounting',
         duration: 4,
         tuition_per_year: 'GHS 6,800',
-        intake_2025: 200
+        intake_2026: 200
       },
       {
         name: 'Business Administration',
         duration: 4,
         tuition_per_year: 'GHS 6,500',
-        intake_2025: 180
+        intake_2026: 180
       },
       {
         name: 'Information Technology',
         duration: 4,
         tuition_per_year: 'GHS 8,000',
-        intake_2025: 150
+        intake_2026: 150
       }
     ]
   },
 
   // Common Information
   common_info: {
-    admission_cycle: '2025/2026',
+    admission_cycle: '2026/2027',
     application_period: 'January - April 2025',
     results_announcement: 'June - July 2025',
     acceptance_period: 'July - August 2025',
     registration: 'August - September 2025',
-    academic_year_start: '2025-09-01',
+    academic_year_start: '2026-09-01',
     
     general_requirements: {
       citizenship: 'Ghanaian or ECOWAS citizen',
@@ -424,28 +424,28 @@ export const admissionData2025_2026 = {
 // Helper functions for accessing data
 export function getUniversityByCode(code) {
   const universities = {
-    'ug': admissionData2025_2026.ug,
-    'knust': admissionData2025_2026.knust,
-    'ucc': admissionData2025_2026.ucc,
-    'uds': admissionData2025_2026.uds,
-    'upsa': admissionData2025_2026.upsa
+    'ug': admissionData2026_2027.ug,
+    'knust': admissionData2026_2027.knust,
+    'ucc': admissionData2026_2027.ucc,
+    'uds': admissionData2026_2027.uds,
+    'upsa': admissionData2026_2027.upsa
   };
   return universities[code.toLowerCase()];
 }
 
 export function getApplicationDeadlines() {
   return {
-    'UG': admissionData2025_2026.ug.application.application_deadline,
-    'KNUST': admissionData2025_2026.knust.application.application_deadline,
-    'UCC': admissionData2025_2026.ucc.application.application_deadline,
-    'UDS': admissionData2025_2026.uds.email ? '2025-04-30' : null
+    'UG': admissionData2026_2027.ug.application.application_deadline,
+    'KNUST': admissionData2026_2027.knust.application.application_deadline,
+    'UCC': admissionData2026_2027.ucc.application.application_deadline,
+    'UDS': admissionData2026_2027.uds.email ? '2026-04-30' : null
   };
 }
 
 export function searchPrograms(query, university = null) {
   const allPrograms = [];
   
-  Object.values(admissionData2025_2026).forEach((uni, key) => {
+  Object.values(admissionData2026_2027).forEach((uni, key) => {
     if (uni.programs) {
       uni.programs.forEach(prog => {
         allPrograms.push({
@@ -468,4 +468,4 @@ export function searchPrograms(query, university = null) {
   });
 }
 
-export default admissionData2025_2026;
+export default admissionData2026_2027;

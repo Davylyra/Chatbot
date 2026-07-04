@@ -1,6 +1,22 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 
+// Decode JWT payload and check if it's still valid — no library needed
+function isTokenValid(token: string | null): boolean {
+  if (!token) return false;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp * 1000 > Date.now();
+  } catch {
+    return false;
+  }
+}
+
+function clearAuthStorage() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+}
+
 interface User {
   id: string;
   name: string;
@@ -36,7 +52,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
-    if (token && storedUser) {
+    // Check token exists AND is not expired before trusting stored user
+    if (isTokenValid(token) && storedUser) {
       try {
         return JSON.parse(storedUser);
       } catch {
@@ -55,7 +72,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return null;
   });
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('token') !== null;
+    // Only authenticated if token actually exists AND hasn't expired
+    return isTokenValid(localStorage.getItem('token'));
   });
   const [isGuest, setIsGuest] = useState(() => {
     return sessionStorage.getItem('glinax-guest') === 'true';
@@ -65,15 +83,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    if (token && !storedUser) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      sessionStorage.removeItem('guest-user');
-      sessionStorage.removeItem('glinax-guest');
+    // Clear stale/expired tokens on mount
+    if (token && !isTokenValid(token)) {
+      clearAuthStorage();
       setUser(null);
       setIsAuthenticated(false);
-      setIsGuest(false);
     }
   }, []);
 

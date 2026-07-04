@@ -11,6 +11,8 @@ import { useTheme } from '../contexts/ThemeContext';
 
 interface NavbarProps {
   title?: string;
+  logoSrc?: string;
+  logoAlt?: string;
   showBackButton?: boolean;
   onBackClick?: () => void;
   showMenuButton?: boolean;
@@ -25,6 +27,8 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = memo(({
   title = "CERKYL",
+  logoSrc,
+  logoAlt = "Logo",
   showBackButton = false,
   onBackClick,
   showMenuButton = true,
@@ -149,11 +153,19 @@ const Navbar: React.FC<NavbarProps> = memo(({
                      style={{ borderRadius: '45px' }}
                    >
                      <div className="flex items-center justify-center space-x-2 md:space-x-3">
-                       <h1 className={`text-sm font-semibold uppercase tracking-wide truncate transition-colors duration-200 ${
-                         theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
-                       }`}>
-                         {title}
-                       </h1>
+                       {logoSrc ? (
+                         <img
+                           src={logoSrc}
+                           alt={logoAlt}
+                           className="h-12 w-auto object-contain md:h-12"
+                         />
+                       ) : (
+                         <h1 className={`text-sm font-semibold uppercase tracking-wide truncate transition-colors duration-200 md:text-base ${
+                           theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+                         }`}>
+                           {title}
+                         </h1>
+                       )}
                        {showNotificationBadge && notificationCount > 0 && (
                          <div className="bg-primary-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                            {notificationCount}

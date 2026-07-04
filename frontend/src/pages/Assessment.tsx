@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiArrowLeft, FiCheck, FiStar, FiBookOpen, FiTarget } from 'react-icons/fi';
+import { FiArrowLeft, FiCheck, FiStar, FiBookOpen, FiTarget, FiUpload } from 'react-icons/fi';
 import Navbar from '../components/Navbar';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { assessmentService, type AssessmentQuestion } from '../services/assessmentService';
+import { parseWassceResult } from '../services/ocrService';
 
 interface AssessmentData {
   bestSubject: string[];
@@ -31,6 +32,31 @@ const Assessment: React.FC = () => {
     careerGoals: '',
     preferredLocation: ''
   });
+  const [isOcrLoading, setIsOcrLoading] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsOcrLoading(true);
+      const { bestSubject, wassceGrade } = await parseWassceResult(file);
+      
+      setAssessmentData(prev => ({
+        ...prev,
+        bestSubject: bestSubject.length > 0 ? Array.from(new Set([...prev.bestSubject, ...bestSubject])) : prev.bestSubject,
+        wassceGrade: wassceGrade || prev.wassceGrade
+      }));
+      
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      
+    } catch (error) {
+      alert("Could not extract grades. Please type them manually.");
+    } finally {
+      setIsOcrLoading(false);
+    }
+  };
 
   useEffect(() => {
     const loadQuestions = async () => {
@@ -356,17 +382,44 @@ const Assessment: React.FC = () => {
           {/* Answer Options */}
           <div className="space-y-3">
             {currentQuestion.type === 'text' ? (
-              <textarea
-                value={assessmentData[currentQuestion.id as keyof AssessmentData] as string || ''}
-                onChange={(e) => handleAnswer(e.target.value)}
-                placeholder={currentQuestion.placeholder || "Enter your answer..."}
-                className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none transition-colors duration-200 ${
-                  theme === 'dark' 
-                    ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400' 
-                    : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500'
-                }`}
-                rows={4}
-              />
+              <div className="space-y-4">
+                <textarea
+                  value={assessmentData[currentQuestion.id as keyof AssessmentData] as string || ''}
+                  onChange={(e) => handleAnswer(e.target.value)}
+                  placeholder={currentQuestion.placeholder || "Enter your answer..."}
+                  className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none transition-colors duration-200 ${
+                    theme === 'dark' 
+                      ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400' 
+                      : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500'
+                  }`}
+                  rows={4}
+                />
+                
+                {currentQuestion.id === 'wassceGrade' && (
+                  <div className="flex flex-col space-y-2">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      ref={fileInputRef} 
+                      onChange={handleFileUpload} 
+                      className="hidden" 
+                    />
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isOcrLoading}
+                      className={`flex items-center justify-center space-x-2 p-3 rounded-lg border-2 border-dashed ${
+                        theme === 'dark' ? 'border-primary-500/50 hover:bg-primary-500/10' : 'border-primary-300 hover:bg-primary-50'
+                      } text-primary-600 transition-colors cursor-pointer`}
+                    >
+                      <FiUpload />
+                      <span>{isOcrLoading ? 'Scanning Document...' : 'Upload WASSCE Result Slip (Auto-fill)'}</span>
+                    </button>
+                    <p className={`text-xs text-center ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Upload a clear photo of your WASSCE slip and we'll automatically extract your grades.
+                    </p>
+                  </div>
+                )}
+              </div>
             ) : currentQuestion.options ? (
               currentQuestion.options.map((option, index) => {
                 const currentAnswer = assessmentData[currentQuestion.id as keyof AssessmentData];
