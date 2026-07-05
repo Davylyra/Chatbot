@@ -13,7 +13,8 @@ import requests
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from groq import Groq
+from groq import AsyncGroq
+import asyncio
 from pydantic import BaseModel
 
 load_dotenv()
@@ -731,13 +732,15 @@ async def seed_and_load_universities():
     db = db_client[os.getenv("DB_NAME", "glinax_chatbot_db")]
     col = db["universities_knowledge"]
 
-    # Always wipe and re-seed to keep collection in sync with the 11 platform schools
-    await col.delete_many({})
-    docs = [
-        {"name": name, **data} for name, data in GHANA_UNIVERSITIES_KNOWLEDGE.items()
-    ]
-    await col.insert_many(docs)
-    print(f"✅ Seeded {len(docs)} universities into MongoDB (stale data cleared)")
+    # Seed only if collection is empty
+    if await col.count_documents({}) == 0:
+        docs = [
+            {"name": name, **data} for name, data in GHANA_UNIVERSITIES_KNOWLEDGE.items()
+        ]
+        await col.insert_many(docs)
+        print(f"✅ Seeded {len(docs)} universities into MongoDB")
+    else:
+        print("✅ Universities collection already seeded; skipping overwrite.")
 
     # Load from DB into the in-memory dict so the RAG queries use the DB data directly
     cursor = col.find({})
@@ -932,10 +935,11 @@ async def search_web_realtime(query: str) -> Dict[str, Any]:
         current_year = datetime.now().year
         enhanced_query = f"{query} Ghana universities {current_year} official site"
         results = []
-        # Use text search for snippets and URLs; limit to reasonable amount
-        for item in ddgs.text(
-            enhanced_query, region="wt-wt", safesearch="moderate", max_results=8
-        ):
+        # Run synchronous ddgs in threadpool to prevent blocking the event loop
+        items = await asyncio.to_thread(
+            lambda: list(ddgs.text(enhanced_query, region="wt-wt", safesearch="moderate", max_results=8))
+        )
+        for item in items:
             if not isinstance(item, dict):
                 continue
             url = item.get("href") or item.get("url") or ""
@@ -1038,10 +1042,10 @@ async def search_with_serpapi(query: str, api_key: str) -> Dict[str, Any]:
         return {"results": [], "confidence": 0.0}
 
 
-def generate_response_with_groq(
+async def generate_response_with_groq(
     query: str, context: str, sources: List[Dict], user_profile: Dict = None, chat_history: List[Dict] = None
 ) -> str:
-    """Generate response using Groq LLM."""
+    """Generate response using Async Groq LLM."""
 
     try:
         if not groq_client:
@@ -1050,8 +1054,20 @@ def generate_response_with_groq(
             )
 
         current_year = datetime.now().year
+        
+        is_coach_mode = user_profile.get("is_coach_mode", False) if user_profile else False
 
-        system_prompt = f"""You are Cerkyl — a smart, friendly, and knowledgeable AI admission counsellor built specifically for Ghanaian SHS graduates. You are the trusted senior friend every student wishes they had when choosing a university — someone who truly understands the Ghanaian education system, speaks plainly, and gives honest, personalised advice.
+        if is_coach_mode:
+            system_prompt = f"""You are an interactive AI Career Coach. 
+Your goal is strictly Socratic and exploratory. The student is confused about their path.
+Do NOT give immediate university recommendations. Instead:
+- Ask one insightful question at a time to uncover their strengths, weaknesses, and interests.
+- Guide them to discover potential career paths naturally.
+- Keep your responses short, conversational, and deeply encouraging.
+- Only map out specific programs or universities after you have confidently narrowed down their interests.
+Current year: {current_year}"""
+        else:
+            system_prompt = f"""You are Cerkyl — a smart, friendly, and knowledgeable AI admission counsellor built specifically for Ghanaian SHS graduates. You are the trusted senior friend every student wishes they had when choosing a university — someone who truly understands the Ghanaian education system, speaks plainly, and gives honest, personalised advice.
 
 Your personality:
 - Warm, encouraging, and supportive — never cold or robotic
@@ -1145,7 +1161,7 @@ Respond naturally and helpfully. Answer only what was asked. If this is a recomm
             messages_array.extend(chat_history)
         messages_array.append({"role": "user", "content": user_message})
 
-        chat_completion = groq_client.chat.completions.create(
+        chat_completion = await groq_client.chat.completions.create(
             messages=messages_array,
             model="llama-3.1-8b-instant",
             temperature=0.4,
@@ -1752,7 +1768,7 @@ async def respond_to_query(request: ChatRequest):
             final_confidence = local_results.get("confidence", 0.8)
             # Generate response
             if groq_client and (final_confidence > 0.3 or combined_context):
-                response_text = generate_response_with_groq(
+                response_text = await generate_response_with_groq(
                     user_message, combined_context, all_sources, user_profile, request.chat_history
                 )
             else:
@@ -1786,7 +1802,7 @@ async def respond_to_query(request: ChatRequest):
             )
 
             if groq_client and (final_confidence > 0.3 or combined_context):
-                response_text = generate_response_with_groq(
+                response_text = await generate_response_with_groq(
                     user_message, combined_context, all_sources, user_profile, request.chat_history
                 )
             else:
@@ -2202,7 +2218,7 @@ Please let me know what specific aspect of this document you'd like me to help y
 
         if groq_client and (final_confidence > 0.3 or combined_context):
             print("🤖 Generating response with Groq LLM (including file context)...")
-            response_text = generate_response_with_groq(
+            response_text = await generate_response_with_groq(
                 enhanced_message, combined_context, all_sources, file_user_profile
             )
         else:

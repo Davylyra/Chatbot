@@ -207,18 +207,26 @@ export const ASSESSMENT_QUESTIONS = [
     question: "What are your best subjects? (Select all that apply)",
     type: "multiple" as const,
     options: [
-      "Mathematics",
+      "Core Mathematics",
+      "Elective Mathematics",
       "English Language",
-      "Science (Physics, Chemistry, Biology)",
+      "Integrated Science",
+      "Physics",
+      "Chemistry",
+      "Biology",
       "Social Studies",
-      "ICT/Computer Science",
-      "Business Studies",
-      "Art & Design",
-      "French",
+      "ICT / Computer Science",
+      "Business Management / Accounting",
+      "Literature in English",
+      "Government",
       "Economics",
       "Geography",
       "History",
-      "Religious Studies"
+      "Religious Studies (CRS / IRS)",
+      "French",
+      "Agricultural Science",
+      "Visual Arts / Design",
+      "Home Economics (Food & Nutrition)"
     ]
   },
   {

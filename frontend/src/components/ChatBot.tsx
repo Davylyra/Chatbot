@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiSend, FiImage, FiFile, FiCamera, FiShoppingCart, FiX, FiUsers, FiMessageCircle, FiSearch } from 'react-icons/fi';
+import { FiSend, FiImage, FiFile, FiCamera, FiShoppingCart, FiX, FiUsers, FiMessageCircle, FiSearch, FiStar } from 'react-icons/fi';
 import ChatBubble from './ChatBubble';
 import AuthenticationModal from './AuthenticationModal';
 import { useAppStore } from '../store';
@@ -790,7 +790,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
     stableAddMessage(welcomeMessage);
   };
 
-  const handleStartNewConversation = () => {
+  const handleStartNewConversation = useCallback(() => {
     if (currentConversation && currentMessages.length > 0) {
       stableSaveCurrentConversation().catch(() => {});
     }
@@ -823,7 +823,13 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       conversationId: newConversationId,
     });
-  };
+  }, [currentConversation, currentMessages.length, stableSaveCurrentConversation, startNewConversation, user?.name, isGuest, stableAddMessage]);
+
+  useEffect(() => {
+    const handleEvent = () => handleStartNewConversation();
+    window.addEventListener('triggerNewChat', handleEvent);
+    return () => window.removeEventListener('triggerNewChat', handleEvent);
+  }, [handleStartNewConversation]);
 
   return (
     <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
@@ -889,12 +895,12 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
                   </div>
                   <span className="text-gray-700 dark:text-gray-300 font-medium text-sm text-center">Compare Schools</span>
                 </button>
-                {/* Buy Forms */}
-                <button onClick={() => handleBuyForms()} className="flex flex-col items-center p-6 bg-white dark:bg-gray-800/40 hover:bg-gray-50 dark:hover:bg-gray-800/80 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm dark:shadow-none transition-all duration-200">
+                {/* Career Coach */}
+                <button onClick={() => { setInputMessage("I am confused about my career path and need help finding out what I'm good at."); handleSendMessage(); }} className="flex flex-col items-center p-6 bg-white dark:bg-gray-800/40 hover:bg-gray-50 dark:hover:bg-gray-800/80 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm dark:shadow-none transition-all duration-200">
                   <div className="w-12 h-12 bg-blue-100 dark:bg-blue-600/20 rounded-xl border border-blue-200 dark:border-blue-500/30 flex items-center justify-center mb-4">
-                    <FiShoppingCart className="text-blue-600 dark:text-blue-400 text-xl" />
+                    <FiStar className="text-blue-600 dark:text-blue-400 text-xl" />
                   </div>
-                  <span className="text-gray-700 dark:text-gray-300 font-medium text-sm text-center">Buy Forms</span>
+                  <span className="text-gray-700 dark:text-gray-300 font-medium text-sm text-center">Career Coach</span>
                 </button>
               </div>
             </div>

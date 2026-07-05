@@ -5,7 +5,9 @@ import {
   FiMenu,
   FiArrowLeft,
   FiUser,
-  FiCheck
+  FiCheck,
+  FiSun,
+  FiMoon
 } from 'react-icons/fi';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -23,6 +25,7 @@ interface NavbarProps {
   notificationCount?: number;
   showMarkAllReadButton?: boolean;
   onMarkAllReadClick?: () => void;
+  showThemeToggle?: boolean;
 }
 
 const Navbar: React.FC<NavbarProps> = memo(({
@@ -38,10 +41,15 @@ const Navbar: React.FC<NavbarProps> = memo(({
   showNotificationBadge = false,
   notificationCount = 0,
   showMarkAllReadButton = false,
-  onMarkAllReadClick
+  onMarkAllReadClick,
+  showThemeToggle = false
 }) => {
   const navigate = useNavigate();
-  const { theme } = useTheme();
+  const { theme, setThemeMode } = useTheme();
+  
+  const handleToggleTheme = useCallback(() => {
+    setThemeMode(theme === 'dark' ? 'light' : 'dark');
+  }, [theme, setThemeMode]);
   const headerRef = useRef<HTMLElement>(null);
   const [showTooltip, setShowTooltip] = useState(false);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
@@ -102,24 +110,26 @@ const Navbar: React.FC<NavbarProps> = memo(({
     >
       <div className="max-w-md mx-auto px-4 py-4 md:max-w-5xl">
         <div className="relative flex items-center justify-between">
-          {/* Left side - Back Arrow */}
-          <div className="flex items-center">
-            {showBackButton ? (
-                     <motion.button
-                       whileHover={{ scale: 1.05 }}
-                       whileTap={{ scale: 0.95 }}
-                       onClick={onBackClick}
-                       className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
-                         theme === 'dark' 
-                           ? 'glass-unified-dark hover:bg-white/10' 
-                           : 'glass-unified hover:bg-white/20'
-                       }`}
-                     >
-                       <FiArrowLeft className={`w-5 h-5 transition-colors duration-200 ${
-                         theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                       }`} />
-                     </motion.button>
-            ) : showMenuButton ? (
+          {/* Left side - Back Arrow and Menu */}
+          <div className="flex items-center space-x-2">
+            {showBackButton && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onBackClick}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
+                  theme === 'dark' 
+                    ? 'glass-unified-dark hover:bg-white/10' 
+                    : 'glass-unified hover:bg-white/20'
+                }`}
+              >
+                <FiArrowLeft className={`w-5 h-5 transition-colors duration-200 ${
+                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                }`} />
+              </motion.button>
+            )}
+            
+            {showMenuButton && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -134,18 +144,21 @@ const Navbar: React.FC<NavbarProps> = memo(({
                   theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
                 }`} />
               </motion.button>
-            ) : (
+            )}
+            
+            {(!showBackButton && !showMenuButton) && (
+
               <div className="w-10 h-10" />
             )}
           </div>
 
                  {/* Center - Section Title (always centered) */}
-                 <div className="absolute left-1/2 transform -translate-x-1/2 px-4 max-w-[60%] flex justify-center">
+                 <div className="absolute left-1/2 transform -translate-x-1/2 px-2 md:px-4 max-w-[50%] md:max-w-[60%] flex justify-center">
                    <motion.div
                      initial={{ scale: 0.9, opacity: 0 }}
                      animate={{ scale: 1, opacity: 1 }}
                      transition={{ delay: 0.1 }}
-                     className={`px-6 py-2 text-center transition-all duration-200 shadow-lg ${
+                     className={`px-3 py-1.5 md:px-6 md:py-2 text-center transition-all duration-200 shadow-lg ${
                        theme === 'dark' 
                          ? 'glass-unified-dark shadow-black/20' 
                          : 'glass-unified shadow-gray-200/50'
@@ -157,10 +170,10 @@ const Navbar: React.FC<NavbarProps> = memo(({
                          <img
                            src={logoSrc}
                            alt={logoAlt}
-                           className="h-12 w-auto object-contain md:h-12"
+                           className="h-8 w-auto object-contain md:h-12"
                          />
                        ) : (
-                         <h1 className={`text-sm font-semibold uppercase tracking-wide truncate transition-colors duration-200 md:text-base ${
+                         <h1 className={`text-xs md:text-sm font-semibold uppercase tracking-wide truncate transition-colors duration-200 ${
                            theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
                          }`}>
                            {title}
@@ -176,6 +189,26 @@ const Navbar: React.FC<NavbarProps> = memo(({
                  </div>
 
                  <div className="flex items-center space-x-2 md:space-x-3">
+                   {/* Theme Toggle */}
+                   {showThemeToggle && (
+                     <motion.button
+                       whileHover={{ scale: 1.05 }}
+                       whileTap={{ scale: 0.95 }}
+                       onClick={handleToggleTheme}
+                       className={`w-10 h-10 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
+                         theme === 'dark' 
+                           ? 'glass-unified-dark hover:bg-white/10' 
+                           : 'glass-unified hover:bg-white/20'
+                       }`}
+                     >
+                       {theme === 'dark' ? (
+                         <FiSun className="w-5 h-5 text-yellow-400" />
+                       ) : (
+                         <FiMoon className="w-5 h-5 text-gray-700" />
+                       )}
+                     </motion.button>
+                   )}
+
                    {showMarkAllReadButton ? (
                      <div className="relative">
                        <motion.button

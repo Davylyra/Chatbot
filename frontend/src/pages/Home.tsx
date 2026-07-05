@@ -50,13 +50,17 @@ const Home: React.FC = () => {
     updateScreenMode();
     mediaQuery.addEventListener('change', updateScreenMode);
 
-    return () => mediaQuery.removeEventListener('change', updateScreenMode);
+    const handleToggle = () => setSidebarOpen(prev => !prev);
+    window.addEventListener('toggleMainSidebar', handleToggle);
+
+    return () => {
+      mediaQuery.removeEventListener('change', updateScreenMode);
+      window.removeEventListener('toggleMainSidebar', handleToggle);
+    };
   }, []);
 
   const handleSidebarClose = () => {
-    if (!isDesktop) {
-      setSidebarOpen(false);
-    }
+    setSidebarOpen(false);
   };
 
   useEffect(() => {
@@ -141,22 +145,23 @@ const Home: React.FC = () => {
   );
 
   return (
-    <div className="fixed-height-container flex flex-col overflow-hidden">
-      <Navbar
-        logoSrc="/cerkyl-logo.png"
-        logoAlt="CERKYL"
-        onMenuClick={() => setSidebarOpen(true)}
-        showProfileButton={true}
-        onProfileClick={() => navigate('/profile')}
+    <div className="h-screen flex overflow-hidden bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={handleSidebarClose}
+        isDesktop={isDesktop}
       />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar
-          isOpen={sidebarOpen}
-          onClose={handleSidebarClose}
-          isDesktop={isDesktop}
+
+      <div className="flex-1 flex flex-col min-w-0 relative h-full">
+        <Navbar
+          logoSrc="/cerkyl-logo.png"
+          logoAlt="CERKYL"
+          onMenuClick={() => setSidebarOpen(prev => !prev)}
+          showProfileButton={true}
+          onProfileClick={() => navigate('/profile')}
         />
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto scrollbar-hide relative pb-20">
           <div className="fixed-height-content flex flex-col w-full max-w-sm mx-auto px-4 py-4 overflow-hidden md:max-w-xl md:px-6 md:py-6 lg:max-w-2xl xl:max-w-3xl">
             {/* Scrollable Content Area */}
             <div className="flex-1 overflow-y-auto scrollbar-hide">
@@ -187,7 +192,7 @@ const Home: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="flex justify-center gap-3 mb-6"
+                className="flex justify-center gap-4 md:gap-10 mb-6"
               >
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -208,30 +213,6 @@ const Home: React.FC = () => {
                   </span>
                 </motion.button>
 
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    if (checkGuestAccess('chat')) {
-                      if (currentConversation) {
-                        saveCurrentConversation();
-                      }
-                      navigate('/chat', { 
-                        state: { 
-                          forceNewConversation: true, 
-                          forceCoachMode: true,
-                          initialMessage: "I am confused about my career path and need help finding out what I'm good at."
-                        } 
-                      });
-                    }
-                  }}
-                  className="w-32 bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-4 rounded-2xl transition-all duration-200 shadow-md flex flex-col items-center justify-center space-y-2"
-                >
-                  <FiStar className="w-5 h-5" />
-                  <span className="text-xs text-center leading-tight">
-                    Career Coach
-                  </span>
-                </motion.button>
 
                 <motion.button
                   whileHover={{ scale: 1.02 }}

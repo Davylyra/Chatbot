@@ -51,8 +51,12 @@ const Assessment: React.FC = () => {
       
       if (fileInputRef.current) fileInputRef.current.value = '';
       
-    } catch (error) {
-      alert("Could not extract grades. Please type them manually.");
+    } catch (error: any) {
+      if (error.message === 'NO_GRADES_FOUND') {
+        alert("We couldn't clearly detect your grades from this image. Please ensure the photo is clear, well-lit, and contains your WASSCE results, or type them in manually.");
+      } else {
+        alert("Oops! Something went wrong while scanning the document. Please try again with a clearer image, or type your grades manually.");
+      }
     } finally {
       setIsOcrLoading(false);
     }
