@@ -12,17 +12,17 @@ interface AuthenticationModalProps {
   initialMode?: 'login' | 'signup';
 }
 
-const AuthenticationModal: React.FC<AuthenticationModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  initialMode = 'login' 
+const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
+  isOpen,
+  onClose,
+  initialMode = 'login',
 }) => {
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -125,16 +125,16 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           className={`relative w-full max-w-md rounded-3xl shadow-2xl ${
-            theme === 'dark' 
-              ? 'bg-gray-800 border border-gray-700' 
+            theme === 'dark'
+              ? 'bg-gray-800 border border-gray-700'
               : 'bg-white border border-gray-200'
           }`}
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className={`text-2xl font-bold ${
-              theme === 'dark' ? 'text-white' : 'text-gray-800'
-            }`}>
+            <h2
+              className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}
+            >
               {mode === 'login' ? 'Welcome Back' : 'Create Account'}
             </h2>
             <button
@@ -142,8 +142,8 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
               aria-label="Close modal"
               title="Close"
               className={`p-2 rounded-full transition-colors ${
-                theme === 'dark' 
-                  ? 'hover:bg-gray-700 text-gray-400' 
+                theme === 'dark'
+                  ? 'hover:bg-gray-700 text-gray-400'
                   : 'hover:bg-gray-100 text-gray-500'
               }`}
             >
@@ -153,13 +153,10 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
 
           {/* Content */}
           <div className="p-6">
-            <p className={`text-sm mb-6 ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-            }`}>
-              {mode === 'login' 
+            <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              {mode === 'login'
                 ? 'Sign in to access all features and save your conversations'
-                : 'Join CERKYL to get personalized university recommendations'
-              }
+                : 'Join CERKYL to get personalized university recommendations'}
             </p>
 
             {/* Error Message */}
@@ -178,15 +175,19 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
               {/* Name Field (Signup only) */}
               {mode === 'signup' && (
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
+                  <label
+                    className={`block text-sm font-medium mb-2 ${
+                      theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                    }`}
+                  >
                     Full Name
                   </label>
                   <div className="relative">
-                    <FiUser className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
-                      theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                    }`} />
+                    <FiUser
+                      className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                      }`}
+                    />
                     <input
                       type="text"
                       required
@@ -205,15 +206,19 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
 
               {/* Email Field */}
               <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
+                <label
+                  className={`block text-sm font-medium mb-2 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}
+                >
                   Email Address
                 </label>
                 <div className="relative">
-                  <FiMail className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                  }`} />
+                  <FiMail
+                    className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
+                      theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                    }`}
+                  />
                   <input
                     type="email"
                     required
@@ -231,15 +236,19 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
 
               {/* Password Field */}
               <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
+                <label
+                  className={`block text-sm font-medium mb-2 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}
+                >
                   Password
                 </label>
                 <div className="relative">
-                  <FiLock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                  }`} />
+                  <FiLock
+                    className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
+                      theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                    }`}
+                  />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
@@ -256,10 +265,16 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
-                      theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
+                      theme === 'dark'
+                        ? 'text-gray-400 hover:text-gray-300'
+                        : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
-                    {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+                    {showPassword ? (
+                      <FiEyeOff className="w-5 h-5" />
+                    ) : (
+                      <FiEye className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -267,20 +282,26 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
               {/* Confirm Password Field (Signup only) */}
               {mode === 'signup' && (
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
+                  <label
+                    className={`block text-sm font-medium mb-2 ${
+                      theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                    }`}
+                  >
                     Confirm Password
                   </label>
                   <div className="relative">
-                    <FiLock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
-                      theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                    }`} />
+                    <FiLock
+                      className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                      }`}
+                    />
                     <input
                       type={showConfirmPassword ? 'text' : 'password'}
                       required
                       value={formData.confirmPassword}
-                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, confirmPassword: e.target.value })
+                      }
                       className={`w-full pl-10 pr-12 py-3 rounded-xl border focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${
                         theme === 'dark'
                           ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
@@ -292,10 +313,16 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
-                        theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
+                        theme === 'dark'
+                          ? 'text-gray-400 hover:text-gray-300'
+                          : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
-                      {showConfirmPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+                      {showConfirmPassword ? (
+                        <FiEyeOff className="w-5 h-5" />
+                      ) : (
+                        <FiEye className="w-5 h-5" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -316,25 +343,31 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                     Processing...
                   </div>
+                ) : mode === 'login' ? (
+                  'Sign In'
                 ) : (
-                  mode === 'login' ? 'Sign In' : 'Create Account'
+                  'Create Account'
                 )}
               </button>
             </form>
 
             {/* Divider */}
             <div className="my-6 flex items-center">
-              <div className={`flex-1 border-t ${
-                theme === 'dark' ? 'border-gray-600' : 'border-gray-300'
-              }`}></div>
-              <span className={`px-4 text-sm ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-              }`}>
+              <div
+                className={`flex-1 border-t ${
+                  theme === 'dark' ? 'border-gray-600' : 'border-gray-300'
+                }`}
+              ></div>
+              <span
+                className={`px-4 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}
+              >
                 OR
               </span>
-              <div className={`flex-1 border-t ${
-                theme === 'dark' ? 'border-gray-600' : 'border-gray-300'
-              }`}></div>
+              <div
+                className={`flex-1 border-t ${
+                  theme === 'dark' ? 'border-gray-600' : 'border-gray-300'
+                }`}
+              ></div>
             </div>
 
             {/* Guest Login Button */}
@@ -350,10 +383,12 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
             </button>
 
             {/* Mode Switch */}
-            <div className={`text-center mt-6 text-sm ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-            }`}>
-              {mode === 'login' ? "Don't have an account?" : "Already have an account?"}{' '}
+            <div
+              className={`text-center mt-6 text-sm ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}
+            >
+              {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}{' '}
               <button
                 onClick={() => handleModeSwitch(mode === 'login' ? 'signup' : 'login')}
                 className="text-primary-600 hover:text-primary-700 font-semibold"

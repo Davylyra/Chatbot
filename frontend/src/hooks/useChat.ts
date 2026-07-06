@@ -32,8 +32,8 @@ export const useChat = () => {
   const { showError, showSuccess } = useToast();
 
   const sendMessage = async (
-    message: string, 
-    conversationId: string, 
+    message: string,
+    conversationId: string,
     universityName?: string,
     additionalContext?: any
   ): Promise<EnhancedChatResponse> => {
@@ -47,13 +47,13 @@ export const useChat = () => {
         user_context: {
           preferred_university: universityName,
           timestamp: new Date().toISOString(),
-          ...additionalContext
-        }
+          ...additionalContext,
+        },
       };
 
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        Accept: 'application/json',
       };
 
       if (token) {
@@ -61,149 +61,135 @@ export const useChat = () => {
       }
 
       const endpoint = token ? `${API_BASE_URL}/chat/send` : `${API_BASE_URL}/chat/demo`;
-      
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers,
         body: JSON.stringify(requestPayload),
-        credentials: 'include'
+        credentials: 'include',
       });
 
-      let data;
-      try {
-        data = await response.json();
-      } catch (parseError) {
-        console.error('Failed to parse response JSON:', parseError);
+      const chatResponse = await response.json().catch(() => {
         throw new Error('Invalid response format from server');
-      }
+      });
 
       if (response.status === 401 || response.status === 403) {
         localStorage.removeItem('token');
-        
-        if (data?.requiresAuth) {
-          showError('Authentication Required', data.message || 'Please log in to continue.');
+
+        if (chatResponse?.requiresAuth) {
+          showError('Authentication Required', chatResponse.message || 'Please log in to continue.');
           return {
             success: false,
             message: 'Authentication required. Please log in to access this feature.',
             error: 'AUTHENTICATION_REQUIRED',
-            requiresAuth: true
+            requiresAuth: true,
           };
         }
-        
+
         const demoResponse = await fetch(`${API_BASE_URL}/chat/demo`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            Accept: 'application/json',
           },
-          body: JSON.stringify(requestPayload)
+          body: JSON.stringify(requestPayload),
         });
-        
-        const demoData = await demoResponse.json();
-        if (demoResponse.ok && demoData.success) {
+
+        const demoPayload = await demoResponse.json();
+        if (demoResponse.ok && demoPayload.success) {
           showError('Session Expired', 'Continued in demo mode. Please log in for full features.');
           return {
             success: true,
-            message: demoData.reply || demoData.message,
-            sources: demoData.sources || [],
-            confidence: demoData.confidence || 0.0,
-            timestamp: demoData.timestamp || new Date().toISOString(),
-            metadata: { ...demoData.metadata, demo_mode: true }
+            message: demoPayload.reply || demoPayload.message,
+            sources: demoPayload.sources || [],
+            confidence: demoPayload.confidence || 0.0,
+            timestamp: demoPayload.timestamp || new Date().toISOString(),
+            metadata: { ...demoPayload.metadata, demo_mode: true },
           };
         }
       }
 
       if (!response.ok) {
-        console.error('HTTP error response:', {
-          status: response.status,
-          statusText: response.statusText,
-          data
-        });
-        
-        throw new Error(data?.message || `HTTP error! status: ${response.status}`);
+        console.error('HTTP error response:', response.status, response.statusText);
+        throw new Error(chatResponse?.message || `HTTP error! status: ${response.status}`);
       }
-      
-      if (!data.success) {
-        const errorMessage = data.message || data.reply || 'Error sending message';
+
+      if (!chatResponse.success) {
+        const errorMessage = chatResponse.message || chatResponse.reply || 'Error sending message';
         console.warn('Backend returned success=false:', errorMessage);
         showError('Chat Error', errorMessage);
-        
-        return { 
-          success: false, 
+
+        return {
+          success: false,
           message: errorMessage,
-          error: data.error || 'BACKEND_ERROR'
+          error: chatResponse.error || 'BACKEND_ERROR',
         };
       }
 
-      if (data.fallback_mode) {
-        showError('Limited Response', 'AI service temporarily unavailable. Showing cached knowledge.');
-      } else if (data.confidence && data.confidence > 0.9) {
+      if (chatResponse.fallback_mode) {
+        showError(
+          'Limited Response',
+          'AI service temporarily unavailable. Showing cached knowledge.'
+        );
+      } else if (chatResponse.confidence && chatResponse.confidence > 0.9) {
         showSuccess('High Confidence', 'Response generated with high confidence');
       }
 
-      return { 
-        success: true, 
-        message: data.reply || data.message || 'Response received from assistant.',
-        conversation_title: data.conversation_title,
-        sources: data.sources || [],
-        confidence: data.confidence || 0.0,
-        timestamp: data.timestamp || new Date().toISOString(),
+      return {
+        success: true,
+        message: chatResponse.reply || chatResponse.message || 'Response received from assistant.',
+        conversation_title: chatResponse.conversation_title,
+        sources: chatResponse.sources || [],
+        confidence: chatResponse.confidence || 0.0,
+        timestamp: chatResponse.timestamp || new Date().toISOString(),
         metadata: {
-          ...data.metadata,
-          fallback_mode: data.fallback_mode || false,
-          rag_error: data.rag_error || null
-        }
+          ...chatResponse.metadata,
+          fallback_mode: chatResponse.fallback_mode || false,
+          rag_error: chatResponse.rag_error || null,
+        },
       };
+    } catch (networkError) {
+      console.error('Chat send failed:', networkError);
 
-    } catch (error) {
-      console.error('Enhanced chat error with details:', {
-        errorType: error instanceof Error ? error.constructor.name : typeof error,
-        errorMessage: error instanceof Error ? error.message : String(error),
-        errorStack: error instanceof Error ? error.stack : undefined
-      });
-      
       let userFriendlyMessage = 'Unable to send message. Please try again.';
       let errorCategory = 'UNKNOWN_ERROR';
 
-      if (error instanceof Error) {
-        if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
+      if (networkError instanceof Error) {
+        if (networkError.message.includes('fetch') || networkError.message.includes('Failed to fetch')) {
           userFriendlyMessage = 'Connection problem. Please check your internet and try again.';
           errorCategory = 'NETWORK_ERROR';
-        } 
-        else if (error.message.includes('timeout') || error.message.includes('aborted')) {
-          userFriendlyMessage = 'Request timed out. The server is taking too long to respond. Please try again.';
+        } else if (networkError.message.includes('timeout') || networkError.message.includes('aborted')) {
+          userFriendlyMessage =
+            'Request timed out. The server is taking too long to respond. Please try again.';
           errorCategory = 'TIMEOUT_ERROR';
-        }
-        else if (error.message.includes('HTTP') || error.message.includes('status:')) {
-          userFriendlyMessage = `Server error: ${error.message}. Please try again later.`;
+        } else if (networkError.message.includes('HTTP') || networkError.message.includes('status:')) {
+          userFriendlyMessage = `Server error: ${networkError.message}. Please try again later.`;
           errorCategory = 'HTTP_ERROR';
-        }
-        else if (error.message.includes('JSON') || error.message.includes('parse')) {
+        } else if (networkError.message.includes('JSON') || networkError.message.includes('parse')) {
           userFriendlyMessage = 'Received invalid response from server. Please try again.';
           errorCategory = 'PARSE_ERROR';
-        }
-        else if (!error.message.includes('TypeError') && !error.message.includes('undefined')) {
-          userFriendlyMessage = error.message;
+        } else if (!networkError.message.includes('TypeError') && !networkError.message.includes('undefined')) {
+          userFriendlyMessage = networkError.message;
           errorCategory = 'CUSTOM_ERROR';
         }
       }
 
       console.error(`Error category: ${errorCategory}`);
       showError('Connection Error', userFriendlyMessage);
-      
-      return { 
-        success: false, 
+
+      return {
+        success: false,
         message: `I'm having trouble connecting right now. ${userFriendlyMessage}`,
-        error: errorCategory
+        error: errorCategory,
       };
     }
   };
 
   const searchUniversities = async (query: string) => {
     try {
-      const _token = localStorage.getItem('token');
-      
-      if (!_token) {
+      const token = localStorage.getItem('token');
+
+      if (!token) {
         return { success: false, universities: [] };
       }
 
@@ -211,57 +197,55 @@ export const useChat = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${_token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ query })
+        body: JSON.stringify({ query }),
       });
 
-      const data = await response.json();
-      
+      const searchPayload = await response.json();
+
       return {
         success: response.ok,
-        universities: data.universities || [],
-        total: data.total || 0
+        universities: searchPayload.universities || [],
+        total: searchPayload.total || 0,
       };
-
-    } catch (error) {
-      console.error('University search error:', error);
+    } catch (searchError) {
+      console.error('University search error:', searchError);
       return { success: false, universities: [] };
     }
   };
 
   const getScholarships = async () => {
     try {
-      const _token = localStorage.getItem('token');
-      
-      if (!_token) {
+      const token = localStorage.getItem('token');
+
+      if (!token) {
         return { success: false, scholarships: [] };
       }
 
       const response = await fetch(`${API_BASE_URL}/scholarships`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${_token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
-      const data = await response.json();
-      
+      const scholarshipPayload = await response.json();
+
       return {
         success: response.ok,
-        scholarships: data.scholarships || [],
-        total: data.total || 0
+        scholarships: scholarshipPayload.scholarships || [],
+        total: scholarshipPayload.total || 0,
       };
-
-    } catch (error) {
-      console.error('Scholarships fetch error:', error);
+    } catch (fetchError) {
+      console.error('Scholarships fetch error:', fetchError);
       return { success: false, scholarships: [] };
     }
   };
 
-  return { 
-    sendMessage, 
-    searchUniversities, 
-    getScholarships 
+  return {
+    sendMessage,
+    searchUniversities,
+    getScholarships,
   };
 };

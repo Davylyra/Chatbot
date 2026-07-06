@@ -1,0 +1,17 @@
+# Ignore build directories
+dist/
+build/
+coverage/
+
+# Dependencies
+node_modules/
+
+# Cache files
+.eslintcache
+.npm
+.vercel
+
+# Lockfiles
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

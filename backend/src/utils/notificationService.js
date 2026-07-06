@@ -98,7 +98,7 @@ export const sendUserNotification = async (userId, notificationData) => {
 export const sendAdmissionUpdate = async (universityName, updateType, details = {}) => {
   try {
     const notification = buildNotification({
-      title: `🚨 ${universityName} ${updateType}!`,
+      title: `${universityName} ${updateType}!`,
       message: details.message || `Important update for ${universityName}`,
       type: 'success',
       category: 'admission_update',
@@ -144,24 +144,24 @@ export const sendPaymentNotification = async (userId, status, amount, details = 
   try {
     const statusMessages = {
       'success': {
-        title: '✅ Payment Successful!',
+        title: ' Payment Successful!',
         message: `GHS ${amount} payment received. Transaction ID: ${details.reference || 'N/A'}`,
         type: 'success'
       },
       'pending': {
-        title: '⏳ Payment Pending',
+        title: ' Payment Pending',
         message: `Your GHS ${amount} mobile money payment is waiting for approval. Check your phone.`,
         type: 'warning'
       },
       'failed': {
-        title: '❌ Payment Failed',
+        title: 'Payment Failed',
         message: `Your GHS ${amount} payment could not be processed. ${details.reason || 'Please try again.'}`,
         type: 'error'
       }
     };
 
     const notification = statusMessages[status] || {
-      title: '💳 Payment Update',
+      title: 'Payment Update',
       message: `Payment status: ${status}`,
       type: 'info'
     };
@@ -182,24 +182,24 @@ export const sendFormNotification = async (userId, formName, eventType, details 
   try {
     const eventMessages = {
       'purchase_success': {
-        title: `✅ Form Purchase Complete!`,
+        title: `Form Purchase Complete!`,
         message: `You've successfully purchased the ${formName} application form. Download it from your dashboard.`,
         type: 'success'
       },
       'download_ready': {
-        title: `📥 Form Ready to Download`,
+        title: `Form Ready to Download`,
         message: `Your ${formName} form is ready. Download it now!`,
         type: 'success'
       },
       'deadline_approaching': {
-        title: `⏰ ${formName} Deadline Approaching`,
+        title: `${formName} Deadline Approaching`,
         message: `Don't forget to submit your ${formName} application before the deadline!`,
         type: 'warning'
       }
     };
 
     const notification = eventMessages[eventType] || { 
-      title: `📋 ${formName} Update`, 
+      title: ` ${formName} Update`, 
       message: `Update regarding ${formName}`, 
       type: 'info' 
     };
@@ -234,7 +234,6 @@ export const getUnreadCount = async (userId) => {
   }
 };
 
-// Note: markAsRead removed - use scheduleNotificationDeletion instead
 
 export const scheduleNotificationDeletion = async (notificationId, userId, delaySeconds = 2) => {
   try {

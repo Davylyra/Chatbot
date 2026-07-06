@@ -18,11 +18,7 @@ const ToastContainer: React.FC<ToastContainerProps> = memo(({ toasts, onRemoveTo
     <div className="fixed top-4 right-4 z-50 space-y-2">
       <AnimatePresence>
         {toasts.map((toast) => (
-          <Toast
-            key={toast.id}
-            {...toast}
-            onClose={onRemoveToast}
-          />
+          <Toast key={toast.id} {...toast} onClose={onRemoveToast} />
         ))}
       </AnimatePresence>
     </div>

@@ -32,7 +32,7 @@ const Assessment: React.FC = () => {
     wassceGrade: '',
     interests: [],
     careerGoals: '',
-    preferredLocation: ''
+    preferredLocation: '',
   });
   const [isOcrLoading, setIsOcrLoading] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -45,33 +45,32 @@ const Assessment: React.FC = () => {
     try {
       setIsOcrLoading(true);
       const { wassceGrade } = await parseWassceResult(file);
-      
-      setAssessmentData(prev => ({
+
+      setAssessmentData((prev) => ({
         ...prev,
-        wassceGrade: wassceGrade || prev.wassceGrade
+        wassceGrade: wassceGrade || prev.wassceGrade,
       }));
-      
+
       if (wassceGrade && wassceGrade.split(',').length < 8) {
         showWarning(
-          "Missing Subjects",
+          'Missing Subjects',
           "We couldn't clearly read all your subjects from the image. Please review the text box and fill in any missing grades manually.",
           5000
         );
       }
 
       if (fileInputRef.current) fileInputRef.current.value = '';
-      
     } catch (error: any) {
       if (error.message === 'NO_GRADES_FOUND') {
         showWarning(
-          "No Grades Detected",
+          'No Grades Detected',
           "We couldn't clearly detect your grades from this image. Please ensure the photo is clear, well-lit, and contains your WASSCE results, or type them in manually.",
           5000
         );
       } else {
         showError(
-          "Scan Failed",
-          "Oops! Something went wrong while scanning the document. Please try again with a clearer image, or type your grades manually.",
+          'Scan Failed',
+          'Oops! Something went wrong while scanning the document. Please try again with a clearer image, or type your grades manually.',
           5000
         );
       }
@@ -101,45 +100,45 @@ const Assessment: React.FC = () => {
   const isFirstStep = currentStep === 0;
 
   const handleAnswer = (answer: string | string[]) => {
-    setAssessmentData(prev => ({
+    setAssessmentData((prev) => ({
       ...prev,
-      [currentQuestion.id]: answer
+      [currentQuestion.id]: answer,
     }));
   };
 
   const handleNext = async () => {
     if (currentStep < questions.length - 1) {
-      setCurrentStep(prev => prev + 1);
+      setCurrentStep((prev) => prev + 1);
     } else {
-      // Assessment complete - update profile with interests and send data to chat
+
       console.log(' Assessment completed with data:', assessmentData);
       console.log(' Interests array:', assessmentData.interests);
       console.log(' User authenticated:', isAuthenticated);
       console.log('User object:', user);
-      
+
       try {
         if (isAuthenticated && user && assessmentData.interests?.length > 0) {
           const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
           const token = localStorage.getItem('token');
-          
+
           console.log(' Token exists:', !!token);
           console.log(' Sending interests to backend:', assessmentData.interests);
-          
+
           if (token && API_BASE_URL) {
             try {
               const response = await fetch(`${API_BASE_URL}/profile/update`, {
                 method: 'PUT',
                 headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json'
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                  interests: assessmentData.interests
-                })
+                  interests: assessmentData.interests,
+                }),
               });
-              
+
               const responseData = await response.json();
-              
+
               if (!response.ok) {
                 console.error('Failed to update profile:', responseData);
               }
@@ -148,10 +147,10 @@ const Assessment: React.FC = () => {
             }
           }
         }
-        
+
         const chatMessage = await assessmentService.sendAssessmentToChat(assessmentData);
-        
-        // Save user's assessment in the database
+
+
         const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
         const token = localStorage.getItem('token');
         if (API_BASE_URL) {
@@ -160,7 +159,7 @@ const Assessment: React.FC = () => {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
               },
               body: JSON.stringify({
                 userId: isAuthenticated && user ? user.id : 'anonymous',
@@ -170,9 +169,9 @@ const Assessment: React.FC = () => {
                   wassceGrade: assessmentData.wassceGrade,
                   interests: assessmentData.interests,
                   careerGoals: assessmentData.careerGoals,
-                  preferredLocation: assessmentData.preferredLocation
-                }
-              })
+                  preferredLocation: assessmentData.preferredLocation,
+                },
+              }),
             });
           } catch (err) {
             console.error('Failed to save assessment to database:', err);
@@ -184,15 +183,15 @@ const Assessment: React.FC = () => {
           updateProfile({ assessmentCompleted: true });
         }
 
-        navigate('/chat', { 
-          state: { 
+        navigate('/chat', {
+          state: {
             assessmentData,
             initialMessage: chatMessage,
             userContext: {
               is_assessment_result: true,
-              assessment_data: assessmentData
-            }
-          } 
+              assessment_data: assessmentData,
+            },
+          },
         });
       } catch (error) {
         console.error('Failed to send assessment to chat:', error);
@@ -200,22 +199,22 @@ const Assessment: React.FC = () => {
         if (isAuthenticated && user && assessmentData.interests?.length > 0) {
           const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
           const token = localStorage.getItem('token');
-          
+
           if (token && API_BASE_URL) {
             try {
               const response = await fetch(`${API_BASE_URL}/profile/update`, {
                 method: 'PUT',
                 headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json'
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                  interests: assessmentData.interests
-                })
+                  interests: assessmentData.interests,
+                }),
               });
-              
+
               const responseData = await response.json();
-              
+
               if (!response.ok) {
                 console.error('Failed to update profile (retry):', responseData);
               }
@@ -224,18 +223,18 @@ const Assessment: React.FC = () => {
             }
           }
         }
-        
+
         const fallbackMessage = `I just completed my assessment. My strong subjects are ${assessmentData.bestSubject?.join(', ') || 'various subjects'} and I studied ${assessmentData.shsProgram || 'an SHS program'}. I obtained ${assessmentData.wassceGrade || 'good grades'} in WASSCE. I'm interested in ${assessmentData.interests?.join(', ') || 'multiple fields'} and my career goal is to ${assessmentData.careerGoals || 'pursue higher education'}. Could you help me with university recommendations?`;
-        
-        navigate('/chat', { 
-          state: { 
+
+        navigate('/chat', {
+          state: {
             assessmentData,
             initialMessage: fallbackMessage,
             userContext: {
               is_assessment_result: true,
-              assessment_data: assessmentData
-            }
-          } 
+              assessment_data: assessmentData,
+            },
+          },
         });
       }
     }
@@ -243,7 +242,7 @@ const Assessment: React.FC = () => {
 
   const handlePrevious = () => {
     if (currentStep > 0) {
-      setCurrentStep(prev => prev - 1);
+      setCurrentStep((prev) => prev - 1);
     }
   };
 
@@ -262,37 +261,49 @@ const Assessment: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-        <Navbar 
+        <Navbar
           title="PROGRAM ASSESSMENT"
           showBackButton={true}
           onBackClick={() => navigate('/')}
           showMenuButton={false}
         />
-        
+
         <div className="w-full max-w-sm mx-auto px-4 py-4 overflow-hidden md:max-w-xl md:px-6 md:py-6 lg:max-w-2xl xl:max-w-3xl">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="text-center py-12"
           >
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${
-              theme === 'dark' ? 'bg-primary-500/20' : 'bg-primary-100'
-            }`}>
+            <div
+              className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${
+                theme === 'dark' ? 'bg-primary-500/20' : 'bg-primary-100'
+              }`}
+            >
               <motion.div
                 animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
               >
-                <FiTarget className={`w-10 h-10 ${
-                  theme === 'dark' ? 'text-primary-400' : 'text-primary-600'
-                }`} />
+                <FiTarget
+                  className={`w-10 h-10 ${
+                    theme === 'dark' ? 'text-primary-400' : 'text-primary-600'
+                  }`}
+                />
               </motion.div>
             </div>
-            <h2 className={`text-2xl font-bold mb-2 transition-colors duration-200 ${
-              theme === 'dark' ? 'text-white' : 'text-gray-800'
-            }`}>Loading Assessment</h2>
-            <p className={`transition-colors duration-200 ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-            }`}>Preparing your personalized assessment questions...</p>
+            <h2
+              className={`text-2xl font-bold mb-2 transition-colors duration-200 ${
+                theme === 'dark' ? 'text-white' : 'text-gray-800'
+              }`}
+            >
+              Loading Assessment
+            </h2>
+            <p
+              className={`transition-colors duration-200 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}
+            >
+              Preparing your personalized assessment questions...
+            </p>
           </motion.div>
         </div>
       </div>
@@ -302,32 +313,42 @@ const Assessment: React.FC = () => {
   if (questions.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-        <Navbar 
+        <Navbar
           title="PROGRAM ASSESSMENT"
           showBackButton={true}
           onBackClick={() => navigate('/')}
           showMenuButton={false}
         />
-        
+
         <div className="w-full max-w-sm mx-auto px-4 py-4 overflow-hidden md:max-w-xl md:px-6 md:py-6 lg:max-w-2xl xl:max-w-3xl">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="text-center py-12"
           >
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${
-              theme === 'dark' ? 'bg-red-500/20' : 'bg-red-100'
-            }`}>
-              <FiTarget className={`w-10 h-10 ${
-                theme === 'dark' ? 'text-red-400' : 'text-red-600'
-              }`} />
+            <div
+              className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${
+                theme === 'dark' ? 'bg-red-500/20' : 'bg-red-100'
+              }`}
+            >
+              <FiTarget
+                className={`w-10 h-10 ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`}
+              />
             </div>
-            <h2 className={`text-2xl font-bold mb-2 transition-colors duration-200 ${
-              theme === 'dark' ? 'text-white' : 'text-gray-800'
-            }`}>Assessment Unavailable</h2>
-            <p className={`mb-4 transition-colors duration-200 ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-            }`}>Unable to load assessment questions. Please try again later.</p>
+            <h2
+              className={`text-2xl font-bold mb-2 transition-colors duration-200 ${
+                theme === 'dark' ? 'text-white' : 'text-gray-800'
+              }`}
+            >
+              Assessment Unavailable
+            </h2>
+            <p
+              className={`mb-4 transition-colors duration-200 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}
+            >
+              Unable to load assessment questions. Please try again later.
+            </p>
             <button
               onClick={() => navigate('/')}
               className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
@@ -343,7 +364,7 @@ const Assessment: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
-      <Navbar 
+      <Navbar
         title="PROGRAM ASSESSMENT"
         showBackButton={true}
         onBackClick={() => navigate('/')}
@@ -352,24 +373,24 @@ const Assessment: React.FC = () => {
 
       <div className="w-full max-w-sm mx-auto px-4 py-4 overflow-hidden md:max-w-xl md:px-6 md:py-6 lg:max-w-2xl xl:max-w-3xl">
         {/* Progress Bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <span className={`text-sm font-medium transition-colors duration-200 ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-            }`}>
+            <span
+              className={`text-sm font-medium transition-colors duration-200 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}
+            >
               Question {currentStep + 1} of {questions.length}
             </span>
             <span className="text-sm font-medium text-primary-600">
               {Math.round(getProgressPercentage())}% Complete
             </span>
           </div>
-          <div className={`w-full rounded-full h-2 transition-colors duration-200 ${
-            theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
-          }`}>
+          <div
+            className={`w-full rounded-full h-2 transition-colors duration-200 ${
+              theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+            }`}
+          >
             <motion.div
               className="bg-primary-600 h-2 rounded-full"
               initial={{ width: 0 }}
@@ -391,16 +412,20 @@ const Assessment: React.FC = () => {
           }`}
         >
           <div className="flex items-center mb-4">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${
-              theme === 'dark' ? 'bg-primary-500/20' : 'bg-primary-100'
-            }`}>
-              <FiTarget className={`w-5 h-5 ${
-                theme === 'dark' ? 'text-primary-400' : 'text-primary-600'
-              }`} />
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${
+                theme === 'dark' ? 'bg-primary-500/20' : 'bg-primary-100'
+              }`}
+            >
+              <FiTarget
+                className={`w-5 h-5 ${theme === 'dark' ? 'text-primary-400' : 'text-primary-600'}`}
+              />
             </div>
-            <h2 className={`text-xl font-bold transition-colors duration-200 ${
-              theme === 'dark' ? 'text-white' : 'text-gray-800'
-            }`}>
+            <h2
+              className={`text-xl font-bold transition-colors duration-200 ${
+                theme === 'dark' ? 'text-white' : 'text-gray-800'
+              }`}
+            >
               {currentQuestion.question}
             </h2>
           </div>
@@ -410,40 +435,51 @@ const Assessment: React.FC = () => {
             {currentQuestion.type === 'text' ? (
               <div className="space-y-4">
                 <textarea
-                  value={assessmentData[currentQuestion.id as keyof AssessmentData] as string || ''}
+                  value={
+                    (assessmentData[currentQuestion.id as keyof AssessmentData] as string) || ''
+                  }
                   onChange={(e) => handleAnswer(e.target.value)}
-                  placeholder={currentQuestion.placeholder || "Enter your answer..."}
+                  placeholder={currentQuestion.placeholder || 'Enter your answer...'}
                   className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none transition-colors duration-200 ${
-                    theme === 'dark' 
-                      ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400' 
+                    theme === 'dark'
+                      ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400'
                       : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500'
                   }`}
                   rows={4}
                 />
-                
+
                 {currentQuestion.id === 'wassceGrade' && (
                   <div className="flex flex-col space-y-2">
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      ref={fileInputRef} 
-                      onChange={handleFileUpload} 
-                      className="hidden" 
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={fileInputRef}
+                      onChange={handleFileUpload}
+                      className="hidden"
                       aria-label="Upload WASSCE result slip"
                       title="Upload WASSCE result slip"
                     />
-                    <button 
+                    <button
                       onClick={() => fileInputRef.current?.click()}
                       disabled={isOcrLoading}
                       className={`flex items-center justify-center space-x-2 p-3 rounded-lg border-2 border-dashed ${
-                        theme === 'dark' ? 'border-primary-500/50 hover:bg-primary-500/10' : 'border-primary-300 hover:bg-primary-50'
+                        theme === 'dark'
+                          ? 'border-primary-500/50 hover:bg-primary-500/10'
+                          : 'border-primary-300 hover:bg-primary-50'
                       } text-primary-600 transition-colors cursor-pointer`}
                     >
                       <FiUpload />
-                      <span>{isOcrLoading ? 'Scanning Document...' : 'Upload WASSCE Result Slip (Auto-fill)'}</span>
+                      <span>
+                        {isOcrLoading
+                          ? 'Scanning Document...'
+                          : 'Upload WASSCE Result Slip (Auto-fill)'}
+                      </span>
                     </button>
-                    <p className={`text-xs text-center ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                      Upload a clear photo of your WASSCE slip and we'll automatically extract your grades.
+                    <p
+                      className={`text-xs text-center ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}
+                    >
+                      Upload a clear photo of your WASSCE slip and we'll automatically extract your
+                      grades.
                     </p>
                   </div>
                 )}
@@ -451,9 +487,10 @@ const Assessment: React.FC = () => {
             ) : currentQuestion.options ? (
               currentQuestion.options.map((option, index) => {
                 const currentAnswer = assessmentData[currentQuestion.id as keyof AssessmentData];
-                const isSelected = currentQuestion.type === 'multiple' 
-                  ? Array.isArray(currentAnswer) && currentAnswer.includes(option)
-                  : currentAnswer === option;
+                const isSelected =
+                  currentQuestion.type === 'multiple'
+                    ? Array.isArray(currentAnswer) && currentAnswer.includes(option)
+                    : currentAnswer === option;
 
                 return (
                   <motion.button
@@ -464,7 +501,7 @@ const Assessment: React.FC = () => {
                       if (currentQuestion.type === 'multiple') {
                         const currentArray = Array.isArray(currentAnswer) ? currentAnswer : [];
                         const newArray = isSelected
-                          ? currentArray.filter(item => item !== option)
+                          ? currentArray.filter((item) => item !== option)
                           : [...currentArray, option];
                         handleAnswer(newArray);
                       } else {
@@ -481,9 +518,7 @@ const Assessment: React.FC = () => {
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{option}</span>
-                      {isSelected && (
-                        <FiCheck className="w-5 h-5 text-primary-600" />
-                      )}
+                      {isSelected && <FiCheck className="w-5 h-5 text-primary-600" />}
                     </div>
                   </motion.button>
                 );
@@ -493,18 +528,21 @@ const Assessment: React.FC = () => {
 
           {/* Selection Info for Multiple Choice */}
           {currentQuestion.type === 'multiple' && (
-            <div className={`mt-4 p-3 rounded-lg transition-colors duration-200 ${
-              theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-50'
-            }`}>
-              <p className={`text-sm transition-colors duration-200 ${
-                theme === 'dark' ? 'text-blue-300' : 'text-blue-700'
-              }`}>
-                {currentQuestion.id === 'bestSubject' 
+            <div
+              className={`mt-4 p-3 rounded-lg transition-colors duration-200 ${
+                theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-50'
+              }`}
+            >
+              <p
+                className={`text-sm transition-colors duration-200 ${
+                  theme === 'dark' ? 'text-blue-300' : 'text-blue-700'
+                }`}
+              >
+                {currentQuestion.id === 'bestSubject'
                   ? 'Select all subjects you perform well in'
                   : currentQuestion.id === 'interests'
-                  ? 'Select up to 3 career fields that interest you most'
-                  : 'Select all that apply'
-                }
+                    ? 'Select up to 3 career fields that interest you most'
+                    : 'Select all that apply'}
               </p>
             </div>
           )}
@@ -557,19 +595,27 @@ const Assessment: React.FC = () => {
           transition={{ delay: 0.5 }}
           className="mt-8 text-center"
         >
-          <div className={`p-4 ${theme === 'dark' ? 'glass-card-unified-dark' : 'glass-card-unified'}`}>
+          <div
+            className={`p-4 ${theme === 'dark' ? 'glass-card-unified-dark' : 'glass-card-unified'}`}
+          >
             <div className="flex items-center justify-center space-x-2 mb-2">
               <FiBookOpen className="w-5 h-5 text-primary-600" />
-              <h3 className={`font-semibold transition-colors duration-200 ${
-                theme === 'dark' ? 'text-white' : 'text-gray-800'
-              }`}>Assessment Benefits</h3>
+              <h3
+                className={`font-semibold transition-colors duration-200 ${
+                  theme === 'dark' ? 'text-white' : 'text-gray-800'
+                }`}
+              >
+                Assessment Benefits
+              </h3>
             </div>
-            <p className={`text-sm transition-colors duration-200 ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-            }`}>
-              Get personalized program recommendations based on your academic strengths, 
-              interests, and career goals. Our AI will match you with the best universities 
-              and programs in Ghana.
+            <p
+              className={`text-sm transition-colors duration-200 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}
+            >
+              Get personalized program recommendations based on your academic strengths, interests,
+              and career goals. Our AI will match you with the best universities and programs in
+              Ghana.
             </p>
           </div>
         </motion.div>

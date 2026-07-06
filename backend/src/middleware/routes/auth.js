@@ -21,20 +21,17 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 console.log("Auth router file is executing");
 
-// Step 1: User enters email → we send verification code
 router.post("/send-signup-verification", rateLimiters.authRateLimit, async (req, res) => {
   const { email } = req.body;
 
-  const errors = [];
-  if (!email) {
-    errors.push('Email is required');
-  }
+  const validationFailures = [];
+  if (!email) validationFailures.push('Email is required');
 
-  if (errors.length > 0) {
+  if (validationFailures.length > 0) {
     return res.status(400).json({ 
       success: false, 
       message: 'Validation failed',
-      errors
+      errors: validationFailures
     });
   }
 
@@ -60,8 +57,8 @@ router.post("/send-signup-verification", rateLimiters.authRateLimit, async (req,
     const usersCollection = await getCollection("users");
     const signupVerificationsCollection = await getCollection("signup_verifications");
     
-    const existingUser = await usersCollection.findOne({ email: normalizedEmail });
-    if (existingUser) {
+    const registeredAccount = await usersCollection.findOne({ email: normalizedEmail });
+    if (registeredAccount) {
       return res.status(409).json({ 
         success: false,
         message: "Email already registered",
@@ -70,7 +67,7 @@ router.post("/send-signup-verification", rateLimiters.authRateLimit, async (req,
     }
 
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await signupVerificationsCollection.updateOne(
       { email: normalizedEmail },
@@ -95,182 +92,116 @@ router.post("/send-signup-verification", rateLimiters.authRateLimit, async (req,
       email: normalizedEmail
     });
   } catch (err) {
-    console.error(' Send verification error:', err);
+    console.error('Error sending verification code', err);
     return res.status(500).json({ 
       success: false,
-      message: "Failed to send verification code",
+      message: "Failed to send code",
       errors: ["Please try again later"]
     });
   }
 });
 
-// VERIFY SIGNUP AND CREATE ACCOUNT
-// Step 2: User enters verification code → we create account
 router.post("/verify-signup", rateLimiters.authRateLimit, async (req, res) => {
   const { email, verification_code, name, password } = req.body;
 
-  const errors = [];
+  const validationFailures = [];
   
-  if (!email) {
-    errors.push('Email is required');
-  }
-  if (!verification_code) {
-    errors.push('Verification code is required');
-  }
-  if (!name) {
-    errors.push('Name is required');
-  }
-  if (!password) {
-    errors.push('Password is required');
-  }
+  if (!email) validationFailures.push('Email is required');
+  if (!verification_code) validationFailures.push('Code is required');
+  if (!name) validationFailures.push('Name is required');
+  if (!password) validationFailures.push('Password is required');
 
-  if (errors.length > 0) {
+  if (validationFailures.length > 0) {
     return res.status(400).json({ 
       success: false, 
       message: 'Validation failed',
-      errors
+      errors: validationFailures
     });
   }
 
   const normalizedEmail = String(email).toLowerCase();
 
-  if (name.trim().length < 3) {
-    errors.push('Name must be at least 3 characters');
-  } else if (name.length > 100) {
-    errors.push('Name must not exceed 100 characters');
-  }
+  if (name.trim().length < 3) validationFailures.push('Name too short');
+  if (!validateEmail(normalizedEmail)) validationFailures.push('Invalid email');
+  if (!validateGmailDomain(normalizedEmail)) validationFailures.push('Invalid domain');
 
-  if (!validateEmail(normalizedEmail)) {
-    errors.push('Invalid email format');
-  }
-  if (!validateGmailDomain(normalizedEmail)) {
-    errors.push('Email must end with @gmail.com');
-  }
+  const pwd = validatePassword(password);
+  if (!pwd.valid) validationFailures.push(...pwd.errors);
 
-  const pwdValidation = validatePassword(password);
-  if (!pwdValidation.valid) {
-    errors.push(...pwdValidation.errors);
-  }
-
-  if (errors.length > 0) {
+  if (validationFailures.length > 0) {
     return res.status(400).json({ 
       success: false,
       message: 'Validation failed',
-      errors
+      errors: validationFailures
     });
   }
 
   try {
-    const usersCollection = await getCollection("users");
-    const signupVerificationsCollection = await getCollection("signup_verifications");
+    const users = await getCollection("users");
+    const codes = await getCollection("signup_verifications");
     
-    const existingUser = await usersCollection.findOne({ email: normalizedEmail });
-    if (existingUser) {
+    const exists = await users.findOne({ email: normalizedEmail });
+    if (exists) {
       return res.status(409).json({ 
         success: false,
-        message: "Email already registered",
-        errors: ["An account with this email already exists"]
+        message: "Email already registered"
       });
     }
 
-    const verificationRecord = await signupVerificationsCollection.findOne({ 
-      email: normalizedEmail 
-    });
+    const record = await codes.findOne({ email: normalizedEmail });
 
-    if (!verificationRecord) {
+    if (!record || record.verification_code !== String(verification_code)) {
       return res.status(400).json({ 
         success: false,
-        message: "Verification code not found",
-        errors: ["Please request a new verification code"]
+        message: "Invalid or missing code"
       });
     }
 
-    if (verificationRecord.verification_code !== String(verification_code)) {
+    if (new Date() > record.expires_at) {
+      await codes.deleteOne({ email: normalizedEmail });
       return res.status(400).json({ 
         success: false,
-        message: "Invalid verification code",
-        errors: ["The code you entered is incorrect"]
+        message: "Code expired"
       });
     }
 
-    if (new Date() > verificationRecord.expires_at) {
-      await signupVerificationsCollection.deleteOne({ email: normalizedEmail });
-      return res.status(400).json({ 
-        success: false,
-        message: "Verification code expired",
-        errors: ["Please request a new verification code"]
-      });
-    }
-
-    // Hash password
     const password_hash = await bcrypt.hash(password, 10);
-
-    const newUser = {
+    const user = {
       name: name.trim(),
       email: normalizedEmail,
       password_hash,
-      is_verified: true,  // Email verified via signup verification flow
-      created_at: new Date(),
-      updated_at: new Date()
+      is_verified: true,
+      created_at: new Date()
     };
     
-    const result = await usersCollection.insertOne(newUser);
-
-    await signupVerificationsCollection.deleteOne({ email: normalizedEmail });
-
-    console.log(' Account created after verification:', { name, email: normalizedEmail, userId: result.insertedId });
+    await users.insertOne(user);
+    await codes.deleteOne({ email: normalizedEmail });
 
     return res.status(201).json({
       success: true,
-      message: 'Account created successfully! Please log in.',
-      email: normalizedEmail
+      message: 'Account created.'
     });
   } catch (err) {
-    console.error(' Verify signup error:', err);
     return res.status(500).json({ 
       success: false,
-      message: "Failed to create account",
-      errors: ["Please try again later"]
+      message: "Server error"
     });
   }
 });
 
-
-
-// LEGACY SIGNUP ENDPOINT - NOW USES TWO-STEP VERIFICATION FLOW
-// 1. POST /api/auth/send-signup-verification (send email with code)
-// 2. POST /api/auth/verify-signup (verify code and create account)
-
-// LOGIN
-// LOGIN
 router.post("/login", rateLimiters.authRateLimit, validateAuthPayload, async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email || !password)
-    return res.status(401).json({ message: "Email and password are required" });
-
   try {
-    const usersCollection = await getCollection("users");
-    
-    const normalizedEmail = String(email).toLowerCase();
-    const user = await usersCollection.findOne({ email: normalizedEmail });
+    const users = await getCollection("users");
+    const user = await users.findOne({ email: String(email).toLowerCase() });
 
-    if (!user)
-      return res.status(401).json({ message: "Invalid email or password" });
+    if (!user || !(await bcrypt.compare(password, user.password_hash)))
+      return res.status(401).json({ message: "Invalid credentials" });
 
-    const isMatch = await bcrypt.compare(password, user.password_hash);
-    if (!isMatch)
-      return res.status(401).json({ message: "Invalid email or password" });
-
-    const token = jwt.sign(
-      { id: user._id.toString() },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    const userProfilesCollection = await getCollection("user_profiles");
-    const userProfile = userProfilesCollection ? await userProfilesCollection.findOne({ user_id: user._id }) : null;
-    const assessmentCompleted = userProfile ? (userProfile.assessment_count > 0) : false;
+    const token = jwt.sign({ id: user._id.toString() }, JWT_SECRET, { expiresIn: "7d" });
+    const profiles = await getCollection("user_profiles");
+    const profile = profiles ? await profiles.findOne({ user_id: user._id }) : null;
 
     res.status(200).json({
       token,
@@ -279,17 +210,15 @@ router.post("/login", rateLimiters.authRateLimit, validateAuthPayload, async (re
         name: user.name,
         email: user.email,
         is_verified: user.is_verified,
-        assessmentCompleted
+        assessmentCompleted: profile?.assessment_count > 0
       },
     });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// GUEST LOGIN (explicit, no token)
-router.post('/guest', rateLimiters.authRateLimit, async (req, res) => {
+router.post("/login/guest", rateLimiters.authRateLimit, async (req, res) => {
   try {
     return res.status(200).json({
       guest: true,

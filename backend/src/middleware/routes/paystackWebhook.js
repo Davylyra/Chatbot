@@ -5,7 +5,6 @@
  * This endpoint receives webhooks from Paystack when payment status changes.
  * It verifies the signature, updates payment records, and triggers fulfillment actions.
  * 
- * Security: HMAC-SHA512 signature verification required
  */
 
 import express from 'express';
@@ -25,13 +24,9 @@ const toObjectIdIfValid = (value) => {
   return value;
 };
 
-/**
- * CRITICAL: Verify Paystack webhook signature
- * Prevents fake payment notifications
- */
 function verifyPaystackSignature(req) {
   const signature = req.headers['x-paystack-signature'];
-  const body = req.rawBody; // Use raw body, not parsed JSON
+  const body = req.rawBody; 
   
   if (!signature) {
     console.warn(' Missing Paystack signature header');
@@ -64,11 +59,7 @@ function verifyPaystackSignature(req) {
   }
 }
 
-/**
- * Parse raw body middleware for webhook signature verification
- * MUST come before express.json()
- * CRITICAL: Stores raw body in req.rawBody for HMAC verification
- */
+
 router.use((req, res, next) => {
   if (req.path === '/paystack') {
     let data = '';
@@ -76,7 +67,6 @@ router.use((req, res, next) => {
       data += chunk;
     });
     req.on('end', () => {
-      // CRITICAL: Store raw body for signature verification
       req.rawBody = data;
       try {
         req.body = JSON.parse(data);
@@ -98,9 +88,9 @@ router.use((req, res, next) => {
  */
 router.post('/', async (req, res) => {
   try {
-    // CRITICAL: Verify signature first
+    
     if (!verifyPaystackSignature(req)) {
-      console.error('🚨 SECURITY ALERT: Webhook signature verification failed!');
+      console.error('SECURITY ALERT: Webhook signature verification failed!');
       return res.status(403).json({
         success: false,
         message: 'Signature verification failed'
@@ -109,7 +99,7 @@ router.post('/', async (req, res) => {
 
     const { event, data } = req.body;
 
-    console.log(`📥 Paystack webhook received: ${event}`, {
+    console.log(`Paystack webhook received: ${event}`, {
       event,
       reference: data?.reference,
       amount: data?.amount,
@@ -125,7 +115,7 @@ router.post('/', async (req, res) => {
       console.log(' Subscription created:', data.subscription_code);
       res.json({ success: true, message: 'Subscription event processed' });
     } else {
-      console.log(`ℹ️ Unhandled event: ${event}`);
+      console.log(` Unhandled event: ${event}`);
       res.json({ success: true, message: `Event ${event} received but not processed` });
     }
 
@@ -155,9 +145,9 @@ async function handleChargeSuccess(data, res) {
       authorization
     } = data;
 
-    console.log('💳 Processing successful charge:', {
+    console.log('Processing successful charge:', {
       reference,
-      amount: amount / 100, // Paystack returns amount in kobo
+      amount: amount / 100, 
       currency,
       customer: customer?.email,
       metadata
@@ -178,7 +168,7 @@ async function handleChargeSuccess(data, res) {
         {
           $set: {
             status: 'success',
-            amount_paid: amount / 100, // Convert from kobo
+            amount_paid: amount / 100, 
             currency,
             paid_at: new Date(paid_at),
             authorization: authorization,
@@ -199,7 +189,6 @@ async function handleChargeSuccess(data, res) {
         console.log(' Payment record updated to "success"');
       }
 
-      // FULFILL ACTION: Grant access to form or digital product
       const userId = paymentRecord.user_id;
       const formId = paymentRecord.form_id;
       const normalizedFormId = toObjectIdIfValid(formId);
@@ -231,7 +220,7 @@ async function handleChargeSuccess(data, res) {
             if (user && global.io) {
               global.io.to(`user_${userId}`).emit('notification', {
                 type: 'payment_success',
-                title: '✅ Payment Successful',
+                title: 'Payment Successful',
                 message: `Your form purchase has been completed. Access granted!`,
                 timestamp: new Date().toISOString(),
                 metadata: {
@@ -240,7 +229,7 @@ async function handleChargeSuccess(data, res) {
                   amount: amount / 100
                 }
               });
-              console.log('📢 Payment success notification sent to user');
+              console.log('Payment success notification sent to user');
             }
 
             await createSystemNotification({
@@ -257,7 +246,7 @@ async function handleChargeSuccess(data, res) {
       }
 
     } else {
-      console.log('💰 Updating general transaction record');
+      console.log(' Updating general transaction record');
       
       const transactionRecord = await transactionsCollection.findOne({ reference });
       
@@ -284,7 +273,7 @@ async function handleChargeSuccess(data, res) {
           if (userId && global.io) {
             global.io.to(`user_${userId}`).emit('notification', {
               type: 'payment_success',
-              title: '✅ Payment Successful',
+              title: 'Payment Successful',
               message: `Payment of GHS ${amount / 100} has been received and verified.`,
               timestamp: new Date().toISOString(),
               metadata: { reference, amount: amount / 100 }
@@ -345,7 +334,7 @@ async function handleChargeFailed(data, res) {
       if (paymentRecord.user_id && global.io) {
         global.io.to(`user_${paymentRecord.user_id}`).emit('notification', {
           type: 'payment_failed',
-          title: '❌ Payment Failed',
+          title: ' Payment Failed',
           message: `Payment failed: ${reason}. Please try again or contact support.`,
           timestamp: new Date().toISOString(),
           metadata: { reference, reason }

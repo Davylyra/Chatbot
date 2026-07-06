@@ -1,4 +1,3 @@
-// middleware/verifyEmailMiddleware.js
 import pool from "../config/db.js";
 
 /**

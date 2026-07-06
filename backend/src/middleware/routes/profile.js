@@ -1,4 +1,3 @@
-// src/routes/profile.js
 import express from 'express';
 import authMiddleware from '../authMiddleware.js';
 import { getCollection } from '../../config/db.js';
@@ -11,16 +10,16 @@ const router = express.Router();
 router.get('/me', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
-    const usersCollection = await getCollection("users");
+    const userAccountsDB = await getCollection("users");
     
-    if (!usersCollection) {
+    if (!userAccountsDB) {
       return res.status(503).json({
         success: false,
         message: 'Database temporarily unavailable. Please try again.'
       });
     }
 
-    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+    const user = await userAccountsDB.findOne({ _id: new ObjectId(userId) });
 
     if (!user) {
       return res.status(404).json({ 
@@ -29,24 +28,23 @@ router.get('/me', authMiddleware, async (req, res) => {
       });
     }
 
-    const messagesCollection = await getCollection("messages");
-    const messageCount = messagesCollection ? await messagesCollection.countDocuments({ user_id: userId }) : 0;
+    const chatHistoryDB = await getCollection("messages");
+    const messageCount = chatHistoryDB ? await chatHistoryDB.countDocuments({ user_id: userId }) : 0;
     
-    const conversationsCollection = await getCollection("conversations");
-    const conversationCount = conversationsCollection ? await conversationsCollection.countDocuments({ user_id: userId }) : 0;
+    const chatSessionsDB = await getCollection("conversations");
+    const conversationCount = chatSessionsDB ? await chatSessionsDB.countDocuments({ user_id: userId }) : 0;
 
-    const userProfilesCollection = await getCollection("user_profiles");
-    const userProfile = userProfilesCollection ? await userProfilesCollection.findOne({ user_id: new ObjectId(userId) }) : null;
+    const studentProfilesDB = await getCollection("user_profiles");
+    const userProfile = studentProfilesDB ? await studentProfilesDB.findOne({ user_id: new ObjectId(userId) }) : null;
     
     let interests = [];
     let preferredUniversities = [];
-    
-    // PRIORITY 1: Check if user has directly saved interests in users collection (from assessment)
+
     if (user.interests && Array.isArray(user.interests) && user.interests.length > 0) {
       interests = user.interests;
       console.log(' Loading interests from users collection:', interests);
     } else if (userProfile && userProfile.preferences) {
-      // PRIORITY 2: Fall back to user_profiles collection
+
       if (userProfile.preferences.interests && Array.isArray(userProfile.preferences.interests)) {
         interests = userProfile.preferences.interests;
       }
@@ -103,26 +101,25 @@ router.get('/me', authMiddleware, async (req, res) => {
   }
 });
 
-// DEBUG: Test endpoint to check user existence
 router.get('/debug-user', authMiddleware, async (req, res) => {
   const userId = req.user.id;
   console.log(' DEBUG - User ID from token:', userId, 'type:', typeof userId);
   
   try {
-    const usersCollection = await getCollection("users");
+    const userAccountsDB = await getCollection("users");
     
     let userWithObjectId = null;
     try {
-      userWithObjectId = await usersCollection.findOne({ _id: new ObjectId(userId) });
+      userWithObjectId = await userAccountsDB.findOne({ _id: new ObjectId(userId) });
       console.log(' Found with ObjectId:', !!userWithObjectId);
     } catch (err) {
       console.log(' ObjectId search failed:', err.message);
     }
     
-    const userWithString = await usersCollection.findOne({ _id: userId });
+    const userWithString = await userAccountsDB.findOne({ _id: userId });
     console.log(' Found with string:', !!userWithString);
     
-    const allUsers = await usersCollection.find({}).limit(3).toArray();
+    const allUsers = await userAccountsDB.find({}).limit(3).toArray();
     console.log(' Sample user IDs:', allUsers.map(u => ({ id: u._id, type: typeof u._id })));
     
     res.json({
@@ -147,10 +144,10 @@ router.put('/update', authMiddleware, validateProfilePayload, async (req, res) =
   console.log('📥 Interests in request:', interests);
 
   try {
-    const usersCollection = await getCollection("users");
+    const userAccountsDB = await getCollection("users");
     
-    if (!usersCollection) {
-      console.error(' Database connection failed - usersCollection is null');
+    if (!userAccountsDB) {
+      console.error(' Database connection failed - userAccountsDB is null');
       return res.status(503).json({
         success: false,
         message: 'Database temporarily unavailable. Please try again.'
@@ -159,10 +156,10 @@ router.put('/update', authMiddleware, validateProfilePayload, async (req, res) =
     
     let currentUser;
     try {
-      currentUser = await usersCollection.findOne({ _id: new ObjectId(userId) });
+      currentUser = await userAccountsDB.findOne({ _id: new ObjectId(userId) });
     } catch (oidError) {
       console.error(' ObjectId conversion failed:', oidError.message);
-      currentUser = await usersCollection.findOne({ _id: userId });
+      currentUser = await userAccountsDB.findOne({ _id: userId });
     }
     
     console.log(' Current user found:', !!currentUser, currentUser?._id);
@@ -174,7 +171,6 @@ router.put('/update', authMiddleware, validateProfilePayload, async (req, res) =
       });
     }
 
-    // Validation
     const errors = [];
     
     if (name !== undefined) {
@@ -192,7 +188,7 @@ router.put('/update', authMiddleware, validateProfilePayload, async (req, res) =
         errors.push('Invalid email format');
       }
       
-      const existingUser = await usersCollection.findOne({ 
+      const existingUser = await userAccountsDB.findOne({ 
         email: email.toLowerCase(),
         _id: { $ne: new ObjectId(userId) }
       });
@@ -265,21 +261,18 @@ router.put('/update', authMiddleware, validateProfilePayload, async (req, res) =
       console.log(' Updating preferred universities:', preferredUniversities);
     }
 
-    // REMOVED: The "no changes" check was preventing valid location/bio updates
-    // which is a valid operation that should succeed
-
     console.log(` Updating profile for user ${userId}:`, Object.keys(updateFields), updateFields);
 
     let result;
     try {
-      result = await usersCollection.findOneAndUpdate(
+      result = await userAccountsDB.findOneAndUpdate(
         { _id: new ObjectId(userId) },
         { $set: updateFields },
         { returnDocument: 'after' }
       );
     } catch (oidError) {
       console.error(' ObjectId conversion failed in update:', oidError.message);
-      result = await usersCollection.findOneAndUpdate(
+      result = await userAccountsDB.findOneAndUpdate(
         { _id: userId },
         { $set: updateFields },
         { returnDocument: 'after' }
@@ -289,7 +282,6 @@ router.put('/update', authMiddleware, validateProfilePayload, async (req, res) =
     console.log(' Update result:', !!result, !!result?._id, result?._id);
     console.log(' Full result object:', JSON.stringify(result, null, 2));
 
-    // MongoDB native driver returns the document directly, not in a 'value' property
     const updatedUser = result;
 
     if (!updatedUser || !updatedUser._id) {

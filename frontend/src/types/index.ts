@@ -86,29 +86,36 @@ export interface Notification {
   title: string;
   message: string;
   type: 'info' | 'success' | 'warning' | 'error' | 'payment' | 'application';
-  category: 'general' | 'payment' | 'application' | 'deadline' | 'scholarship' | 'admission_update' | 'form';
+  category:
+    | 'general'
+    | 'payment'
+    | 'application'
+    | 'deadline'
+    | 'scholarship'
+    | 'admission_update'
+    | 'form';
   priority: 'low' | 'normal' | 'high' | 'urgent';
   timestamp: string; // ISO date string
   createdAt: Date;
   isRead: boolean;
-  
+
   // Optional fields
   actionUrl?: string;
   link?: string;
   linkText?: string;
   metadata?: any;
-  
+
   // Read/deletion tracking
   readAt?: Date;
   scheduledDeletionAt?: Date;
-  
+
   // Real-time flags
   isRealTime?: boolean;
-  
+
   firstAccessedAt?: Date;
   readMessageAccessibleUntil?: Date;
   readMessageAvailable?: boolean;
-  
+
   // Source information
   source?: {
     type: string;
@@ -117,7 +124,7 @@ export interface Notification {
     verified: boolean;
   };
   university?: string;
-  
+
   readNowUrl?: string;
   readNowExpiresAt?: Date | null;
   readNowActive?: boolean;

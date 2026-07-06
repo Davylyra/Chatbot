@@ -1,38 +1,21 @@
-/**
- * INPUT VALIDATION & SANITIZATION MIDDLEWARE
- * Production-ready input validation for all API endpoints
- * Prevents XSS, SQL injection, and invalid data
- */
 
 import DOMPurify from 'isomorphic-dompurify';
 
-/**
- * Sanitize string input to prevent XSS
- */
 export const sanitizeString = (input) => {
   if (typeof input !== 'string') return input;
   return DOMPurify.sanitize(input, { ALLOWED_TAGS: [] });
 };
 
-/**
- * Validate email format
- */
 export const validateEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };
 
-/**
- * Validate email ends with @gmail.com
- */
 export const validateGmailDomain = (email) => {
   if (typeof email !== 'string') return false;
   return email.toLowerCase().endsWith('@gmail.com');
 };
 
-/**
- * Validate password strength
- */
 export const validatePassword = (password) => {
   const errors = [];
   if (password.length < 8) errors.push('Password must be at least 8 characters');
@@ -43,9 +26,6 @@ export const validatePassword = (password) => {
   return { valid: errors.length === 0, errors };
 };
 
-/**
- * Validate amount (monetary)
- */
 export const validateAmount = (amount, min = 0, max = 100000) => {
   const num = parseFloat(amount);
   if (isNaN(num)) return { valid: false, error: 'Amount must be a number' };
@@ -54,9 +34,6 @@ export const validateAmount = (amount, min = 0, max = 100000) => {
   return { valid: true };
 };
 
-/**
- * Validate Ghana phone number
- */
 export const validateGhanaPhoneNumber = (phoneNumber) => {
   const cleanNumber = phoneNumber.replace(/[\s\-\(\)]/g, '');
   if (!/^(0|\+233)?[0-9]{9}$/.test(cleanNumber)) {
@@ -65,9 +42,6 @@ export const validateGhanaPhoneNumber = (phoneNumber) => {
   return { valid: true, cleaned: cleanNumber };
 };
 
-/**
- * Validate message length
- */
 export const validateMessageLength = (message, min = 1, max = 5000) => {
   if (!message || message.length < min) {
     return { valid: false, error: `Message must be at least ${min} character(s)` };
@@ -78,9 +52,6 @@ export const validateMessageLength = (message, min = 1, max = 5000) => {
   return { valid: true };
 };
 
-/**
- * Middleware to validate and sanitize request body
- */
 export const validateRequestBody = (req, res, next) => {
   try {
     const sanitizedBody = {};
@@ -104,9 +75,6 @@ export const validateRequestBody = (req, res, next) => {
   }
 };
 
-/**
- * Validate authentication payload
- */
 export const validateAuthPayload = (req, res, next) => {
   const { email, password } = req.body;
   const isSignup = req.path && req.path.includes('signup');
@@ -124,7 +92,7 @@ export const validateAuthPayload = (req, res, next) => {
   if (!password) {
     errors.push('Password is required');
   } else if (isSignup) {
-    // For signup, validate password strength
+
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.valid) {
       errors.push(...passwordValidation.errors);
@@ -151,9 +119,6 @@ export const validateAuthPayload = (req, res, next) => {
   next();
 };
 
-/**
- * Validate chat message payload
- */
 export const validateChatPayload = (req, res, next) => {
   const { message, conversation_id } = req.body;
 
@@ -185,9 +150,6 @@ export const validateChatPayload = (req, res, next) => {
   next();
 };
 
-/**
- * Validate payment payload
- */
 export const validatePaymentPayload = (req, res, next) => {
   const { amount, mobileMoneyNumber, mobileMoneyProvider, email } = req.body;
 
@@ -228,9 +190,6 @@ export const validatePaymentPayload = (req, res, next) => {
   next();
 };
 
-/**
- * Validate profile update payload
- */
 export const validateProfilePayload = (req, res, next) => {
   const { name, email, password, currentPassword } = req.body;
 

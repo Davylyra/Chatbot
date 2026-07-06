@@ -17,7 +17,11 @@ export interface ValidationResult {
   errors: Record<string, string>;
 }
 
-export const validateField = (value: any, rules: ValidationRule, fieldName: string): string | null => {
+export const validateField = (
+  value: any,
+  rules: ValidationRule,
+  fieldName: string
+): string | null => {
   // Required validation
   if (rules.required && (!value || (typeof value === 'string' && !value.trim()))) {
     return `${fieldName} is required`;
@@ -48,14 +52,17 @@ export const validateField = (value: any, rules: ValidationRule, fieldName: stri
   return null;
 };
 
-export const validateForm = (data: Record<string, any>, rules: Record<string, ValidationRule>): ValidationResult => {
+export const validateForm = (
+  data: Record<string, any>,
+  rules: Record<string, ValidationRule>
+): ValidationResult => {
   const errors: Record<string, string> = {};
 
-  Object.keys(rules).forEach(fieldName => {
+  Object.keys(rules).forEach((fieldName) => {
     const fieldValue = data[fieldName];
     const fieldRules = rules[fieldName];
     const error = validateField(fieldValue, fieldRules, fieldName);
-    
+
     if (error) {
       errors[fieldName] = error;
     }
@@ -63,7 +70,7 @@ export const validateForm = (data: Record<string, any>, rules: Record<string, Va
 
   return {
     isValid: Object.keys(errors).length === 0,
-    errors
+    errors,
   };
 };
 
@@ -79,9 +86,9 @@ export const validationRules = {
         return 'Email must contain a domain';
       }
       return null;
-    }
+    },
   },
-  
+
   password: {
     required: true,
     minLength: 8,
@@ -97,9 +104,9 @@ export const validationRules = {
         return 'Password must contain at least one number';
       }
       return null;
-    }
+    },
   },
-  
+
   phone: {
     required: true,
     pattern: /^\+?[1-9]\d{1,14}$/,
@@ -109,9 +116,9 @@ export const validationRules = {
         return 'Phone number must be valid (e.g., +233123456789)';
       }
       return null;
-    }
+    },
   },
-  
+
   name: {
     required: true,
     minLength: 2,
@@ -122,30 +129,30 @@ export const validationRules = {
         return 'Name can only contain letters and spaces';
       }
       return null;
-    }
+    },
   },
-  
+
   required: {
-    required: true
-  }
+    required: true,
+  },
 };
 
 // Ghana-specific phone number validation
 export const validateGhanaPhone = (phone: string): string | null => {
   const cleanPhone = phone.replace(/\s+/g, '');
-  
+
   const patterns = [
     /^\+233[0-9]{9}$/, // +233XXXXXXXXX
     /^0[0-9]{9}$/, // 0XXXXXXXXX
-    /^233[0-9]{9}$/ // 233XXXXXXXXX
+    /^233[0-9]{9}$/, // 233XXXXXXXXX
   ];
-  
-  const isValid = patterns.some(pattern => pattern.test(cleanPhone));
-  
+
+  const isValid = patterns.some((pattern) => pattern.test(cleanPhone));
+
   if (!isValid) {
     return 'Please enter a valid Ghana phone number (e.g., +233123456789 or 0123456789)';
   }
-  
+
   return null;
 };
 
@@ -160,10 +167,10 @@ export const validateUniversityForm = (data: {
     email: validationRules.email,
     phone: {
       required: true,
-      custom: validateGhanaPhone
+      custom: validateGhanaPhone,
     },
-    university: validationRules.required
+    university: validationRules.required,
   };
-  
+
   return validateForm(data, rules);
 };

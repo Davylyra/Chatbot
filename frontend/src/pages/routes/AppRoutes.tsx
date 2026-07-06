@@ -28,117 +28,117 @@ const AppRoutes = () => {
     <Router>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route 
-            path="/" 
+          <Route
+            path="/"
             element={
               <ProtectedRoute allowGuest={true}>
                 <Home />
               </ProtectedRoute>
-            } 
+            }
           />
           <Route path="/about" element={<About />} />
           <Route path="/help-support" element={<HelpSupport />} />
-          
+
           {/* Auth Routes - Redirect if already authenticated */}
-          <Route 
-            path="/login" 
+          <Route
+            path="/login"
             element={
               <ProtectedRoute requireAuth={false}>
                 <Login />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/signup" 
+          <Route
+            path="/signup"
             element={
               <ProtectedRoute requireAuth={false}>
                 <Signup />
               </ProtectedRoute>
-            } 
+            }
           />
-          
+
           {/* Protected Routes - Require authentication */}
-          <Route 
-            path="/chat" 
+          <Route
+            path="/chat"
             element={
               <ProtectedRoute allowGuest={true}>
                 <Chat />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/forms" 
+          <Route
+            path="/forms"
             element={
               <ProtectedRoute allowGuest={true}>
                 <Forms />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/settings" 
+          <Route
+            path="/settings"
             element={
               <ProtectedRoute allowGuest={true}>
                 <Settings />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/profile" 
+          <Route
+            path="/profile"
             element={
               <ProtectedRoute>
                 <Profile />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/notifications" 
+          <Route
+            path="/notifications"
             element={
               <ProtectedRoute allowGuest={true}>
                 <Notifications />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/recent-chats" 
+          <Route
+            path="/recent-chats"
             element={
               <ProtectedRoute allowGuest={true}>
                 <ConversationHistoryPage />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/transactions" 
+          <Route
+            path="/transactions"
             element={
               <ProtectedRoute>
                 <Transactions />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/universities" 
+          <Route
+            path="/universities"
             element={
               <ProtectedRoute>
                 <Universities />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/assessment" 
+          <Route
+            path="/assessment"
             element={
               <ProtectedRoute allowGuest={true}>
                 <Assessment />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/conversation-history" 
+          <Route
+            path="/conversation-history"
             element={
               <ProtectedRoute allowGuest={true}>
                 <ConversationHistoryPage />
               </ProtectedRoute>
-            } 
+            }
           />
-          
+
           {/* Catch all route - redirect to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

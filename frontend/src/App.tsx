@@ -17,39 +17,37 @@ const AppContent = memo(() => {
   useAccessibility({
     enableKeyboardNavigation: true,
     enableFocusManagement: true,
-    enableScreenReader: true
+    enableScreenReader: true,
   });
 
   React.useEffect(() => {
     requestNotificationPermission();
   }, [requestNotificationPermission]);
-  
+
   return (
-    <div 
+    <div
       id="main-content"
       className="relative min-h-screen w-full overflow-hidden scrollbar-hide"
       role="main"
       aria-label=" Application"
     >
-      <div 
+      <div
         className={`absolute inset-0 transition-colors duration-200 ${
-          theme === 'dark' 
-            ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
+          theme === 'dark'
+            ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900'
             : 'bg-gradient-to-br from-white via-[#e0f2ff] to-[#d6ecff]'
         }`}
       />
-      
-      <div 
+
+      <div
         className="absolute inset-0 backdrop-blur-xl pointer-events-none"
         style={{
-          background: theme === 'dark' 
-            ? 'rgba(0, 0, 0, 0.1)' 
-            : 'rgba(255, 255, 255, 0.3)',
+          background: theme === 'dark' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.3)',
           backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)'
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
         }}
       />
-      
+
       <main className="relative z-10">
         <AppRoutes />
       </main>

@@ -12,13 +12,13 @@ const ConversationHistoryPage: React.FC = () => {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <Navbar 
+      <Navbar
         title="CONVERSATION HISTORY"
         showBackButton={true}
         onBackClick={() => navigate('/')}
         showMenuButton={true}
       />
-      
+
       <div className="flex-1 overflow-hidden">
         <ConversationHistory />
       </div>

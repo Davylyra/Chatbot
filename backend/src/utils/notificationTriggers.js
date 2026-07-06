@@ -21,10 +21,10 @@ export const checkAdmissionUpdates = async () => {
     console.log(' [LIVE-NOTIFICATIONS] Checking for admission updates from live sources...');
 
     const events = await fetchLiveAdmissionNotifications();
-    console.log(`📡 [LIVE-NOTIFICATIONS] Fetched ${Array.isArray(events) ? events.length : 0} notifications from live sources`);
+    console.log(` [LIVE-NOTIFICATIONS] Fetched ${Array.isArray(events) ? events.length : 0} notifications from live sources`);
 
     if (!Array.isArray(events) || events.length === 0) {
-      console.log('ℹ️ [LIVE-NOTIFICATIONS] No admission events available - showing real data only');
+      console.log('[LIVE-NOTIFICATIONS] No admission events available - showing real data only');
       return;
     }
 
@@ -34,7 +34,7 @@ export const checkAdmissionUpdates = async () => {
     const users = await usersCollection.find({}).toArray();
 
     if (users.length === 0) {
-      console.log('ℹ️ [LIVE-NOTIFICATIONS] No users to notify');
+      console.log('[LIVE-NOTIFICATIONS] No users to notify');
       return;
     }
 
@@ -81,7 +81,6 @@ export const checkAdmissionUpdates = async () => {
   }
 };
 
-// ENHANCED: Now checks by university code + title for better duplicate detection
 const checkRecentNotification = async (userId, title, hoursBack = 24, universityCode = null) => {
   try {
     const notificationsCollection = await getCollection('notifications');
@@ -113,22 +112,22 @@ export const notifyUniversityUpdate = async (universityName, updateType, details
 
     const notificationTemplates = {
       admission_lists_released: {
-        title: `🚨 ${universityName} Admission Lists Released!`,
+        title: ` ${universityName} Admission Lists Released!`,
         message: `Check your admission status for ${universityName} 2025/2026 academic year.`,
         priority: "urgent"
       },
       deadline_extended: {
-        title: `📅 ${universityName} Deadline Extended`,
+        title: `${universityName} Deadline Extended`,
         message: `Application deadline for ${universityName} has been extended to ${details.newDeadline}.`,
         priority: "high"
       },
       new_program: {
-        title: `✨ New Program at ${universityName}`,
+        title: ` New Program at ${universityName}`,
         message: `${details.programName} is now available at ${universityName}.`,
         priority: "normal"
       },
       scholarship_announcement: {
-        title: `💰 New Scholarship at ${universityName}`,
+        title: `New Scholarship at ${universityName}`,
         message: `${details.scholarshipName} scholarship now available. Deadline: ${details.deadline}`,
         priority: "high"
       }
@@ -162,8 +161,7 @@ export const notifyUniversityUpdate = async (universityName, updateType, details
 export const scheduleAdmissionChecks = () => {
   setInterval(checkAdmissionUpdates, 6 * 60 * 60 * 1000);
 
-  // Initial check
-  setTimeout(checkAdmissionUpdates, 60000); // 1 minute after startup
+  setTimeout(checkAdmissionUpdates, 60000); 
 };
 
 export default {

@@ -1,9 +1,3 @@
-/**
- * Hook: useAccessibility
- * Description: Accessibility utilities and keyboard navigation
- * Features: Focus management, keyboard shortcuts, screen reader support
- */
-
 import { useEffect, useCallback } from 'react';
 
 interface UseAccessibilityOptions {
@@ -13,12 +7,8 @@ interface UseAccessibilityOptions {
 }
 
 export const useAccessibility = (options: UseAccessibilityOptions = {}) => {
-  const {
-    enableKeyboardNavigation = true,
-    enableScreenReader = true
-  } = options;
+  const { enableKeyboardNavigation = true, enableScreenReader = true } = options;
 
-  // Focus management
   const trapFocus = useCallback((container: HTMLElement) => {
     const focusableElements = container.querySelectorAll(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
@@ -51,31 +41,31 @@ export const useAccessibility = (options: UseAccessibilityOptions = {}) => {
     };
   }, []);
 
-  // Keyboard shortcuts
   const setupKeyboardShortcuts = useCallback(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         const activeElement = document.activeElement as HTMLElement;
         if (activeElement?.closest('[role="dialog"]') || activeElement?.closest('[role="menu"]')) {
-          const closeButton = document.querySelector('[aria-label="Close"], [data-close]') as HTMLElement;
+          const closeButton = document.querySelector(
+            '[aria-label="Close"], [data-close]'
+          ) as HTMLElement;
           closeButton?.click();
         }
       }
 
-      // Alt + M for menu
       if (e.altKey && e.key === 'm') {
         e.preventDefault();
-        const menuButton = document.querySelector('[aria-label="Menu"], [data-menu]') as HTMLElement;
+        const menuButton = document.querySelector(
+          '[aria-label="Menu"], [data-menu]'
+        ) as HTMLElement;
         menuButton?.click();
       }
 
-      // Alt + H for home
       if (e.altKey && e.key === 'h') {
         e.preventDefault();
         window.location.href = '/';
       }
 
-      // Alt + C for chat
       if (e.altKey && e.key === 'c') {
         e.preventDefault();
         window.location.href = '/chat';
@@ -86,27 +76,31 @@ export const useAccessibility = (options: UseAccessibilityOptions = {}) => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const announceToScreenReader = useCallback((message: string, priority: 'polite' | 'assertive' = 'polite') => {
-    const announcement = document.createElement('div');
-    announcement.setAttribute('aria-live', priority);
-    announcement.setAttribute('aria-atomic', 'true');
-    announcement.className = 'sr-only';
-    announcement.textContent = message;
+  const announceToScreenReader = useCallback(
+    (message: string, priority: 'polite' | 'assertive' = 'polite') => {
+      const announcement = document.createElement('div');
+      announcement.setAttribute('aria-live', priority);
+      announcement.setAttribute('aria-atomic', 'true');
+      announcement.className = 'sr-only';
+      announcement.textContent = message;
 
-    document.body.appendChild(announcement);
+      document.body.appendChild(announcement);
 
-    setTimeout(() => {
-      document.body.removeChild(announcement);
-    }, 1000);
-  }, []);
+      setTimeout(() => {
+        document.body.removeChild(announcement);
+      }, 1000);
+    },
+    []
+  );
 
   const createSkipLink = useCallback(() => {
     const skipLink = document.createElement('a');
     skipLink.href = '#main-content';
     skipLink.textContent = 'Skip to main content';
-    skipLink.className = 'sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary-600 text-white px-4 py-2 rounded-lg z-50';
+    skipLink.className =
+      'sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary-600 text-white px-4 py-2 rounded-lg z-50';
     skipLink.setAttribute('tabindex', '1');
-    
+
     document.body.insertBefore(skipLink, document.body.firstChild);
   }, []);
 
@@ -126,6 +120,6 @@ export const useAccessibility = (options: UseAccessibilityOptions = {}) => {
   return {
     trapFocus,
     announceToScreenReader,
-    createSkipLink
+    createSkipLink,
   };
 };

@@ -26,7 +26,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   onClose,
   formData,
   onSuccess,
-  onError
+  onError,
 }) => {
   const { theme } = useTheme();
   const [processing, setProcessing] = useState(false);
@@ -51,21 +51,22 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       const response = await fetch(`${API_BASE_URL}/payments/initialize`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           email: parsedUser?.email || '',
           formId: formData.id,
-          amount: typeof formData.formPrice === 'string' 
-            ? parseFloat(formData.formPrice.replace(/[^0-9.]/g, ''))
-            : formData.formPrice,
+          amount:
+            typeof formData.formPrice === 'string'
+              ? parseFloat(formData.formPrice.replace(/[^0-9.]/g, ''))
+              : formData.formPrice,
           paymentMethod: 'mobile_money',
           metadata: {
             universityName: formData.universityName,
-            formName: formData.fullName
-          }
-        })
+            formName: formData.fullName,
+          },
+        }),
       });
 
       if (!response.ok) {
@@ -73,21 +74,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         throw new Error(errorData.message || 'Payment initialization failed');
       }
 
-      const data = await response.json();
-      
-      if (!data.success || !data.data?.reference) {
-        throw new Error(data.message || 'Invalid payment response');
+      const paymentInitResponse = await response.json();
+
+      if (!paymentInitResponse.success || !paymentInitResponse.data?.reference) {
+        throw new Error(paymentInitResponse.message || 'Invalid payment response');
       }
 
-      if (data.data.authorization_url) {
-        window.open(data.data.authorization_url, '_blank', 'noopener,noreferrer');
+      if (paymentInitResponse.data.authorization_url) {
+        window.open(paymentInitResponse.data.authorization_url, '_blank', 'noopener,noreferrer');
       }
 
-      startPaymentVerification(data.data.reference);
-
-    } catch (err: any) {
-      console.error('Payment initialization error:', err);
-      setError(err.message || 'Failed to initialize payment');
+      startPaymentVerification(paymentInitResponse.data.reference);
+    } catch (paymentError: any) {
+      console.error('Payment initialization error:', paymentError);
+      setError(paymentError.message || 'Failed to initialize payment');
       setProcessing(false);
     }
   };
@@ -100,7 +100,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     };
   }, []);
 
-  const startPaymentVerification = async (ref: string) => {
+  const startPaymentVerification = async (paymentReference: string) => {
     setVerifying(true);
     let attempts = 0;
     const maxAttempts = 20; // 20 attempts * 5 seconds = 100 seconds max
@@ -108,25 +108,27 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     const verify = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/payments/verify/${ref}`, {
+        const response = await fetch(`${API_BASE_URL}/payments/verify/${paymentReference}`, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         });
 
-        const data = await response.json();
-        const paymentStatus = data?.data?.status || data?.status;
+        const verificationResponse = await response.json();
+        const paymentStatus = verificationResponse?.data?.status || verificationResponse?.status;
 
         if (!response.ok && paymentStatus === 'failed') {
-          throw new Error(data?.message || 'Payment was declined. Please try again.');
+          throw new Error(
+            verificationResponse?.message || 'Payment was declined. Please try again.'
+          );
         }
 
-        if (data.success && paymentStatus === 'success') {
+        if (verificationResponse.success && paymentStatus === 'success') {
           setVerifying(false);
           setProcessing(false);
-          onSuccess(ref);
+          onSuccess(paymentReference);
           onClose();
           return true;
         } else if (paymentStatus === 'failed') {
@@ -140,21 +142,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         } else {
           throw new Error('Payment verification timeout. Please check your transaction history.');
         }
-
-      } catch (err: any) {
-        console.error('Payment verification error:', err);
+      } catch (verificationError: any) {
+        console.error('Payment verification error:', verificationError);
         setVerifying(false);
         setProcessing(false);
-        setError(err.message);
-        onError(err.message);
+        setError(verificationError.message);
+        onError(verificationError.message);
       }
     };
 
     verify();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
     initializePayment();
   };
 
@@ -172,18 +173,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           }`}
         >
           {/* Header */}
-          <div className={`flex items-center justify-between p-6 border-b ${
-            theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
-          }`}>
+          <div
+            className={`flex items-center justify-between p-6 border-b ${
+              theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
+            }`}
+          >
             <div>
-              <h3 className={`text-xl font-bold ${
-                theme === 'dark' ? 'text-white' : 'text-gray-900'
-              }`}>
+              <h3
+                className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+              >
                 Complete Payment
               </h3>
-              <p className={`text-sm mt-1 ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
+              <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                 {formData.universityName}
               </p>
             </div>
@@ -204,26 +205,31 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           {/* Content */}
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Amount Display */}
-            <div className={`p-4 rounded-lg text-center ${
-              theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'
-            }`}>
-              <p className={`text-sm mb-1 ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
+            <div
+              className={`p-4 rounded-lg text-center ${
+                theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'
+              }`}
+            >
+              <p className={`text-sm mb-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                 Amount to Pay
               </p>
-              <p className={`text-3xl font-bold ${
-                theme === 'dark' ? 'text-green-400' : 'text-green-600'
-              }`}>
-                GH₵ {typeof formData.formPrice === 'string' 
+              <p
+                className={`text-3xl font-bold ${
+                  theme === 'dark' ? 'text-green-400' : 'text-green-600'
+                }`}
+              >
+                GH₵{' '}
+                {typeof formData.formPrice === 'string'
                   ? formData.formPrice.replace(/[^0-9.]/g, '')
                   : formData.formPrice.toFixed(2)}
               </p>
             </div>
 
-            <p className={`text-sm text-center ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-            }`}>
+            <p
+              className={`text-sm text-center ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}
+            >
               You will complete Mobile Money details securely on Paystack.
             </p>
 
@@ -248,7 +254,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               >
                 <motion.div
                   animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                   className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"
                 />
                 <div className="flex-1">
@@ -276,7 +282,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 <span className="flex items-center justify-center">
                   <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                     className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
                   />
                   {verifying ? 'Verifying Payment...' : 'Processing...'}
@@ -284,7 +290,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               ) : (
                 <span className="flex items-center justify-center">
                   <FiCreditCard className="w-5 h-5 mr-2" />
-                  Pay GH₵ {typeof formData.formPrice === 'string' 
+                  Pay GH₵{' '}
+                  {typeof formData.formPrice === 'string'
                     ? formData.formPrice.replace(/[^0-9.]/g, '')
                     : formData.formPrice.toFixed(2)}
                 </span>
@@ -292,10 +299,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             </button>
 
             {/* Security Notice */}
-            <p className={`text-xs text-center ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-            }`}>
-               Secured by Paystack. Your payment information is safe and encrypted.
+            <p
+              className={`text-xs text-center ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+              }`}
+            >
+              Secured by Paystack. Your payment information is safe and encrypted.
             </p>
           </form>
         </motion.div>

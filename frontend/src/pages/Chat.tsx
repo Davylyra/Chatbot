@@ -10,14 +10,14 @@ const Chat: React.FC = () => {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
-  
+
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth >= 768);
     window.addEventListener('resize', handleResize);
-    
-    const handleToggle = () => setIsSidebarOpen(prev => !prev);
+
+    const handleToggle = () => setIsSidebarOpen((prev) => !prev);
     window.addEventListener('toggleSidebar', handleToggle);
-    
+
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('toggleSidebar', handleToggle);
@@ -35,26 +35,32 @@ const Chat: React.FC = () => {
 
   return (
     <div className="h-screen flex bg-gray-50 dark:bg-gray-900 transition-colors duration-200 overflow-hidden">
-      <ChatSidebar 
-        isOpen={isSidebarOpen} 
-        onClose={() => setIsSidebarOpen(false)} 
-        isDesktop={isDesktop} 
+      <ChatSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        isDesktop={isDesktop}
       />
-      
+
       <div className="flex-1 flex flex-col w-full h-full relative">
-        <Navbar 
-          title={resumeConversationTitle ? `${resumeConversationTitle}` : (universityContext ? `${universityContext.name} CHAT` : "CHAT")}
+        <Navbar
+          title={
+            resumeConversationTitle
+              ? `${resumeConversationTitle}`
+              : universityContext
+                ? `${universityContext.name} CHAT`
+                : 'CHAT'
+          }
           showBackButton={true}
           onBackClick={() => navigate('/')}
           showMenuButton={true}
-          onMenuClick={() => setIsSidebarOpen(prev => !prev)}
+          onMenuClick={() => setIsSidebarOpen((prev) => !prev)}
           showThemeToggle={true}
         />
-        
+
         <div className="flex-1 flex flex-col w-full h-full min-h-0">
-          <ChatBot 
+          <ChatBot
             key={location.key}
-            universityContext={universityContext} 
+            universityContext={universityContext}
             assessmentData={assessmentData}
             initialMessage={initialMessage}
             forceNewConversation={forceNewConversation}

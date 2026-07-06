@@ -1,9 +1,3 @@
-/**
- * Database Index Creation Script
- * Run this to create performance indexes on MongoDB collections
- * 
- * Usage: node src/utils/createIndexes.js
- */
 
 import { getCollection, connectDB, closeDB } from '../config/db.js';
 
@@ -13,9 +7,9 @@ async function createIndexes() {
     
     await connectDB();
     
-    // ========================================
+    
     // CONVERSATIONS COLLECTION INDEXES
-    // ========================================
+    
     console.log('\n Creating indexes for conversations collection...');
     const conversationsCollection = await getCollection('conversations');
     
@@ -37,10 +31,9 @@ async function createIndexes() {
     );
     console.log(' Created index: user_conversations_by_created');
     
-    // ========================================
+    
     // MESSAGES COLLECTION INDEXES
-    // ========================================
-    console.log('\n💬 Creating indexes for messages collection...');
+    console.log('\nCreating indexes for messages collection...');
     const messagesCollection = await getCollection('messages');
     
     await messagesCollection.createIndex(
@@ -61,10 +54,8 @@ async function createIndexes() {
     );
     console.log(' Created index: conversation_message_count');
     
-    // ========================================
     // NOTIFICATIONS COLLECTION INDEXES
-    // ========================================
-    console.log('\n🔔 Creating indexes for notifications collection...');
+    console.log('\nCreating indexes for notifications collection...');
     const notificationsCollection = await getCollection('notifications');
     
     await notificationsCollection.createIndex(
@@ -104,19 +95,17 @@ async function createIndexes() {
     );
     console.log(' Created index: unique_user_notification_university (duplicate prevention)');
     
-    // ========================================
     // DISPLAY ALL INDEXES
-    // ========================================
-    console.log('\n📊 Verifying indexes...');
+    console.log('\n Verifying indexes...');
     
     const convIndexes = await conversationsCollection.indexes();
     console.log('\n Conversations indexes:', convIndexes.map(idx => idx.name).join(', '));
     
     const msgIndexes = await messagesCollection.indexes();
-    console.log('💬 Messages indexes:', msgIndexes.map(idx => idx.name).join(', '));
+    console.log('Messages indexes:', msgIndexes.map(idx => idx.name).join(', '));
     
     const notifIndexes = await notificationsCollection.indexes();
-    console.log('🔔 Notifications indexes:', notifIndexes.map(idx => idx.name).join(', '));
+    console.log('Notifications indexes:', notifIndexes.map(idx => idx.name).join(', '));
     
     console.log('\n All indexes created successfully!');
     console.log(' Database performance should be significantly improved.');

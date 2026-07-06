@@ -17,7 +17,7 @@ let cleanupInterval;
  * Start the admission notifications scheduler
  */
 export const startAdmissionNotificationsScheduler = () => {
-  console.log('📅 Starting admission notifications scheduler...');
+  console.log('Starting admission notifications scheduler...');
 
   console.log(' Running initial fetch...');
   fetchAdmissionNotifications()
@@ -33,7 +33,7 @@ export const startAdmissionNotificationsScheduler = () => {
     });
 
   fetchInterval = setInterval(async () => {
-    console.log('🔄 Running scheduled admission notifications fetch...');
+    console.log('Running scheduled admission notifications fetch...');
     const result = await fetchAdmissionNotifications();
     
     if (result.success) {
@@ -46,7 +46,7 @@ export const startAdmissionNotificationsScheduler = () => {
     }
   }, FETCH_INTERVAL);
 
-  console.log(`📅 Admission notifications fetcher will run every ${FETCH_INTERVAL / (60 * 60 * 1000)} hours`);
+  console.log(`Admission notifications fetcher will run every ${FETCH_INTERVAL / (60 * 60 * 1000)} hours`);
 
   cleanupOldAdmissionNotifications()
     .then(result => {
@@ -59,7 +59,7 @@ export const startAdmissionNotificationsScheduler = () => {
     });
 
   cleanupInterval = setInterval(async () => {
-    console.log('🧹 Running scheduled cleanup...');
+    console.log('Running scheduled cleanup...');
     const result = await cleanupOldAdmissionNotifications();
     
     if (result.success) {
@@ -69,7 +69,7 @@ export const startAdmissionNotificationsScheduler = () => {
     }
   }, CLEANUP_INTERVAL);
 
-  console.log(`🧹 Cleanup will run every ${CLEANUP_INTERVAL / (60 * 60 * 1000)} hours`);
+  console.log(`Cleanup will run every ${CLEANUP_INTERVAL / (60 * 60 * 1000)} hours`);
 };
 
 /**
@@ -78,11 +78,11 @@ export const startAdmissionNotificationsScheduler = () => {
 export const stopAdmissionNotificationsScheduler = () => {
   if (fetchInterval) {
     clearInterval(fetchInterval);
-    console.log('⏹️ Admission notifications fetcher stopped');
+    console.log('Admission notifications fetcher stopped');
   }
   if (cleanupInterval) {
     clearInterval(cleanupInterval);
-    console.log('⏹️ Cleanup scheduler stopped');
+    console.log('Cleanup scheduler stopped');
   }
 };
 
@@ -90,7 +90,7 @@ export const stopAdmissionNotificationsScheduler = () => {
  * Manual trigger for fetch (for admin/testing)
  */
 export const triggerAdmissionFetch = async () => {
-  console.log('⚡ Manual trigger: Fetching admission notifications...');
+  console.log('Manual trigger: Fetching admission notifications...');
   return await fetchAdmissionNotifications();
 };
 
@@ -101,27 +101,6 @@ export const triggerCleanup = async () => {
   console.log('⚡ Manual trigger: Cleaning up old notifications...');
   return await cleanupOldAdmissionNotifications();
 };
-
-/*
-if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
-  console.log('Running admission notifications scheduler manually...');
-  
-  Promise.all([
-    fetchAdmissionNotifications(),
-    cleanupOldAdmissionNotifications()
-  ])
-    .then(([fetchResult, cleanupResult]) => {
-      console.log('=== MANUAL RUN RESULTS ===');
-      console.log('Fetch Result:', fetchResult);
-      console.log('Cleanup Result:', cleanupResult);
-      process.exit(fetchResult.success && cleanupResult.success ? 0 : 1);
-    })
-    .catch(err => {
-      console.error('Manual run failed:', err);
-      process.exit(1);
-    });
-}
-*/
 
 export default {
   startAdmissionNotificationsScheduler,

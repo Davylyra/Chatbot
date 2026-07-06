@@ -1,18 +1,14 @@
-// LLM-powered conversation title generator using Groq API
-
 import dotenv from 'dotenv';
 import Groq from 'groq-sdk';
 
 dotenv.config();
 
-const groq = process.env.GROQ_API_KEY ? new Groq({
-  apiKey: process.env.GROQ_API_KEY
-}) : null;
+const groqClient = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
 
 const LLM_CONFIG = {
-  model: 'llama-3.1-8b-instant', // Fast Groq model
-  temperature: 0.3, // Lower temperature for consistent, focused titles
-  maxTokens: 20, // 3-7 words ~ 10-20 tokens
+  model: 'llama-3.1-8b-instant',
+  temperature: 0.3,
+  maxTokens: 20,
   systemPrompt: `You are a conversation title generator. Your job is to read the FIRST user message and create a short, professional title.
 
 RULES:
@@ -27,172 +23,88 @@ RULES:
 Respond with ONLY the title text, nothing else.`,
 };
 
-export async function generateLLMTitle(firstUserMessage, firstBotReply = null, universityContext = null) {
+export async function generateLLMTitle(initialPrompt, initialResponse = null, institutionContext = null) {
+  if (!initialPrompt || initialPrompt.trim().length < 5) {
+    return { success: false, error: 'First user message too short or empty', method: 'validation_failed' };
+  }
+
+  if (!groqClient) {
+    return { success: false, error: 'LLM service not configured', method: 'no_api_key' };
+  }
+
+  let promptContext = `User: ${initialPrompt.trim()}`;
+  
+  if (initialResponse) {
+    promptContext += `\n\nAssistant: ${initialResponse.length > 300 ? initialResponse.substring(0, 300) + '...' : initialResponse}`;
+  }
+
+  if (institutionContext) {
+    promptContext = `[Context: ${institutionContext}]\n\n${promptContext}`;
+  }
+
   try {
-    if (!firstUserMessage || firstUserMessage.trim().length < 5) {
-      return {
-        success: false,
-        error: 'First user message too short or empty',
-        method: 'validation_failed'
-      };
-    }
-
-    if (!groq) {
-      console.warn('GROQ_API_KEY not configured');
-      return {
-        success: false,
-        error: 'LLM service not configured',
-        method: 'no_api_key'
-      };
-    }
-
-    let conversationContext = `User: ${firstUserMessage.trim()}`;
-    
-    if (firstBotReply) {
-      const truncatedReply = firstBotReply.length > 300 
-        ? firstBotReply.substring(0, 300) + '...'
-        : firstBotReply;
-      conversationContext += `\n\nAssistant: ${truncatedReply}`;
-    }
-
-    if (universityContext) {
-      conversationContext = `[Context: ${universityContext}]\n\n${conversationContext}`;
-    }
-
-    console.log('Generating LLM title for conversation:', {
-      messageLength: firstUserMessage.length,
-      hasBotReply: !!firstBotReply,
-      universityContext
-    });
-
-    // Call Groq API
-    const startTime = Date.now();
-    const completion = await groq.chat.completions.create({
+    const startTimeMs = Date.now();
+    const generationOutcome = await groqClient.chat.completions.create({
       messages: [
-        {
-          role: 'system',
-          content: LLM_CONFIG.systemPrompt
-        },
-        {
-          role: 'user',
-          content: `Generate a title for this conversation:\n\n${conversationContext}`
-        }
+        { role: 'system', content: LLM_CONFIG.systemPrompt },
+        { role: 'user', content: `Generate a title for this conversation:\n\n${promptContext}` }
       ],
       model: LLM_CONFIG.model,
       temperature: LLM_CONFIG.temperature,
       max_tokens: LLM_CONFIG.maxTokens,
     });
 
-    const duration = Date.now() - startTime;
-    const generatedTitle = completion.choices[0]?.message?.content?.trim();
+    const elapsedMs = Date.now() - startTimeMs;
+    const rawTitleOutput = generationOutcome.choices[0]?.message?.content?.trim();
 
-    if (!generatedTitle) {
-      throw new Error('Empty response from LLM');
-    }
-
-    const cleanedTitle = cleanTitle(generatedTitle);
-
-    console.log('LLM title generated in', duration, 'ms:', cleanedTitle);
+    if (!rawTitleOutput) throw new Error('Empty response from LLM');
 
     return {
       success: true,
-      title: cleanedTitle,
+      title: cleanTitleFormatting(rawTitleOutput),
       method: 'groq_llm',
-      duration_ms: duration
+      duration_ms: elapsedMs
     };
-
   } catch (error) {
-    console.error('LLM title generation failed:', error.message);
-    
-    return {
-      success: false,
-      error: error.message,
-      method: 'llm_error'
-    };
+    return { success: false, error: error.message, method: 'llm_error' };
   }
 }
 
-function cleanTitle(title) {
-  let cleaned = title.replace(/^["']|["']$/g, '');
-  
-  cleaned = cleaned.replace(/[.!?;:,]+$/, '');
-  
-  if (cleaned.length > 0) {
-    cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-  }
-  
-  if (cleaned.length > 60) {
-    cleaned = cleaned.substring(0, 60).trim() + '...';
-  }
-  
-  return cleaned;
+function cleanTitleFormatting(rawText) {
+  const noQuotes = rawText.replace(/^["']|["']$/g, '').replace(/[.!?;:,]+$/, '');
+  const capitalized = noQuotes.length > 0 ? noQuotes.charAt(0).toUpperCase() + noQuotes.slice(1) : noQuotes;
+  return capitalized.length > 60 ? capitalized.substring(0, 60).trim() + '...' : capitalized;
 }
 
-export async function generateTitleWithFallback(
-  firstUserMessage,
-  firstBotReply = null,
-  universityContext = null,
-  fallbackGenerator = null
-) {
-  // Try LLM first
-  const llmResult = await generateLLMTitle(firstUserMessage, firstBotReply, universityContext);
+export async function generateTitleWithFallback(initialPrompt, initialResponse = null, institutionContext = null, customFallback = null) {
+  const primaryOutcome = await generateLLMTitle(initialPrompt, initialResponse, institutionContext);
   
-  if (llmResult.success) {
-    return {
-      title: llmResult.title,
-      method: llmResult.method
-    };
+  if (primaryOutcome.success) {
+    return { title: primaryOutcome.title, method: primaryOutcome.method };
   }
   
-  console.log('LLM title generation failed, using fallback');
-  
-  if (fallbackGenerator && typeof fallbackGenerator === 'function') {
-    const fallbackTitle = fallbackGenerator(firstUserMessage, universityContext);
-    return {
-      title: fallbackTitle,
-      method: 'fallback_local'
-    };
+  if (typeof customFallback === 'function') {
+    return { title: customFallback(initialPrompt, institutionContext), method: 'fallback_local' };
   }
   
-  // Last resort: simple title from first message
-  const simpleTitle = cleanTitle(
-    firstUserMessage.length > 50 
-      ? firstUserMessage.substring(0, 50).trim() 
-      : firstUserMessage.trim()
-  );
-  
-  return {
-    title: simpleTitle,
-    method: 'fallback_simple'
-  };
+  const defaultTitle = cleanTitleFormatting(initialPrompt.length > 50 ? initialPrompt.substring(0, 50).trim() : initialPrompt.trim());
+  return { title: defaultTitle, method: 'fallback_simple' };
 }
 
-export function generateSimpleTitle(firstUserMessage, universityContext = null) {
-  if (!firstUserMessage || firstUserMessage.trim().length < 3) {
-    return 'New Conversation';
-  }
+export function generateSimpleTitle(initialPrompt, institutionContext = null) {
+  if (!initialPrompt || initialPrompt.trim().length < 3) return 'New Conversation';
 
-  let title = firstUserMessage.trim();
+  let derivedTitle = initialPrompt.trim();
   
-  if (universityContext && !title.toLowerCase().includes(universityContext.toLowerCase())) {
-    const questionMatch = title.match(/(?:what|where|when|how|which|who|why)\s+(.+?)(?:\?|$)/i);
-    if (questionMatch && questionMatch[1]) {
-      title = `${universityContext} - ${questionMatch[1]}`;
-    } else {
-      if (title.length < 30) {
-        title = `${universityContext} - ${title}`;
-      }
-    }
+  if (institutionContext && !derivedTitle.toLowerCase().includes(institutionContext.toLowerCase())) {
+    const inquiryMatch = derivedTitle.match(/(?:what|where|when|how|which|who|why)\s+(.+?)(?:\?|$)/i);
+    derivedTitle = inquiryMatch && inquiryMatch[1] 
+      ? `${institutionContext} - ${inquiryMatch[1]}` 
+      : (derivedTitle.length < 30 ? `${institutionContext} - ${derivedTitle}` : derivedTitle);
   }
   
-  const firstSentence = title.match(/^[^.!?]+/)?.[0] || title;
-  
-  // Limit to 60 characters for display
-  if (firstSentence.length > 60) {
-    return cleanTitle(firstSentence.substring(0, 60).trim() + '...');
-  }
-  
-  return cleanTitle(firstSentence);
+  const primarySentence = derivedTitle.match(/^[^.!?]+/)?.[0] || derivedTitle;
+  return cleanTitleFormatting(primarySentence.length > 60 ? primarySentence.substring(0, 60).trim() + '...' : primarySentence);
 }
 
 export default { generateLLMTitle, generateTitleWithFallback, generateSimpleTitle };

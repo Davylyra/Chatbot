@@ -1,5 +1,5 @@
 /**
- * CONVERSATION LOGGING MIDDLEWARE - PRODUCTION READY
+ * CONVERSATION LOGGING MIDDLEWARE 
  * Automatically saves all conversations and user assessments to MongoDB
  */
 
@@ -11,7 +11,7 @@ class ConversationLogger {
     this.cache = new Map();
     this.batchQueue = [];
     this.BATCH_SIZE = 10;
-    this.BATCH_TIMEOUT = 5000; // 5 seconds
+    this.BATCH_TIMEOUT = 5000; 
     
     setInterval(() => {
       this.processBatch();

@@ -49,7 +49,7 @@ export const sendPurchaseEmail = async (to, universityName, serialKey, pin) => {
     }
 
     await client.sendTransacEmail(sendSmtpEmail);
-    console.log(`📧 Purchase email sent successfully to ${to}`);
+    console.log(` Purchase email sent successfully to ${to}`);
   } catch (error) {
     console.error(" Error sending purchase email:", error.response?.text || error.message);
   }
@@ -75,7 +75,7 @@ export const sendAdminAlertEmail = async (universityName) => {
     `;
 
     await client.sendTransacEmail(sendSmtpEmail);
-    console.log(`🚨 Admin alert sent for ${universityName} inventory depletion`);
+    console.log(`Admin alert sent for ${universityName} inventory depletion`);
   } catch (error) {
     console.error(" Error sending admin alert:", error.response?.text || error.message);
   }

@@ -33,17 +33,17 @@ const conversationsCache = {
   data: null as Conversation[] | null,
   timestamp: 0,
   ttl: 5 * 60 * 1000, // 5 minutes
-  isValid: function() {
-    return this.data && (Date.now() - this.timestamp) < this.ttl;
+  isValid: function () {
+    return this.data && Date.now() - this.timestamp < this.ttl;
   },
-  set: function(data: Conversation[]) {
+  set: function (data: Conversation[]) {
     this.data = data;
     this.timestamp = Date.now();
   },
-  clear: function() {
+  clear: function () {
     this.data = null;
     this.timestamp = 0;
-  }
+  },
 };
 
 const ConversationHistory: React.FC = () => {
@@ -69,29 +69,29 @@ const ConversationHistory: React.FC = () => {
       messagesEndRef.current.scrollIntoView({
         behavior: 'smooth',
         block: 'end',
-        inline: 'nearest'
+        inline: 'nearest',
       });
     }
   }, []);
 
-    if (isGuest) {
-      return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <GuestLimitationModal
-            isOpen={true}
-            onClose={handleGuestModalClose}
-            feature="Chat History"
-            description="Access your complete chat history and continue previous conversations."
-            benefits={[
-              'View all your previous chats',
-              'Continue interrupted conversations',
-              'Search through chat history',
-              'Export chat transcripts'
-            ]}
-          />
-        </div>
-      );
-    }
+  if (isGuest) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <GuestLimitationModal
+          isOpen={true}
+          onClose={handleGuestModalClose}
+          feature="Chat History"
+          description="Access your complete chat history and continue previous conversations."
+          benefits={[
+            'View all your previous chats',
+            'Continue interrupted conversations',
+            'Search through chat history',
+            'Export chat transcripts',
+          ]}
+        />
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (messages.length > 0 && !loadingMessages) {
@@ -119,21 +119,21 @@ const ConversationHistory: React.FC = () => {
       const authEndpoint = `${API_BASE_URL}/chat/conversations?limit=20`;
 
       let response: Response;
-      let data: any;
+      let conversationPayload: any;
 
       try {
         if (token) {
           response = await fetch(authEndpoint, {
             method: 'GET',
             headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
             },
-            credentials: 'include'
+            credentials: 'include',
           });
 
           if (response.ok) {
-            data = await response.json();
+            conversationPayload = await response.json();
           } else if (response.status === 401 || response.status === 403) {
             localStorage.removeItem('token');
             throw new Error('Auth failed');
@@ -146,19 +146,19 @@ const ConversationHistory: React.FC = () => {
       } catch (authError) {
         response = await fetch(demoEndpoint, {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
         });
 
         if (!response.ok) {
           throw new Error(`Demo endpoint failed: ${response.status}`);
         }
 
-        data = await response.json();
+        conversationPayload = await response.json();
       }
 
-      const conversationsList = data.conversations || data.data || [];
+      const conversationsList = conversationPayload.conversations || conversationPayload.data || [];
       if (!Array.isArray(conversationsList)) {
-        console.warn('Invalid data format:', data);
+        console.warn('Invalid data format:', conversationPayload);
         setConversations([]);
         setError('No conversations found');
         return;
@@ -166,19 +166,21 @@ const ConversationHistory: React.FC = () => {
 
       const validConversations = conversationsList
         .filter((conv: any) => conv && (conv.id || conv._id))
-        .map((conv: any): Conversation => ({
-          id: conv.id || conv._id?.toString() || String(conv._id),
-          title: conv.title || 'New Conversation',
-          lastMessage: conv.lastMessage || conv.last_message || '',
-          timestamp: conv.timestamp || conv.updated_at || conv.created_at || new Date().toISOString(),
-          messageCount: Number(conv.messageCount || conv.message_count || 0),
-          universityContext: conv.universityContext || conv.university_context
-        }))
+        .map(
+          (conv: any): Conversation => ({
+            id: conv.id || conv._id?.toString() || String(conv._id),
+            title: conv.title || 'New Conversation',
+            lastMessage: conv.lastMessage || conv.last_message || '',
+            timestamp:
+              conv.timestamp || conv.updated_at || conv.created_at || new Date().toISOString(),
+            messageCount: Number(conv.messageCount || conv.message_count || 0),
+            universityContext: conv.universityContext || conv.university_context,
+          })
+        )
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
       conversationsCache.set(validConversations);
       setConversations(validConversations);
-
     } catch (error) {
       console.error('Error loading conversations:', error);
       setError('Unable to load conversation history');
@@ -192,28 +194,28 @@ const ConversationHistory: React.FC = () => {
     try {
       setLoadingMessages(true);
       setError(null);
-      
+
       const token = localStorage.getItem('token');
-      
+
       const demoEndpoint = `${API_BASE_URL}/chat/conversations-demo/${conversationId}/messages?limit=100`;
       const authEndpoint = `${API_BASE_URL}/chat/conversations/${conversationId}/messages?limit=100`;
-      
+
       let response: Response;
-      let data: any;
-      
+      let messagesPayload: any;
+
       try {
         if (token) {
           response = await fetch(authEndpoint, {
             method: 'GET',
             headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
             },
-            credentials: 'include'
+            credentials: 'include',
           });
-          
+
           if (response.ok) {
-            data = await response.json();
+            messagesPayload = await response.json();
           } else if (response.status === 401 || response.status === 403) {
             throw new Error('Auth failed');
           } else {
@@ -225,19 +227,23 @@ const ConversationHistory: React.FC = () => {
       } catch (authError) {
         response = await fetch(demoEndpoint, {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
         });
-        
+
         if (!response.ok) {
           throw new Error(`Demo endpoint failed: ${response.status}`);
         }
-        
-        data = await response.json();
+
+        messagesPayload = await response.json();
       }
-      
-      const msgArray = Array.isArray(data.messages) ? data.messages :
-                      Array.isArray(data.data) ? data.data :
-                      Array.isArray(data) ? data : [];
+
+      const msgArray = Array.isArray(messagesPayload.messages)
+        ? messagesPayload.messages
+        : Array.isArray(messagesPayload.data)
+          ? messagesPayload.data
+          : Array.isArray(messagesPayload)
+            ? messagesPayload
+            : [];
 
       if (!Array.isArray(msgArray)) {
         console.warn('Invalid message data format');
@@ -259,26 +265,26 @@ const ConversationHistory: React.FC = () => {
             conversationId: msg.conversation_id || conversationId,
             sources: msg.sources || [],
             confidence: Number(msg.confidence || 0),
-            attachments: msg.attachments || []
+            attachments: msg.attachments || [],
           } as Message;
         });
-      
+
       const dedupedMessages: Message[] = [];
       const seenSignatures = new Set<string>();
-      
+
       for (const msg of validMessages) {
         const timestampSec = Math.floor(parseDate(msg.timestamp)?.getTime() ?? 0 / 1000);
         const signature = `${msg.isUser}|${msg.text}|${timestampSec}`;
-        
+
         if (!seenSignatures.has(signature)) {
           seenSignatures.add(signature);
           dedupedMessages.push(msg);
         }
       }
-      
+
       setMessages(dedupedMessages);
 
-      setSelectedConversation(prev => {
+      setSelectedConversation((prev) => {
         if (!prev || prev.id !== conversationId) return prev;
         const last = dedupedMessages[dedupedMessages.length - 1];
         return {
@@ -288,7 +294,6 @@ const ConversationHistory: React.FC = () => {
           timestamp: last ? last.timestamp : prev.timestamp,
         };
       });
-      
     } catch (error) {
       console.error('Error loading messages:', error);
       setError('Unable to load conversation messages. Please try again.');
@@ -312,11 +317,13 @@ const ConversationHistory: React.FC = () => {
       state: {
         conversationId: conversation.id,
         conversationTitle: conversation.title,
-        universityContext: conversation.universityContext ? {
-          name: conversation.universityContext,
-          fullName: conversation.universityContext
-        } : undefined
-      }
+        universityContext: conversation.universityContext
+          ? {
+              name: conversation.universityContext,
+              fullName: conversation.universityContext,
+            }
+          : undefined,
+      },
     });
   };
 
@@ -334,13 +341,13 @@ const ConversationHistory: React.FC = () => {
     const previousMessages = [...messages];
 
     try {
-      setConversations(prev => {
-        const updated = prev.filter(c => c.id !== conversation.id);
+      setConversations((prev) => {
+        const updated = prev.filter((c) => c.id !== conversation.id);
         return updated;
       });
-      
+
       conversationsCache.clear();
-      
+
       if (selectedConversation?.id === conversation.id) {
         setSelectedConversation(null);
         setMessages([]);
@@ -353,9 +360,9 @@ const ConversationHistory: React.FC = () => {
 
       const token = localStorage.getItem('token');
       const headers: HeadersInit = {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       };
-      
+
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
@@ -363,7 +370,7 @@ const ConversationHistory: React.FC = () => {
       const response = await fetch(`${API_BASE_URL}/chat/${conversation.id}`, {
         method: 'DELETE',
         headers,
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (response.status === 401 && !token) {
@@ -380,14 +387,13 @@ const ConversationHistory: React.FC = () => {
       }
 
       await response.json();
-
     } catch (error) {
       console.error('Error deleting conversation:', error);
-      
+
       setConversations(previousConversations);
       setSelectedConversation(previousSelected);
       setMessages(previousMessages);
-      
+
       setError('Failed to delete conversation. Please try again.');
       setTimeout(() => setError(null), 3000);
     } finally {
@@ -407,16 +413,15 @@ const ConversationHistory: React.FC = () => {
     }
 
     const query = searchQuery.toLowerCase().trim();
-    return conversations.filter(conv => {
+    return conversations.filter((conv) => {
       const titleMatch = conv.title?.toLowerCase().includes(query);
       const messageMatch = conv.lastMessage?.toLowerCase().includes(query);
       const universityMatch = conv.universityContext?.toLowerCase().includes(query);
-      
+
       return titleMatch || messageMatch || universityMatch;
     });
   }, [conversations, searchQuery]);
 
-  
   const formatTimestamp = (timestamp: string) => {
     const date = parseDate(timestamp);
     if (!date) return 'Unknown';
@@ -449,7 +454,7 @@ const ConversationHistory: React.FC = () => {
             'View all your previous chats',
             'Continue interrupted conversations',
             'Search through chat history',
-            'Export chat transcripts'
+            'Export chat transcripts',
           ]}
         />
       </div>
@@ -459,25 +464,29 @@ const ConversationHistory: React.FC = () => {
   if (loading) {
     return (
       <div className="h-full flex">
-        <div className={`w-full md:w-1/3 border-r flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'} ${
-          theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
-        }`}>
-          <div className={`p-4 border-b ${
-            theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
-          }`}>
+        <div
+          className={`w-full md:w-1/3 border-r flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'} ${
+            theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
+          }`}
+        >
+          <div
+            className={`p-4 border-b ${
+              theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
+            }`}
+          >
             <div className="flex items-center justify-between mb-3">
-              <h3 className={`font-semibold ${
-                theme === 'dark' ? 'text-white' : 'text-gray-800'
-              }`}>
+              <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
                 Conversation History
               </h3>
             </div>
             {/* Search Bar Skeleton */}
-            <div className={`w-full h-10 rounded-lg animate-pulse ${
-              theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
-            }`} />
+            <div
+              className={`w-full h-10 rounded-lg animate-pulse ${
+                theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+              }`}
+            />
           </div>
-          
+
           <div className="flex-1 overflow-y-auto p-2 space-y-2">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
@@ -487,31 +496,37 @@ const ConversationHistory: React.FC = () => {
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <div className={`h-4 rounded w-2/3 ${
-                    theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
-                  }`} />
-                  <div className={`h-3 rounded w-16 ${
-                    theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
-                  }`} />
+                  <div
+                    className={`h-4 rounded w-2/3 ${
+                      theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
+                    }`}
+                  />
+                  <div
+                    className={`h-3 rounded w-16 ${
+                      theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
+                    }`}
+                  />
                 </div>
-                <div className={`h-3 rounded w-full my-2 ${
-                  theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
-                }`} />
-                <div className={`h-3 rounded w-4/5 ${
-                  theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
-                }`} />
+                <div
+                  className={`h-3 rounded w-full my-2 ${
+                    theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
+                  }`}
+                />
+                <div
+                  className={`h-3 rounded w-4/5 ${
+                    theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
+                  }`}
+                />
               </div>
             ))}
           </div>
         </div>
 
         <div className="flex-1 flex items-center justify-center">
-          <div className={`text-center ${
-            theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-          }`}>
+          <div className={`text-center ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
             <motion.div
               animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
               className="inline-block"
             >
               <FiRefreshCw className="w-8 h-8" />
@@ -525,9 +540,7 @@ const ConversationHistory: React.FC = () => {
 
   if (error) {
     return (
-      <div className={`text-center p-8 ${
-        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-      }`}>
+      <div className={`text-center p-8 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
         <p className="text-red-500 mb-4">{error}</p>
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -543,16 +556,18 @@ const ConversationHistory: React.FC = () => {
 
   return (
     <div className="h-full flex">
-      <div className={`w-full md:w-1/3 border-r flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'} ${
-        theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
-      }`}>
-        <div className={`p-4 border-b ${
-          theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
-        }`}>
+      <div
+        className={`w-full md:w-1/3 border-r flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'} ${
+          theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
+        }`}
+      >
+        <div
+          className={`p-4 border-b ${
+            theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
+          }`}
+        >
           <div className="flex items-center justify-between mb-3">
-            <h3 className={`font-semibold ${
-              theme === 'dark' ? 'text-white' : 'text-gray-800'
-            }`}>
+            <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
               Conversation History
             </h3>
             <motion.button
@@ -560,8 +575,8 @@ const ConversationHistory: React.FC = () => {
               whileTap={{ scale: 0.95 }}
               onClick={() => loadConversations(true)} // Force refresh
               className={`p-2 rounded-lg ${
-                theme === 'dark' 
-                  ? 'hover:bg-gray-700 text-gray-400' 
+                theme === 'dark'
+                  ? 'hover:bg-gray-700 text-gray-400'
                   : 'hover:bg-gray-200 text-gray-500'
               }`}
               title="Refresh conversations"
@@ -569,11 +584,13 @@ const ConversationHistory: React.FC = () => {
               <FiRefreshCw className="w-4 h-4" />
             </motion.button>
           </div>
-          
+
           <div className="relative">
-            <FiSearch className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-            }`} />
+            <FiSearch
+              className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+              }`}
+            />
             <input
               type="text"
               placeholder="Search conversations..."
@@ -605,20 +622,20 @@ const ConversationHistory: React.FC = () => {
             )}
           </div>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto min-h-0 scrollbar-hide">
           {conversations.length === 0 ? (
-            <div className={`text-center p-8 ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-            }`}>
+            <div
+              className={`text-center p-8 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}
+            >
               <FiMessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>No conversation history yet</p>
               <p className="text-sm mt-2">Start chatting to see your conversations here!</p>
             </div>
           ) : filteredConversations.length === 0 ? (
-            <div className={`text-center p-8 ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-            }`}>
+            <div
+              className={`text-center p-8 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}
+            >
               <FiSearch className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>No conversations found</p>
               <p className="text-sm mt-2">Try a different search term</p>
@@ -651,48 +668,62 @@ const ConversationHistory: React.FC = () => {
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className={`font-medium text-sm truncate ${
-                      theme === 'dark' ? 'text-white' : 'text-gray-800'
-                    }`}>
+                    <h4
+                      className={`font-medium text-sm truncate ${
+                        theme === 'dark' ? 'text-white' : 'text-gray-800'
+                      }`}
+                    >
                       {conversation.title && conversation.title !== 'Untitled'
                         ? conversation.title
-                        : (conversation.lastMessage ? conversation.lastMessage.slice(0, 60) : 'New Conversation')}
+                        : conversation.lastMessage
+                          ? conversation.lastMessage.slice(0, 60)
+                          : 'New Conversation'}
                     </h4>
-                    <span className={`text-xs ${
-                      theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
+                    <span
+                      className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}
+                    >
                       {formatTimestamp(conversation.timestamp)}
                     </span>
                   </div>
-                  
+
                   {conversation.universityContext && (
-                    <div className={`text-xs px-2 py-1 rounded-full mb-2 inline-block ${
-                      theme === 'dark' 
-                        ? 'bg-blue-500/20 text-blue-400' 
-                        : 'bg-blue-100 text-blue-600'
-                    }`}>
+                    <div
+                      className={`text-xs px-2 py-1 rounded-full mb-2 inline-block ${
+                        theme === 'dark'
+                          ? 'bg-blue-500/20 text-blue-400'
+                          : 'bg-blue-100 text-blue-600'
+                      }`}
+                    >
                       {conversation.universityContext}
                     </div>
                   )}
-                  
-                  <p className={`text-xs truncate ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                  }`}>
-                    {conversation.lastMessage ? getMarkdownPreview(conversation.lastMessage, 80) : 'No messages yet'}
+
+                  <p
+                    className={`text-xs truncate ${
+                      theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                    }`}
+                  >
+                    {conversation.lastMessage
+                      ? getMarkdownPreview(conversation.lastMessage, 80)
+                      : 'No messages yet'}
                   </p>
-                  
+
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center space-x-2">
-                      <FiClock className={`w-3 h-3 ${
-                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                      }`} />
-                      <span className={`text-xs ${
-                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
+                      <FiClock
+                        className={`w-3 h-3 ${
+                          theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                        }`}
+                      />
+                      <span
+                        className={`text-xs ${
+                          theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                        }`}
+                      >
                         {conversation.messageCount} messages
                       </span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <motion.button
                         whileHover={{ scale: 1.05 }}
@@ -708,7 +739,7 @@ const ConversationHistory: React.FC = () => {
                       >
                         <FiTrash2 className="w-3.5 h-3.5" />
                       </motion.button>
-                      
+
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -717,8 +748,7 @@ const ConversationHistory: React.FC = () => {
                           handleContinueConversation(conversation);
                         }}
                         className="text-xs px-2 py-1 bg-primary-600 hover:bg-primary-700 text-white rounded-md transition-colors duration-200"
-                      >
-                      </motion.button>
+                      ></motion.button>
                     </div>
                   </div>
                 </motion.div>
@@ -728,40 +758,47 @@ const ConversationHistory: React.FC = () => {
         </div>
       </div>
 
-      <div className={`flex-1 flex flex-col w-full ${selectedConversation ? 'flex' : 'hidden md:flex'}`}>
+      <div
+        className={`flex-1 flex flex-col w-full ${selectedConversation ? 'flex' : 'hidden md:flex'}`}
+      >
         {selectedConversation ? (
           <>
-            <div className={`p-4 border-b flex items-center ${
-              theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
-            }`}>
-              <button 
-                onClick={() => setSelectedConversation(null)} 
+            <div
+              className={`p-4 border-b flex items-center ${
+                theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
+              }`}
+            >
+              <button
+                onClick={() => setSelectedConversation(null)}
                 className={`md:hidden p-2 mr-3 rounded-full flex-shrink-0 ${theme === 'dark' ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-200 text-gray-500'}`}
               >
                 <FiX className="w-5 h-5" />
               </button>
               <div className="flex-1 min-w-0">
-                <h3 className={`font-semibold truncate ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-800'
-                }`}>
+                <h3
+                  className={`font-semibold truncate ${
+                    theme === 'dark' ? 'text-white' : 'text-gray-800'
+                  }`}
+                >
                   {selectedConversation.title}
                 </h3>
-                <p className={`text-sm ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  {selectedConversation.messageCount} messages • Last active {formatTimestamp(selectedConversation.timestamp)}
+                <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {selectedConversation.messageCount} messages • Last active{' '}
+                  {formatTimestamp(selectedConversation.timestamp)}
                 </p>
               </div>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4">
               {loadingMessages ? (
-                <div className={`flex items-center justify-center h-32 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                }`}>
+                <div
+                  className={`flex items-center justify-center h-32 ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                  }`}
+                >
                   <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                   >
                     <FiRefreshCw className="w-6 h-6" />
                   </motion.div>
@@ -777,20 +814,22 @@ const ConversationHistory: React.FC = () => {
                       transition={{ delay: index * 0.02 }}
                     >
                       {/* Use ChatBubble component for professional formatting with markdown support */}
-                      <ChatBubble message={{
-                        ...message,
-                        conversationId: message.conversationId || selectedConversation?.id || ''
-                      }} />
+                      <ChatBubble
+                        message={{
+                          ...message,
+                          conversationId: message.conversationId || selectedConversation?.id || '',
+                        }}
+                      />
                     </motion.div>
                   ))}
                   <div ref={messagesEndRef} />
                 </AnimatePresence>
               )}
             </div>
-            
-            <div className={`p-4 border-t ${
-              theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
-            }`}>
+
+            <div
+              className={`p-4 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}
+            >
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -802,9 +841,11 @@ const ConversationHistory: React.FC = () => {
             </div>
           </>
         ) : (
-          <div className={`flex items-center justify-center h-full ${
-            theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-          }`}>
+          <div
+            className={`flex items-center justify-center h-full ${
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+            }`}
+          >
             <div className="text-center">
               <FiMessageCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
               <h3 className="text-lg font-semibold mb-2">Select a conversation</h3>
@@ -825,27 +866,32 @@ const ConversationHistory: React.FC = () => {
               }`}
             >
               <div className="p-5">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 ${
-                  theme === 'dark' ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-600'
-                }`}>
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 ${
+                    theme === 'dark' ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-600'
+                  }`}
+                >
                   <FiTrash2 className="w-5 h-5" />
                 </div>
-                <h3 className={`text-lg font-bold mb-2 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
-                }`}>
+                <h3
+                  className={`text-lg font-bold mb-2 ${
+                    theme === 'dark' ? 'text-white' : 'text-gray-900'
+                  }`}
+                >
                   Delete Conversation?
                 </h3>
-                <p className={`text-sm mb-5 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                }`}>
-                  Are you sure you want to delete "{conversationToDelete.title}"? This action cannot be undone.
+                <p
+                  className={`text-sm mb-5 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}
+                >
+                  Are you sure you want to delete "{conversationToDelete.title}"? This action cannot
+                  be undone.
                 </p>
                 <div className="flex gap-3 justify-end">
                   <button
                     onClick={() => setConversationToDelete(null)}
                     className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      theme === 'dark' 
-                        ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' 
+                      theme === 'dark'
+                        ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
                         : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                     }`}
                   >
@@ -863,7 +909,6 @@ const ConversationHistory: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
-
     </div>
   );
 };

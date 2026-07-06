@@ -1,9 +1,3 @@
-/**
- * Performance Monitoring Hook
- * Description: Monitors and optimizes app performance
- * Integration: Provides performance metrics and optimization suggestions
- */
-
 import { useEffect, useState, useCallback } from 'react';
 
 interface PerformanceMetrics {
@@ -28,7 +22,7 @@ export const usePerformance = (): UsePerformanceReturn => {
     renderTime: 0,
     memoryUsage: 0,
     isLowEndDevice: false,
-    connectionSpeed: 'unknown'
+    connectionSpeed: 'unknown',
   });
 
   const [isLowEndDevice, setIsLowEndDevice] = useState(false);
@@ -37,29 +31,32 @@ export const usePerformance = (): UsePerformanceReturn => {
 
   const detectDeviceCapabilities = useCallback(() => {
     const startTime = performance.now();
-    
+
     const cores = navigator.hardwareConcurrency || 2;
-    
+
     const memory = (navigator as any).deviceMemory || 4;
 
     const connection = (navigator as any).connection;
     const connectionSpeed = connection ? connection.effectiveType : 'unknown';
-    
-    const isLowEnd = cores <= 2 || memory <= 2 || connectionSpeed === 'slow-2g' || connectionSpeed === '2g';
+
+    const isLowEnd =
+      cores <= 2 || memory <= 2 || connectionSpeed === 'slow-2g' || connectionSpeed === '2g';
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    
+
     const endTime = performance.now();
     const renderTime = endTime - startTime;
-    
+
     setMetrics({
-      loadTime: performance.timing ? performance.timing.loadEventEnd - performance.timing.navigationStart : 0,
+      loadTime: performance.timing
+        ? performance.timing.loadEventEnd - performance.timing.navigationStart
+        : 0,
       renderTime,
       memoryUsage: memory,
       isLowEndDevice: isLowEnd,
-      connectionSpeed
+      connectionSpeed,
     });
-    
+
     setIsLowEndDevice(isLowEnd);
     setShouldReduceAnimations(prefersReducedMotion || isLowEnd);
     setShouldLazyLoad(isLowEnd || connectionSpeed === 'slow-2g' || connectionSpeed === '2g');
@@ -68,34 +65,33 @@ export const usePerformance = (): UsePerformanceReturn => {
   const optimizeForPerformance = useCallback(() => {
     if (isLowEndDevice) {
       document.documentElement.style.setProperty('--animation-duration', '0.1s');
-      
+
       const images = document.querySelectorAll('img[data-src]');
-      images.forEach(img => {
+      images.forEach((img) => {
         (img as HTMLImageElement).src = (img as HTMLImageElement).dataset.src || '';
       });
-      
+
       if (shouldReduceAnimations) {
         document.documentElement.classList.add('reduce-motion');
       }
     }
   }, [isLowEndDevice, shouldReduceAnimations]);
 
-  // Monitor performance
   useEffect(() => {
     detectDeviceCapabilities();
-    
+
     const monitorMemory = () => {
       if ('memory' in performance) {
-        const memory = (performance as any).memory;
-        setMetrics(prev => ({
+        const heapInfo = (performance as any).memory;
+        setMetrics((prev) => ({
           ...prev,
-          memoryUsage: memory.usedJSHeapSize / 1024 / 1024 // Convert to MB
+          memoryUsage: heapInfo.usedJSHeapSize / 1024 / 1024,
         }));
       }
     };
-    
+
     const interval = setInterval(monitorMemory, 5000);
-    
+
     const handleVisibilityChange = () => {
       if (document.hidden) {
         clearInterval(interval);
@@ -103,9 +99,9 @@ export const usePerformance = (): UsePerformanceReturn => {
         detectDeviceCapabilities();
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -123,7 +119,7 @@ export const usePerformance = (): UsePerformanceReturn => {
     isLowEndDevice,
     shouldReduceAnimations,
     shouldLazyLoad,
-    optimizeForPerformance
+    optimizeForPerformance,
   };
 };
 

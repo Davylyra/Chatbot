@@ -6,22 +6,24 @@
 @layer base {
   body {
     font-family: 'Inter', system-ui, sans-serif;
-    font-feature-settings: "rlig" 1, "calt" 1;
-    -ms-overflow-style: none;  /* Internet Explorer 10+ */
-    scrollbar-width: none;  /* Firefox */
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+    scrollbar-width: none; /* Firefox */
   }
-  
+
   body::-webkit-scrollbar {
-    display: none;  /* Safari and Chrome */
+    display: none; /* Safari and Chrome */
   }
-  
+
   html {
-    -ms-overflow-style: none;  /* Internet Explorer 10+ */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+    scrollbar-width: none; /* Firefox */
   }
-  
+
   html::-webkit-scrollbar {
-    display: none;  /* Safari and Chrome */
+    display: none; /* Safari and Chrome */
   }
 }
 
@@ -30,96 +32,96 @@
   .glass-effect {
     @apply bg-white/10 backdrop-blur-lg border border-white/20 rounded-3xl shadow-lg shadow-white/5;
   }
-  
+
   .glass-card {
     @apply bg-white/80 backdrop-blur-md border border-white/30 rounded-2xl shadow-lg shadow-gray-200/20;
   }
-  
+
   .glass-card-dark {
     @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg shadow-white/5;
   }
-  
+
   .glass-modal {
     @apply bg-white/90 backdrop-blur-xl border border-white/40 rounded-3xl shadow-2xl shadow-gray-200/30;
   }
-  
+
   .glass-modal-dark {
     @apply bg-gray-900/90 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl shadow-black/30;
   }
-  
+
   .glass-input {
     @apply bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl shadow-sm;
   }
-  
+
   .glass-input-dark {
     @apply bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl shadow-sm;
   }
-  
+
   .glass-button {
     @apply bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl shadow-md hover:bg-white/30 transition-all duration-200;
   }
-  
+
   .glass-button-dark {
     @apply bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl shadow-md hover:bg-white/20 transition-all duration-200;
   }
-  
+
   /* Legacy Classes for Backward Compatibility */
   .btn-primary {
     @apply bg-primary-600 hover:bg-primary-700 text-white font-medium px-6 py-3 rounded-xl transition-all duration-200 hover:scale-105 shadow-md;
   }
-  
+
   .btn-secondary {
     @apply bg-white/20 hover:bg-white/30 text-gray-800 font-medium px-6 py-3 rounded-xl transition-all duration-200 hover:scale-105 border border-white/30;
   }
-  
+
   /* Header Scrolled Effect */
   .header-scrolled {
     background-color: rgba(240, 245, 255, 0.2) !important;
     backdrop-filter: blur(16px) !important;
     box-shadow: none !important;
   }
-  
+
   .dark .header-scrolled {
     background-color: rgba(17, 24, 39, 0.2) !important;
     backdrop-filter: blur(16px) !important;
     box-shadow: none !important;
   }
-  
+
   /* Hide scrollbar while maintaining scroll functionality */
   .scrollbar-hide {
-    -ms-overflow-style: none;  /* Internet Explorer 10+ */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+    scrollbar-width: none; /* Firefox */
   }
-  
+
   .scrollbar-hide::-webkit-scrollbar {
-    display: none;  /* Safari and Chrome */
+    display: none; /* Safari and Chrome */
   }
-  
+
   /* Global scrollbar hiding - applies to all elements */
   * {
-    -ms-overflow-style: none;  /* Internet Explorer 10+ */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+    scrollbar-width: none; /* Firefox */
   }
-  
+
   *::-webkit-scrollbar {
-    display: none;  /* Safari and Chrome */
+    display: none; /* Safari and Chrome */
   }
-  
+
   .blur-backdrop {
     backdrop-filter: blur(12px) saturate(180%);
     -webkit-backdrop-filter: blur(12px) saturate(180%);
   }
-  
+
   .blur-backdrop-strong {
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
   }
-  
+
   .blur-backdrop-subtle {
     backdrop-filter: blur(8px) saturate(180%);
     -webkit-backdrop-filter: blur(8px) saturate(180%);
   }
-  
+
   /* 
    * UNIFIED GLASSMORPHISM SYSTEM
    * 
@@ -147,43 +149,42 @@
     backdrop-filter: blur(8px) saturate(180%);
     -webkit-backdrop-filter: blur(8px) saturate(180%);
   }
-  
+
   .glass-unified-dark {
     @apply bg-white/5 border border-white/10 rounded-2xl;
     backdrop-filter: blur(8px) saturate(180%);
     -webkit-backdrop-filter: blur(8px) saturate(180%);
   }
-  
+
   .glass-card-unified {
     @apply bg-white/20 border border-white/30 rounded-2xl;
     backdrop-filter: blur(12px) saturate(180%);
     -webkit-backdrop-filter: blur(12px) saturate(180%);
   }
-  
+
   .glass-card-unified-dark {
     @apply bg-white/10 border border-white/20 rounded-2xl;
     backdrop-filter: blur(12px) saturate(180%);
     -webkit-backdrop-filter: blur(12px) saturate(180%);
   }
-  
+
   /* Fixed Height Layout Utilities */
   .fixed-height-container {
     height: 100vh;
     height: 100dvh; /* Dynamic viewport height for mobile */
   }
-  
+
   .fixed-height-content {
     height: calc(100vh - 80px); /* Account for navbar height */
     height: calc(100dvh - 80px); /* Dynamic viewport height for mobile */
   }
-  
+
   @media (max-height: 600px) {
     .fixed-height-content {
       height: calc(100vh - 60px);
       height: calc(100dvh - 60px);
     }
   }
-  
 }
 
 /* Performance optimizations */
@@ -235,7 +236,9 @@ html {
 
 /* Optimized hover effects */
 .hover-optimized {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   will-change: transform, box-shadow;
 }
 

@@ -14,11 +14,10 @@ import fetchUtils from './fetchUtils.js';
 const { fetchWithRetry, deduplicateNotifications, sortNotificationsByPriority, getCuratedFallbackNotifications, UNIVERSITY_SOURCES, DEFAULT_USER_AGENT } = fetchUtils;
 
 /**
- * Fetch live admission notifications from multiple sources
- * @returns {Promise<Array>} Array of notification objects (minimum 11)
+ Fetch live admission notifications from multiple sources
  */
 export const fetchLiveAdmissionNotifications = async () => {
-  console.log('📡 Fetching live admission notifications from Ghanaian sources...');
+  console.log('Fetching live admission notifications from Ghanaian sources...');
   
   const notifications = [];
   const currentYear = new Date().getFullYear();
@@ -43,7 +42,7 @@ export const fetchLiveAdmissionNotifications = async () => {
     });
     
     if (notifications.length === 0) {
-      console.log('ℹ️ No real notifications available - returning empty array');
+      console.log(' No real notifications available - returning empty array');
       return [];
     }
 
@@ -60,8 +59,7 @@ export const fetchLiveAdmissionNotifications = async () => {
 };
 
 /**
- * Fetch updates directly from university websites (all 15 sources)
- * OPTIMIZED: Parallel fetching instead of sequential
+ * Fetch updates directly from university websites 
  */
 async function fetchUniversityUpdates() {
   const timeout = 5000; // 5 second timeout
@@ -82,7 +80,7 @@ async function fetchUniversityUpdates() {
             const notification = {
               id: `${code}_live_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
               university: uni.name,
-              title: `📢 ${uni.name} Admission Update`,
+              title: ` ${uni.name} Admission Update`,
               message: `Recent updates detected on ${uni.name} admissions page. Visit their website for latest information.`,
               type: 'info',
               priority: 'normal',
@@ -110,11 +108,10 @@ async function fetchUniversityUpdates() {
         }
       }
       
-      console.log(`ℹ️ No real updates from ${uni.name}`);
+      console.log(` No real updates from ${uni.name}`);
       return null;
       
     } catch (error) {
-      // Don't create fallback notifications on error - just log and return null
       console.log(` Could not fetch from ${uni.name}: ${error.message}`);
       return null;
     }
@@ -126,7 +123,7 @@ async function fetchUniversityUpdates() {
     .filter(r => r.status === 'fulfilled' && r.value !== null)
     .map(r => r.value);
   
-  console.log(`📊 Parallel fetch complete: ${updates.length} real notifications from ${Object.keys(UNIVERSITY_SOURCES).length} universities`);
+  console.log(` Parallel fetch complete: ${updates.length} real notifications from ${Object.keys(UNIVERSITY_SOURCES).length} universities`);
   return updates;
 }
 
@@ -135,7 +132,6 @@ async function fetchUniversityUpdates() {
  */
 async function fetchEducationNews() {
   const news = [];
-  // For now, return empty to avoid blocking
   return news;
 }
 
@@ -144,8 +140,6 @@ async function fetchEducationNews() {
  */
 async function fetchGhanaAdmissionsCentral() {
   try {
-    // Future: Connect to official Ghana education portal API
-    // For now, provide structured fallback
     return [];
   } catch (error) {
     return [];

@@ -11,10 +11,7 @@ import {
 const router = express.Router();
 
 router.post("/initialize", verifyAuth, validatePaymentPayload, initializePayment);
-
-// Verify payment
 router.get("/verify/:reference", verifyAuth, verifyPayment);
-
 router.get("/transactions", verifyAuth, getUserTransactions);
 
 router.get("/plans", (req, res) => {

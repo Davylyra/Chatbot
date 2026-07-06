@@ -1,9 +1,3 @@
-/**
- * Guest Limitations Hook
- * Description: Manages guest user limitations and feature access
- * Integration: Used across components to control guest access
- */
-
 import { useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -21,13 +15,14 @@ export const useGuestLimitations = () => {
   const limitationConfigs: Record<string, GuestLimitation> = {
     profile: {
       feature: 'Profile Management',
-      description: 'Access your personal profile, edit information, and manage your account settings.',
+      description:
+        'Access your personal profile, edit information, and manage your account settings.',
       benefits: [
         'Save and edit your personal information',
         'Manage your academic preferences',
         'Track your application history',
-        'Customize your dashboard'
-      ]
+        'Customize your dashboard',
+      ],
     },
     transactions: {
       feature: 'Transaction History',
@@ -36,8 +31,8 @@ export const useGuestLimitations = () => {
         'View all your form purchases',
         'Download receipts and invoices',
         'Track payment history',
-        'Manage subscription plans'
-      ]
+        'Manage subscription plans',
+      ],
     },
     settings: {
       feature: 'Account Settings',
@@ -46,18 +41,19 @@ export const useGuestLimitations = () => {
         'Change password and security settings',
         'Manage notification preferences',
         'Customize app appearance',
-        'Export your data'
-      ]
+        'Export your data',
+      ],
     },
     notifications: {
       feature: 'Notifications',
-      description: 'Get personalized notifications about deadlines, updates, and important information.',
+      description:
+        'Get personalized notifications about deadlines, updates, and important information.',
       benefits: [
         'Receive deadline reminders',
         'Get application updates',
         'University news and announcements',
-        'Personalized recommendations'
-      ]
+        'Personalized recommendations',
+      ],
     },
     chat: {
       feature: 'Chat Access',
@@ -66,8 +62,8 @@ export const useGuestLimitations = () => {
         'Send unlimited messages',
         'Attach files and documents',
         'Save conversation history',
-        'Resume chats anytime'
-      ]
+        'Resume chats anytime',
+      ],
     },
     recentChats: {
       feature: 'Chat History',
@@ -76,8 +72,8 @@ export const useGuestLimitations = () => {
         'View all your previous chats',
         'Continue interrupted conversations',
         'Search through chat history',
-        'Export chat transcripts'
-      ]
+        'Export chat transcripts',
+      ],
     },
     assessment: {
       feature: 'Program Assessment',
@@ -86,8 +82,8 @@ export const useGuestLimitations = () => {
         'Take personalized program assessments',
         'Get AI-powered recommendations',
         'Save assessment results permanently',
-        'Track your academic progress'
-      ]
+        'Track your academic progress',
+      ],
     },
     universities: {
       feature: 'University Directory',
@@ -96,22 +92,25 @@ export const useGuestLimitations = () => {
         'Access full university database',
         'View detailed program information',
         'Compare universities side-by-side',
-        'Get admission requirements'
-      ]
-    }
+        'Get admission requirements',
+      ],
+    },
   };
 
-  const checkGuestAccess = useCallback((feature: string): boolean => {
-    if (!isGuest) return true;
+  const checkGuestAccess = useCallback(
+    (feature: string): boolean => {
+      if (!isGuest) return true;
 
-    const config = limitationConfigs[feature];
-    if (config) {
-      setLimitationData(config);
-      setShowLimitationModal(true);
-    }
+      const config = limitationConfigs[feature];
+      if (config) {
+        setLimitationData(config);
+        setShowLimitationModal(true);
+      }
 
-    return false;
-  }, [isGuest]);
+      return false;
+    },
+    [isGuest]
+  );
 
   const closeLimitationModal = useCallback(() => {
     setShowLimitationModal(false);
@@ -123,6 +122,6 @@ export const useGuestLimitations = () => {
     showLimitationModal,
     limitationData,
     checkGuestAccess,
-    closeLimitationModal
+    closeLimitationModal,
   };
 };

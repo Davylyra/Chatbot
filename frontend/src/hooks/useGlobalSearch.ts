@@ -1,9 +1,3 @@
-/**
- * Global Search Hook
- * Description: Provides enhanced search functionality across the app
- * Integration: Used for searching universities, forms, and other content
- */
-
 import { useState, useMemo, useCallback } from 'react';
 
 interface SearchResult {
@@ -37,7 +31,7 @@ export const useGlobalSearch = ({
   data,
   searchFields,
   resultLimit = 10,
-  minQueryLength = 2
+  minQueryLength = 2,
 }: UseGlobalSearchOptions): UseGlobalSearchReturn => {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -48,7 +42,7 @@ export const useGlobalSearch = ({
     }
 
     setIsSearching(true);
-    
+
     const searchTerm = query.toLowerCase().trim();
     const searchResults: SearchResult[] = [];
 
@@ -60,20 +54,17 @@ export const useGlobalSearch = ({
         const fieldValue = item[field];
         if (fieldValue && typeof fieldValue === 'string') {
           const lowerValue = fieldValue.toLowerCase();
-          
+
           if (lowerValue === searchTerm) {
             matchScore += 100;
             matchedFields.push(field);
-          }
-          else if (lowerValue.startsWith(searchTerm)) {
+          } else if (lowerValue.startsWith(searchTerm)) {
             matchScore += 80;
             matchedFields.push(field);
-          }
-          else if (lowerValue.includes(searchTerm)) {
+          } else if (lowerValue.includes(searchTerm)) {
             matchScore += 60;
             matchedFields.push(field);
-          }
-          else if (new RegExp(`\\b${searchTerm}`, 'i').test(lowerValue)) {
+          } else if (new RegExp(`\\b${searchTerm}`, 'i').test(lowerValue)) {
             matchScore += 40;
             matchedFields.push(field);
           }
@@ -88,7 +79,7 @@ export const useGlobalSearch = ({
           type: item.universityName ? 'university' : item.name ? 'form' : 'general',
           data: item,
           matchScore,
-          matchedFields
+          matchedFields,
         });
       }
     });
@@ -116,6 +107,6 @@ export const useGlobalSearch = ({
     isSearching,
     hasResults: results.length > 0,
     clearSearch,
-    search
+    search,
   };
 };

@@ -90,7 +90,7 @@ class CacheManager {
 
       const dbCacheResult = await this.getFromDbCache(cacheKey);
       if (dbCacheResult) {
-        console.log(`💾 DB cache HIT: ${cacheKey}`);
+        console.log(`DB cache HIT: ${cacheKey}`);
         
         this.setInMemoryCache(cacheKey, dbCacheResult);
         
@@ -115,7 +115,7 @@ class CacheManager {
   async cacheResponse(query, response, universityContext = null, userId = null) {
     try {
       if (!this.shouldCache(query, response)) {
-        console.log('🚫 Skipping cache (personal/low confidence)');
+        console.log(' Skipping cache (personal/low confidence)');
         return false;
       }
 
@@ -198,7 +198,7 @@ class CacheManager {
         this.memoryCache.delete(key);
       }
     }
-    console.log(`🧹 Memory cache cleanup: ${this.memoryCache.size} items remaining`);
+    console.log(`Memory cache cleanup: ${this.memoryCache.size} items remaining`);
   }
 
   /**

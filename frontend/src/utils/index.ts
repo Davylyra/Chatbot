@@ -1,4 +1,3 @@
-
 /**
  * Format currency amount
  */
@@ -14,7 +13,7 @@ export const formatDate = (date: Date | string): string => {
   return d.toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
-    year: 'numeric'
+    year: 'numeric',
   });
 };
 
@@ -25,7 +24,7 @@ export const formatTime = (date: Date | string): string => {
   const d = typeof date === 'string' ? new Date(date) : date;
   return d.toLocaleTimeString('en-GB', {
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   });
 };
 
@@ -158,13 +157,13 @@ export const getBrowserInfo = () => {
     firefox: /Firefox/.test(ua),
     safari: /Safari/.test(ua) && /Apple Computer/.test(navigator.vendor),
     edge: /Edg/.test(ua),
-    ie: /MSIE|Trident/.test(ua)
+    ie: /MSIE|Trident/.test(ua),
   };
-  
+
   return {
     userAgent: ua,
     browsers,
-    isMobile: /Mobile|Android|iPhone|iPad/.test(ua)
+    isMobile: /Mobile|Android|iPhone|iPad/.test(ua),
   };
 };
 
@@ -180,27 +179,24 @@ export const storage = {
       return defaultValue || null;
     }
   },
-  
+
   set: <T>(key: string, value: T): void => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
-    } catch {
-    }
+    } catch {}
   },
-  
+
   remove: (key: string): void => {
     try {
       localStorage.removeItem(key);
-    } catch {
-    }
+    } catch {}
   },
-  
+
   clear: (): void => {
     try {
       localStorage.clear();
-    } catch {
-    }
-  }
+    } catch {}
+  },
 };
 
 /**
@@ -215,14 +211,14 @@ export const url = {
       return false;
     }
   },
-  
+
   getDomain: (url: string): string => {
     try {
       return new URL(url).hostname;
     } catch {
       return '';
     }
-  }
+  },
 };
 
 /**
@@ -232,19 +228,19 @@ export const string = {
   capitalize: (str: string): string => {
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
   },
-  
+
   truncate: (str: string, length: number, suffix: string = '...'): string => {
     if (str.length <= length) return str;
     return str.substring(0, length) + suffix;
   },
-  
+
   slugify: (str: string): string => {
     return str
       .toLowerCase()
       .replace(/[^\w\s-]/g, '')
       .replace(/[\s_-]+/g, '-')
       .replace(/^-+|-+$/g, '');
-  }
+  },
 };
 
 /**
@@ -254,13 +250,13 @@ export const number = {
   format: (num: number, decimals: number = 2): string => {
     return num.toLocaleString('en-GB', {
       minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals
+      maximumFractionDigits: decimals,
     });
   },
-  
+
   parse: (str: string): number => {
     return parseFloat(str.replace(/[^\d.-]/g, ''));
-  }
+  },
 };
 
 /**
@@ -270,7 +266,7 @@ export const array = {
   unique: <T>(arr: T[]): T[] => {
     return [...new Set(arr)];
   },
-  
+
   shuffle: <T>(arr: T[]): T[] => {
     const shuffled = [...arr];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -279,14 +275,14 @@ export const array = {
     }
     return shuffled;
   },
-  
+
   chunk: <T>(arr: T[], size: number): T[][] => {
     const chunks: T[][] = [];
     for (let i = 0; i < arr.length; i += size) {
       chunks.push(arr.slice(i, i + size));
     }
     return chunks;
-  }
+  },
 };
 
 /**
@@ -296,28 +292,22 @@ export const object = {
   isEmpty: (obj: Record<string, any>): boolean => {
     return Object.keys(obj).length === 0;
   },
-  
-  pick: <T extends Record<string, any>, K extends keyof T>(
-    obj: T,
-    keys: K[]
-  ): Pick<T, K> => {
+
+  pick: <T extends Record<string, any>, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> => {
     const result = {} as Pick<T, K>;
-    keys.forEach(key => {
+    keys.forEach((key) => {
       if (key in obj) {
         result[key] = obj[key];
       }
     });
     return result;
   },
-  
-  omit: <T extends Record<string, any>, K extends keyof T>(
-    obj: T,
-    keys: K[]
-  ): Omit<T, K> => {
+
+  omit: <T extends Record<string, any>, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> => {
     const result = { ...obj };
-    keys.forEach(key => {
+    keys.forEach((key) => {
       delete result[key];
     });
     return result;
-  }
+  },
 };

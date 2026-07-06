@@ -1,6 +1,6 @@
 /**
  * Conversation Title Generation Utilities
- * 
+ *
  * Provides consistent, professional title generation for all conversations.
  * Titles are generated from the FIRST user message to ensure:
  * - Brief and concise (max 7 words)
@@ -47,18 +47,18 @@ export function generateConversationTitle(
   let timeOfDay = 'Morning';
   if (hour >= 12 && hour < 17) timeOfDay = 'Afternoon';
   else if (hour >= 17) timeOfDay = 'Evening';
-  
+
   return `${timeOfDay} Consultation`;
 }
 
 function cleanMessageForTitle(message: string): string {
   let cleaned = message.replace(/\s+/g, ' ').trim();
-  
+
   const firstSentenceMatch = cleaned.match(/^[^.!?;]+/);
   if (firstSentenceMatch) {
     cleaned = firstSentenceMatch[0].trim();
   }
-  
+
   const prefixesToRemove = [
     'tell me about',
     'i want to know about',
@@ -70,9 +70,9 @@ function cleanMessageForTitle(message: string): string {
     'please tell me',
     'i need help with',
     'can you tell me',
-    'i would like to know'
+    'i would like to know',
   ];
-  
+
   const lowerCleaned = cleaned.toLowerCase();
   for (const prefix of prefixesToRemove) {
     if (lowerCleaned.startsWith(prefix)) {
@@ -83,12 +83,12 @@ function cleanMessageForTitle(message: string): string {
       break;
     }
   }
-  
+
   const words = cleaned.split(/\s+/);
   if (words.length > 7) {
     cleaned = words.slice(0, 7).join(' ');
   }
-  
+
   if (cleaned.length > 50) {
     const truncated = cleaned.substring(0, 50);
     const lastSpace = truncated.lastIndexOf(' ');
@@ -98,13 +98,13 @@ function cleanMessageForTitle(message: string): string {
       cleaned = truncated;
     }
   }
-  
+
   cleaned = cleaned.replace(/[?!.,;:]+$/, '');
-  
+
   if (cleaned.length > 0) {
     cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
   }
-  
+
   return cleaned;
 }
 
@@ -115,27 +115,27 @@ export function shouldUpdateConversationTitle(
   if (!firstUserMessage || firstUserMessage.trim().length <= 5) {
     return false;
   }
-  
+
   const alwaysUpdateTitles = [
     'New Chat',
     'Morning Consultation',
-    'Afternoon Consultation', 
+    'Afternoon Consultation',
     'Evening Consultation',
     'Untitled',
-    'Conversation'
+    'Conversation',
   ];
-  
+
   if (alwaysUpdateTitles.includes(currentTitle)) {
     return true;
   }
-  
+
   if (currentTitle.endsWith(' Admissions')) {
     return true;
   }
-  
+
   if (currentTitle.startsWith('Assessment: ')) {
     return true;
   }
-  
+
   return false;
 }

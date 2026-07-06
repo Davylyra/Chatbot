@@ -10,32 +10,29 @@ interface ChatBubbleProps {
   isTyping?: boolean;
 }
 
-const ChatBubble: React.FC<ChatBubbleProps> = memo(({
-  message,
-  isTyping = false
-}) => {
+const ChatBubble: React.FC<ChatBubbleProps> = memo(({ message, isTyping = false }) => {
   const { text, isUser, timestamp, attachments } = message;
   const { theme } = useTheme();
-  
+
   // Enhanced URL detection and linking for plain text URLs
   const autolinkText = (t: string): string => {
     // Detect URLs not already in markdown link format [text](url)
     const urlRegex = /(?<!\]\()https?:\/\/[^\s<>"]+(?![^<]*>)(?!\))/gi;
-    
+
     return t.replace(urlRegex, (url) => {
       let cleanUrl = url.replace(/[.,;:!?'")\]]+$/, '');
       return `[${cleanUrl}](${cleanUrl})`;
     });
   };
   const processedText = autolinkText(text);
-  
-  const isGreetingMessage = !isUser && (
-    text.includes('Good morning') || 
-    text.includes('Good afternoon') || 
-    text.includes('Good evening') || 
-    text.includes('Good night') ||
-    text.includes('Hello')
-  );
+
+  const isGreetingMessage =
+    !isUser &&
+    (text.includes('Good morning') ||
+      text.includes('Good afternoon') ||
+      text.includes('Good evening') ||
+      text.includes('Good night') ||
+      text.includes('Hello'));
 
   const renderAttachments = () => {
     if (!attachments || attachments.length === 0) return null;
@@ -46,16 +43,20 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(({
           <div
             key={index}
             className={`flex items-center space-x-2 p-2 rounded-lg transition-colors duration-200 ${
-              theme === 'dark' 
-                ? 'bg-gray-600/50 text-gray-300' 
-                : 'bg-gray-100 text-gray-700'
+              theme === 'dark' ? 'bg-gray-600/50 text-gray-300' : 'bg-gray-100 text-gray-700'
             }`}
           >
-            <div className={`p-1.5 rounded-full ${
-              file.type.startsWith('image/') 
-                ? theme === 'dark' ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'
-                : theme === 'dark' ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-600'
-            }`}>
+            <div
+              className={`p-1.5 rounded-full ${
+                file.type.startsWith('image/')
+                  ? theme === 'dark'
+                    ? 'bg-blue-500/20 text-blue-400'
+                    : 'bg-blue-100 text-blue-600'
+                  : theme === 'dark'
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-green-100 text-green-600'
+              }`}
+            >
               {file.type.startsWith('image/') ? '️' : ''}
             </div>
             <div className="flex-1 min-w-0">
@@ -74,27 +75,31 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(({
       transition={{ duration: 0.3 }}
       className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}
     >
-      <div className={`flex items-start space-x-2 max-w-xs lg:max-w-md ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
+      <div
+        className={`flex items-start space-x-2 max-w-xs lg:max-w-md ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`}
+      >
         {/* Avatar - Only show for bot messages */}
         {!isUser && (
-        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-200 ${
-            theme === 'dark' 
-              ? 'bg-gray-600 text-gray-300' 
-              : 'bg-gray-200 text-gray-600'
-        }`}>
+          <div
+            className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-200 ${
+              theme === 'dark' ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-600'
+            }`}
+          >
             <FiMessageCircle className="w-4 h-4" />
-        </div>
+          </div>
         )}
 
-        <div className={`p-4 rounded-2xl transition-all duration-300 ${
-          isUser 
-            ? theme === 'dark'
-              ? 'bg-primary-600/90 text-white shadow-lg border border-primary-400/30 backdrop-blur-sm shadow-primary-500/20 hover:border-primary-400/50'
-              : 'bg-primary-500/90 text-white shadow-lg border border-primary-400/20 backdrop-blur-sm shadow-primary-500/20 hover:border-primary-400/40'
-            : theme === 'dark' 
-              ? 'glass-card-unified-dark bg-gray-700/80 text-white' 
-              : 'glass-card-unified bg-gray-800/90 text-white'
-        }`}>
+        <div
+          className={`p-4 rounded-2xl transition-all duration-300 ${
+            isUser
+              ? theme === 'dark'
+                ? 'bg-primary-600/90 text-white shadow-lg border border-primary-400/30 backdrop-blur-sm shadow-primary-500/20 hover:border-primary-400/50'
+                : 'bg-primary-500/90 text-white shadow-lg border border-primary-400/20 backdrop-blur-sm shadow-primary-500/20 hover:border-primary-400/40'
+              : theme === 'dark'
+                ? 'glass-card-unified-dark bg-gray-700/80 text-white'
+                : 'glass-card-unified bg-gray-800/90 text-white'
+          }`}
+        >
           {isTyping ? (
             <div className="flex items-center space-x-1">
               <div className="flex space-x-1">
@@ -125,19 +130,37 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(({
                       p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
                       strong: ({ children }) => <strong className="font-bold">{children}</strong>,
                       em: ({ children }) => <em className="italic">{children}</em>,
-                      h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-white">{children}</h1>,
-                      h2: ({ children }) => <h2 className="text-base font-bold mb-2 text-white">{children}</h2>,
-                      h3: ({ children }) => <h3 className="text-sm font-bold mb-1 text-white">{children}</h3>,
-                      ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 ml-2">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 ml-2">{children}</ol>,
+                      h1: ({ children }) => (
+                        <h1 className="text-lg font-bold mb-2 text-white">{children}</h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 className="text-base font-bold mb-2 text-white">{children}</h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="text-sm font-bold mb-1 text-white">{children}</h3>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="list-disc list-inside mb-2 space-y-1 ml-2">{children}</ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="list-decimal list-inside mb-2 space-y-1 ml-2">{children}</ol>
+                      ),
                       li: ({ children }) => <li className="text-sm">{children}</li>,
-                      code: ({ children }) => <code className="bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
-                      blockquote: ({ children }) => <blockquote className="border-l-4 border-primary-500 pl-3 italic text-gray-600 dark:text-gray-400">{children}</blockquote>,
+                      code: ({ children }) => (
+                        <code className="bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-xs font-mono">
+                          {children}
+                        </code>
+                      ),
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-4 border-primary-500 pl-3 italic text-gray-600 dark:text-gray-400">
+                          {children}
+                        </blockquote>
+                      ),
                       a: ({ href, children }) => (
-                        <a 
-                          href={href as string} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
+                        <a
+                          href={href as string}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className={`font-medium underline decoration-2 transition-colors duration-200 ${
                             theme === 'dark'
                               ? 'text-blue-400 hover:text-blue-300'
@@ -149,7 +172,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(({
                       ),
                     }}
                   >
-                  {processedText}
+                    {processedText}
                   </ReactMarkdown>
                   {renderAttachments()}
                 </div>
@@ -160,19 +183,37 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(({
                       p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
                       strong: ({ children }) => <strong className="font-bold">{children}</strong>,
                       em: ({ children }) => <em className="italic">{children}</em>,
-                      h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-white">{children}</h1>,
-                      h2: ({ children }) => <h2 className="text-base font-bold mb-2 text-white">{children}</h2>,
-                      h3: ({ children }) => <h3 className="text-sm font-bold mb-1 text-white">{children}</h3>,
-                      ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 ml-2">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 ml-2">{children}</ol>,
+                      h1: ({ children }) => (
+                        <h1 className="text-lg font-bold mb-2 text-white">{children}</h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 className="text-base font-bold mb-2 text-white">{children}</h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="text-sm font-bold mb-1 text-white">{children}</h3>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="list-disc list-inside mb-2 space-y-1 ml-2">{children}</ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="list-decimal list-inside mb-2 space-y-1 ml-2">{children}</ol>
+                      ),
                       li: ({ children }) => <li className="text-sm">{children}</li>,
-                      code: ({ children }) => <code className="bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
-                      blockquote: ({ children }) => <blockquote className="border-l-4 border-primary-500 pl-3 italic text-gray-600 dark:text-gray-400">{children}</blockquote>,
+                      code: ({ children }) => (
+                        <code className="bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-xs font-mono">
+                          {children}
+                        </code>
+                      ),
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-4 border-primary-500 pl-3 italic text-gray-600 dark:text-gray-400">
+                          {children}
+                        </blockquote>
+                      ),
                       a: ({ href, children }) => (
-                        <a 
-                          href={href as string} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
+                        <a
+                          href={href as string}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className={`font-medium underline decoration-2 transition-colors duration-200 ${
                             theme === 'dark'
                               ? 'text-blue-400 hover:text-blue-300'
@@ -190,15 +231,17 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(({
                 </div>
               )}
               {timestamp && (
-                <p className={`text-xs mt-2 transition-colors duration-200 ${
-                  isUser 
-                    ? theme === 'dark'
-                    ? 'text-primary-100' 
-                      : 'text-primary-100'
-                    : theme === 'dark' 
-                      ? 'text-gray-400' 
-                      : 'text-gray-500'
-                }`}>
+                <p
+                  className={`text-xs mt-2 transition-colors duration-200 ${
+                    isUser
+                      ? theme === 'dark'
+                        ? 'text-primary-100'
+                        : 'text-primary-100'
+                      : theme === 'dark'
+                        ? 'text-gray-400'
+                        : 'text-gray-500'
+                  }`}
+                >
                   {timestamp}
                 </p>
               )}

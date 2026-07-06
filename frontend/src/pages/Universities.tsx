@@ -15,19 +15,19 @@ const staggerContainer = {
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1
-    }
-  }
+      staggerChildren: 0.1,
+    },
+  },
 };
 
 const staggerItem = {
   hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0 }
+  show: { opacity: 1, y: 0 },
 };
 
 const Universities: React.FC = () => {
   const navigate = useNavigate();
-  
+
   const { theme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -40,28 +40,29 @@ const Universities: React.FC = () => {
     if (path.startsWith('http') || path.startsWith('data:')) return path;
     return `${cdnBase}${path}`;
   };
-  
+
   const { universities, error, refreshUniversities } = useUniversities();
 
   const { shouldReduceAnimations } = usePerformance();
-  
+
   const displayUniversities = useMemo(() => {
     const dataSource = universities.length > 0 ? universities : UNIVERSITIES_DATA;
-    return dataSource.map((uni: any) => ({
-      ...uni,
-      name: uni.name || uni.universityName || uni.id,
-      universityName: uni.universityName || uni.name || uni.id
+    return dataSource.map((university: any) => ({
+      ...university,
+      name: university.name || university.universityName || university.id,
+      universityName: university.universityName || university.name || university.id,
     }));
   }, [universities]);
-  
+
   const filteredUniversities = useMemo(() => {
     if (!searchQuery.trim()) return displayUniversities;
-    
+
     const query = searchQuery.toLowerCase();
-    return displayUniversities.filter((uni: any) =>
-      uni.name.toLowerCase().includes(query) ||
-      uni.fullName.toLowerCase().includes(query) ||
-      uni.location.toLowerCase().includes(query)
+    return displayUniversities.filter(
+      (university: any) =>
+        university.name.toLowerCase().includes(query) ||
+        university.fullName.toLowerCase().includes(query) ||
+        university.location.toLowerCase().includes(query)
     );
   }, [displayUniversities, searchQuery]);
 
@@ -74,12 +75,14 @@ const Universities: React.FC = () => {
   }, [filteredUniversities, page]);
 
   return (
-    <div className={`min-h-screen ${
-      theme === 'dark' 
-        ? 'bg-gradient-to-b from-transparent via-gray-800/50 to-gray-800' 
-        : 'bg-gradient-to-b from-transparent via-white/50 to-white'
-    }`}>
-      <Navbar 
+    <div
+      className={`min-h-screen ${
+        theme === 'dark'
+          ? 'bg-gradient-to-b from-transparent via-gray-800/50 to-gray-800'
+          : 'bg-gradient-to-b from-transparent via-white/50 to-white'
+      }`}
+    >
+      <Navbar
         title="ALL UNIVERSITIES"
         showBackButton={true}
         onBackClick={() => navigate('/')}
@@ -94,20 +97,24 @@ const Universities: React.FC = () => {
           transition={{ delay: 0.1 }}
           className="mb-6"
         >
-          <div className={`p-4 flex items-center space-x-3 transition-all duration-200 ${
-            theme === 'dark' ? 'glass-input-dark' : 'glass-input'
-          }`}>
-            <FiSearch className={`w-5 h-5 transition-colors duration-200 ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-            }`} />
+          <div
+            className={`p-4 flex items-center space-x-3 transition-all duration-200 ${
+              theme === 'dark' ? 'glass-input-dark' : 'glass-input'
+            }`}
+          >
+            <FiSearch
+              className={`w-5 h-5 transition-colors duration-200 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+              }`}
+            />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search universities by name or location..."
               className={`flex-1 bg-transparent outline-none transition-colors duration-200 ${
-                theme === 'dark' 
-                  ? 'text-gray-200 placeholder-gray-400' 
+                theme === 'dark'
+                  ? 'text-gray-200 placeholder-gray-400'
                   : 'text-gray-700 placeholder-gray-500'
               }`}
             />
@@ -121,12 +128,20 @@ const Universities: React.FC = () => {
           transition={{ delay: 0.2 }}
           className="mb-4 text-center"
         >
-          <p className={`transition-colors duration-200 ${
-            theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-          }`}>
-            Showing <span className={`font-semibold transition-colors duration-200 ${
-              theme === 'dark' ? 'text-primary-400' : 'text-primary-600'
-            }`}>{filteredUniversities.length}</span> {filteredUniversities.length === 1 ? 'university' : 'universities'}
+          <p
+            className={`transition-colors duration-200 ${
+              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+            }`}
+          >
+            Showing{' '}
+            <span
+              className={`font-semibold transition-colors duration-200 ${
+                theme === 'dark' ? 'text-primary-400' : 'text-primary-600'
+              }`}
+            >
+              {filteredUniversities.length}
+            </span>{' '}
+            {filteredUniversities.length === 1 ? 'university' : 'universities'}
           </p>
         </motion.div>
 
@@ -141,9 +156,7 @@ const Universities: React.FC = () => {
           >
             <div className="flex items-center space-x-3">
               <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-              <span className="text-red-700 dark:text-red-300">
-                {error}
-              </span>
+              <span className="text-red-700 dark:text-red-300">{error}</span>
               <button
                 onClick={refreshUniversities}
                 className="ml-auto text-sm text-red-600 dark:text-red-400 hover:underline"
@@ -155,7 +168,7 @@ const Universities: React.FC = () => {
         )}
 
         {/* Universities Grid */}
-        <motion.div 
+        <motion.div
           className="grid grid-cols-1 md:grid-cols-2 gap-4"
           variants={staggerContainer}
           initial="initial"
@@ -168,87 +181,126 @@ const Universities: React.FC = () => {
               whileHover={shouldReduceAnimations ? {} : { y: -2 }}
               whileTap={shouldReduceAnimations ? {} : { y: 0 }}
               className={`p-5 transition-all duration-300 ${
-                theme === 'dark' ? 'glass-card-dark hover:bg-white/10' : 'glass-card hover:bg-white/80'
+                theme === 'dark'
+                  ? 'glass-card-dark hover:bg-white/10'
+                  : 'glass-card hover:bg-white/80'
               }`}
             >
               {/* University Header */}
               <div className="flex items-start space-x-4 mb-4">
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center glass-effect flex-shrink-0">
-                  <LazyImage 
+                  <LazyImage
                     src={getCdnUrl(university.logo)}
                     alt={`${university.universityName || university.name} logo`}
                     className="w-12 h-12 rounded-xl"
                     priority={false}
                     fallback={
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-white ${
-                        university.name === 'KNUST' ? 'bg-blue-600' :
-                        university.name === 'UG' ? 'bg-green-600' :
-                        university.name === 'UCC' ? 'bg-cyan-500' :
-                        university.name === 'UDS' ? 'bg-emerald-500' :
-                        university.name === 'UENR' ? 'bg-amber-500' :
-                        university.name === 'UEW' ? 'bg-purple-500' :
-                        university.universityName === 'UMaT' ? 'bg-blue-500' :
-                        university.universityName === 'UHA' ? 'bg-emerald-500' :
-                        university.universityName === 'GCTU' ? 'bg-pink-500' :
-                        university.universityName === 'TTU' ? 'bg-orange-500' :
-                        university.universityName === 'UPSA' ? 'bg-indigo-500' :
-                        'bg-gray-500'
-                      }`}>
+                      <div
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-white ${
+                          university.name === 'KNUST'
+                            ? 'bg-blue-600'
+                            : university.name === 'UG'
+                              ? 'bg-green-600'
+                              : university.name === 'UCC'
+                                ? 'bg-cyan-500'
+                                : university.name === 'UDS'
+                                  ? 'bg-emerald-500'
+                                  : university.name === 'UENR'
+                                    ? 'bg-amber-500'
+                                    : university.name === 'UEW'
+                                      ? 'bg-purple-500'
+                                      : university.universityName === 'UMaT'
+                                        ? 'bg-blue-500'
+                                        : university.universityName === 'UHA'
+                                          ? 'bg-emerald-500'
+                                          : university.universityName === 'GCTU'
+                                            ? 'bg-pink-500'
+                                            : university.universityName === 'TTU'
+                                              ? 'bg-orange-500'
+                                              : university.universityName === 'UPSA'
+                                                ? 'bg-indigo-500'
+                                                : 'bg-gray-500'
+                        }`}
+                      >
                         {university.universityName || university.name}
                       </div>
                     }
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className={`font-bold text-lg mb-1 transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-white' : 'text-gray-800'
-                  }`}>{university.universityName || university.name}</h3>
-                  <p className={`text-sm line-clamp-2 transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                  }`}>{university.fullName}</p>
+                  <h3
+                    className={`font-bold text-lg mb-1 transition-colors duration-200 ${
+                      theme === 'dark' ? 'text-white' : 'text-gray-800'
+                    }`}
+                  >
+                    {university.universityName || university.name}
+                  </h3>
+                  <p
+                    className={`text-sm line-clamp-2 transition-colors duration-200 ${
+                      theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                    }`}
+                  >
+                    {university.fullName}
+                  </p>
                 </div>
               </div>
 
               {/* University Details */}
               <div className="space-y-2 mb-4">
-                <div className={`flex items-center space-x-2 text-sm transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                }`}>
-                  <FiMapPin className={`w-4 h-4 flex-shrink-0 transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-primary-400' : 'text-primary-500'
-                  }`} />
+                <div
+                  className={`flex items-center space-x-2 text-sm transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  }`}
+                >
+                  <FiMapPin
+                    className={`w-4 h-4 flex-shrink-0 transition-colors duration-200 ${
+                      theme === 'dark' ? 'text-primary-400' : 'text-primary-500'
+                    }`}
+                  />
                   <span>{university.location}</span>
                 </div>
-                <div className={`flex items-center space-x-2 text-sm transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                }`}>
-                  <FiCalendar className={`w-4 h-4 flex-shrink-0 transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-primary-400' : 'text-primary-500'
-                  }`} />
+                <div
+                  className={`flex items-center space-x-2 text-sm transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  }`}
+                >
+                  <FiCalendar
+                    className={`w-4 h-4 flex-shrink-0 transition-colors duration-200 ${
+                      theme === 'dark' ? 'text-primary-400' : 'text-primary-500'
+                    }`}
+                  />
                   <span>Established {university.established}</span>
                 </div>
-                <div className={`flex items-center space-x-2 text-sm transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                }`}>
-                  <FiUsers className={`w-4 h-4 flex-shrink-0 transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-primary-400' : 'text-primary-500'
-                  }`} />
+                <div
+                  className={`flex items-center space-x-2 text-sm transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  }`}
+                >
+                  <FiUsers
+                    className={`w-4 h-4 flex-shrink-0 transition-colors duration-200 ${
+                      theme === 'dark' ? 'text-primary-400' : 'text-primary-500'
+                    }`}
+                  />
                   <span>{university.studentCount} students</span>
                 </div>
               </div>
 
               {/* Programs */}
               <div className="mb-4">
-                <p className={`text-xs font-semibold mb-2 transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                }`}>POPULAR PROGRAMS:</p>
+                <p
+                  className={`text-xs font-semibold mb-2 transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                  }`}
+                >
+                  POPULAR PROGRAMS:
+                </p>
                 <div className="flex flex-wrap gap-1">
                   {university.programs.slice(0, 3).map((program: string, idx: number) => (
-                    <span 
+                    <span
                       key={idx}
                       className={`text-xs px-2 py-1 rounded-full transition-colors duration-200 ${
-                        theme === 'dark' 
-                          ? 'bg-primary-600/20 text-primary-300' 
+                        theme === 'dark'
+                          ? 'bg-primary-600/20 text-primary-300'
                           : 'bg-primary-100 text-primary-700'
                       }`}
                     >
@@ -256,11 +308,11 @@ const Universities: React.FC = () => {
                     </span>
                   ))}
                   {university.programs.length > 3 && (
-                    <span className={`text-xs px-2 py-1 rounded-full transition-colors duration-200 ${
-                      theme === 'dark' 
-                        ? 'bg-gray-700 text-gray-300' 
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full transition-colors duration-200 ${
+                        theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
                       +{university.programs.length - 3} more
                     </span>
                   )}
@@ -277,7 +329,7 @@ const Universities: React.FC = () => {
                     startUniversityChat({
                       name: university.universityName || university.name,
                       fullName: university.fullName,
-                      logo: university.logo
+                      logo: university.logo,
                     });
                   }}
                   className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-3 rounded-lg transition-colors text-sm"
@@ -320,10 +372,10 @@ const Universities: React.FC = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setPage(p => p + 1)}
+                onClick={() => setPage((p) => p + 1)}
                 className={`px-6 py-2 rounded-full font-medium transition-colors ${
-                  theme === 'dark' 
-                    ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                  theme === 'dark'
+                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
                     : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
                 }`}
               >
@@ -338,4 +390,3 @@ const Universities: React.FC = () => {
 };
 
 export default Universities;
-

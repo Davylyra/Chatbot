@@ -19,18 +19,16 @@ const router = express.Router();
 
 const upload = multer({ dest: "uploads/" });
 
-// Python RAG endpoint
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://127.0.0.1:8000/respond";
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL ;
 
-// 📎 File upload endpoint for chat with attachments - WITH AUTHENTICATION
 router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res) => {
   const { message, conversation_id, university_name } = req.body;
-  const userId = req.user?.id || 'demo_user';
+  const userId = req.user?.id ;
 
-  let messagesCollection;
+  let chatHistoryDB;
 
   try {
-    messagesCollection = await getCollection('messages');
+    chatHistoryDB = await getCollection('messages');
     const files = req.files || [];
 
     console.log(' Processing message with files:', {
@@ -61,7 +59,7 @@ router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res
       messageText = message ? `${message}\n\n${fileInfo}` : fileInfo;
     }
 
-    const userMessage = {
+    const studentMessage = {
       user_id: userId,
       conversation_id: conversation_id,
       message: messageText,
@@ -71,10 +69,10 @@ router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res
       attachments: fileAttachments
     };
 
-    await messagesCollection.insertOne(userMessage);
+    await chatHistoryDB.insertOne(studentMessage);
     console.log(' Saved user message with files to MongoDB');
 
-    const ragRequest = {
+    const knowledgeRequestPayload = {
       message: message || `User sent ${files.length} file(s)`,
       conversation_id: conversation_id,
       university_name: university_name || null,
@@ -90,11 +88,10 @@ router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res
 
     console.log(' Sending message with files to RAG service...');
 
-    // FIXED: Send files to the new RAG service endpoint
     const formData = new FormData();
     formData.append('message', message || `User sent ${files.length} file(s)`);
     formData.append('conversation_id', conversation_id);
-    formData.append('user_id', userId); // Add user_id for tracking
+    formData.append('user_id', userId); 
     formData.append('university_name', university_name || '');
     formData.append('user_context', JSON.stringify({
       ...(req.body?.user_context || {}),
@@ -114,9 +111,9 @@ router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res
     console.log(' Sending files to enhanced RAG service endpoint...');
 
     const fileEndpoint = AI_SERVICE_URL.replace('/respond', '/respond-with-files');
-    console.log('📤 Using file endpoint:', fileEndpoint);
+    console.log('Using file endpoint:', fileEndpoint);
 
-    const ragResponse = await fetch(fileEndpoint, {
+    const knowledgeServiceResponse = await fetch(fileEndpoint, {
       method: 'POST',
       headers: {
         "x-user-id": userId,
@@ -125,32 +122,31 @@ router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res
       timeout: 60000 // Longer timeout for file processing
     });
 
-    const ragData = await ragResponse.json();
-    console.log('📥 RAG service response for files received:', {
-      confidence: ragData.confidence,
-      sources_count: ragData.sources?.length || 0,
-      response_length: ragData.reply?.length || 0
+    const aiKnowledgeResponse = await knowledgeServiceResponse.json();
+    console.log('RAG service response for files received:', {
+      confidence: aiKnowledgeResponse.confidence,
+      sources_count: aiKnowledgeResponse.sources?.length || 0,
+      response_length: aiKnowledgeResponse.reply?.length || 0
     });
 
-    // Save AI response to MongoDB
     const aiMessage = {
       user_id: userId === 'demo_user' ? userId : new ObjectId(userId),
       conversation_id: conversation_id,
-      message: ragData.reply || 'I received your files but had trouble processing them.',
+      message: aiKnowledgeResponse.reply || 'I received your files but had trouble processing them.',
       is_bot: true,
       created_at: new Date(),
-      timestamp: ragData.timestamp || new Date().toISOString(),
-      sources: ragData.sources || [],
-      confidence: ragData.confidence || 0.0,
+      timestamp: aiKnowledgeResponse.timestamp || new Date().toISOString(),
+      sources: aiKnowledgeResponse.sources || [],
+      confidence: aiKnowledgeResponse.confidence || 0.0,
       rag_metadata: {
-        source_count: ragData.sources?.length || 0,
-        processing_time: ragData.processing_time,
-        model_used: ragData.model_used || 'hybrid-rag',
+        source_count: aiKnowledgeResponse.sources?.length || 0,
+        processing_time: aiKnowledgeResponse.processing_time,
+        model_used: aiKnowledgeResponse.model_used || 'hybrid-rag',
         processed_files: files.length
       }
     };
 
-    await messagesCollection.insertOne(aiMessage);
+    await chatHistoryDB.insertOne(aiMessage);
     console.log(' Saved AI response for files to MongoDB');
 
     files.forEach(file => {
@@ -163,17 +159,17 @@ router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res
 
     res.json({
       success: true,
-      message: ragData.reply || 'Files processed successfully',
-      reply: ragData.reply || 'Files processed successfully',
+      message: aiKnowledgeResponse.reply || 'Files processed successfully',
+      reply: aiKnowledgeResponse.reply || 'Files processed successfully',
       conversation_id: conversation_id,
-      sources: ragData.sources || [],
-      confidence: ragData.confidence || 0.0,
-      timestamp: ragData.timestamp || new Date().toISOString(),
+      sources: aiKnowledgeResponse.sources || [],
+      confidence: aiKnowledgeResponse.confidence || 0.0,
+      timestamp: aiKnowledgeResponse.timestamp || new Date().toISOString(),
       files_processed: files.length,
       metadata: {
         university_context: university_name,
-        response_type: ragData.confidence > 0.85 ? 'local_knowledge' : 'hybrid_search',
-        processing_info: ragData.processing_info,
+        response_type: aiKnowledgeResponse.confidence > 0.85 ? 'local_knowledge' : 'hybrid_search',
+        processing_info: aiKnowledgeResponse.processing_info,
         attachments: fileAttachments
       }
     });
@@ -184,10 +180,10 @@ router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res
     const fallbackReply = generateQuickFallback(message || '');
 
     try {
-      if (!messagesCollection) {
-        messagesCollection = await getCollection('messages');
+      if (!chatHistoryDB) {
+        chatHistoryDB = await getCollection('messages');
       }
-      await messagesCollection.insertOne({
+      await chatHistoryDB.insertOne({
         user_id: userId === 'demo_user' ? userId : new ObjectId(userId),
         conversation_id: conversation_id,
         message: fallbackReply,
@@ -222,7 +218,7 @@ router.post("/demo", cacheMiddleware, logConversationMiddleware, async (req, res
   try {
     const { message, conversation_id } = req.body;
 
-    console.log(`📥 Demo message: ${message?.substring(0, 100)}...`);
+    console.log(`Demo message: ${message?.substring(0, 100)}...`);
 
     if (!message || !conversation_id) {
       return res.status(400).json({
@@ -348,14 +344,11 @@ I help with fair, personalized Ghanaian university recommendations:
 What would you like to explore?`;
 }
 
-/**
- * Start a new conversation
- */
 router.post("/", authMiddleware, async (req, res) => {
   try {
     const { title } = req.body;
     const userId = req.user.id;
-    const conversationsCollection = await getCollection("conversations");
+    const chatSessionsDB = await getCollection("conversations");
 
     const newConversation = {
       user_id: new ObjectId(userId),
@@ -364,7 +357,7 @@ router.post("/", authMiddleware, async (req, res) => {
       updated_at: new Date()
     };
 
-    const result = await conversationsCollection.insertOne(newConversation);
+    const result = await chatSessionsDB.insertOne(newConversation);
     
     const conversation = {
       id: result.insertedId.toString(),
@@ -381,9 +374,6 @@ router.post("/", authMiddleware, async (req, res) => {
   }
 });
 
-/**
- * Send a message (or file) and get AI response
- */
 router.post(
   "/respond",
   authMiddleware,
@@ -397,9 +387,9 @@ router.post(
       return res.status(400).json({ message: "Provide either a message or a file" });
 
     try {
-      const conversationsCollection = await getCollection("conversations");
+      const chatSessionsDB = await getCollection("conversations");
       
-      const convoCheck = await conversationsCollection.findOne({
+      const convoCheck = await chatSessionsDB.findOne({
         _id: new ObjectId(conversation_id),
         user_id: new ObjectId(userId)
       });
@@ -408,7 +398,6 @@ router.post(
       if (!convoCheck) {
         console.log(" WARNING: Chat ID not found in DB, proceeding anyway for demo.");
       }
-      // -----------------------------------------------------
 
       let aiResponse;
 
@@ -447,7 +436,7 @@ router.post(
 
       const aiMessage = data.reply || "Sorry, I couldn’t process that.";
 
-      const messagesCollection = await getCollection("messages");
+      const chatHistoryDB = await getCollection("messages");
       
       if (message) {
         await chatsCollection.insertOne({
@@ -469,7 +458,6 @@ router.post(
         });
       }
 
-      // Save Bot message
       await chatsCollection.insertOne({
         user_id: new ObjectId(userId),
         conversation_id: new ObjectId(conversation_id),
@@ -487,16 +475,12 @@ router.post(
   }
 );
 
-
-/**
- * Get all user conversations
- */
 router.get("/user/all", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
-    const conversationsCollection = await getCollection("conversations");
+    const chatSessionsDB = await getCollection("conversations");
     
-    const conversations = await conversationsCollection
+    const conversations = await chatSessionsDB
       .find({ user_id: new ObjectId(userId) })
       .sort({ created_at: -1 })
       .toArray();
@@ -516,9 +500,6 @@ router.get("/user/all", authMiddleware, async (req, res) => {
   }
 });
 
-/**
- * Get paginated chat history
- */
 router.get("/history/:conversation_id", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -527,7 +508,7 @@ router.get("/history/:conversation_id", authMiddleware, async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    const messagesCollection = await getCollection("messages");
+    const chatHistoryDB = await getCollection("messages");
 
     const userIdCandidates = [userId];
     if (/^[a-fA-F0-9]{24}$/.test(userId)) {
@@ -544,9 +525,9 @@ router.get("/history/:conversation_id", authMiddleware, async (req, res) => {
       conversation_id: { $in: conversationIdCandidates }
     };
 
-    const total = await messagesCollection.countDocuments(filter);
+    const total = await chatHistoryDB.countDocuments(filter);
 
-    const chats = await messagesCollection
+    const chats = await chatHistoryDB
       .find(filter)
       .sort({ sequence: 1, created_at: 1 })
       .skip(skip)
@@ -575,10 +556,6 @@ router.get("/history/:conversation_id", authMiddleware, async (req, res) => {
   }
 });
 
-/**
- * Save conversation and messages to MongoDB
- * Now with integrated LLM title generation
- */
 router.post("/save-conversation", async (req, res) => {
   try {
     const { conversation, messages, userId } = req.body;
@@ -590,12 +567,11 @@ router.post("/save-conversation", async (req, res) => {
       });
     }
 
-    const conversationsCollection = await getCollection("conversations");
-    const messagesCollection = await getCollection("messages");
+    const chatSessionsDB = await getCollection("conversations");
+    const chatHistoryDB = await getCollection("messages");
 
     const actualUserId = userId || "demo_user";
 
-    // 🏷️ SMART TITLE GENERATION: Generate LLM-powered title from FIRST user message
     let finalTitle = conversation.title || 'Untitled';
     let titleMethod = 'provided';
     
@@ -604,8 +580,7 @@ router.post("/save-conversation", async (req, res) => {
                           conversation.title === 'New Conversation' ||
                           conversation.title === 'Untitled Conversation' ||
                           conversation.title.startsWith('conv_');
-    
-    // AND if the current title is generic or missing
+
     if (messages.length >= 2 && isGenericTitle) {
       const firstUserMessage = messages.find(m => m.isUser === true || m.sender === 'user');
       const firstBotReply = messages.find(m => m.isUser === false || m.sender === 'bot');
@@ -619,7 +594,7 @@ router.post("/save-conversation", async (req, res) => {
             firstUserText,
             firstBotReply.text || firstBotReply.message || '',
             conversation.universityContext || null,
-            // Fallback function
+
             () => conversation.title || 'University Consultation'
           );
           
@@ -646,9 +621,9 @@ router.post("/save-conversation", async (req, res) => {
       user_id: actualUserId // Store the actual user ID, not hardcoded
     };
 
-    console.log(`💾 [SAVE] Saving conversation with _id (type: ${typeof conversation.id}): ${conversation.id}`);
+    console.log(`[SAVE] Saving conversation with _id (type: ${typeof conversation.id}): ${conversation.id}`);
 
-    await conversationsCollection.replaceOne(
+    await chatSessionsDB.replaceOne(
       { _id: conversation.id },
       conversationDoc,
       { upsert: true }
@@ -656,13 +631,12 @@ router.post("/save-conversation", async (req, res) => {
 
     console.log(` [SAVE] Conversation upserted with _id: ${conversation.id}, title: "${finalTitle}"`);
 
-    // CRITICAL FIX: Delete all existing messages for this conversation BEFORE saving new ones
     console.log(`🧹 [SAVE] Clearing existing messages for conversation ${conversation.id}`);
-    const deleteResult = await messagesCollection.deleteMany({
+    const deleteResult = await chatHistoryDB.deleteMany({
       conversation_id: conversation.id,
       user_id: actualUserId
     });
-    console.log(`🗑️ [SAVE] Deleted ${deleteResult.deletedCount} existing messages`);
+    console.log(` [SAVE] Deleted ${deleteResult.deletedCount} existing messages`);
 
     const messagePromises = messages.map(async (message, index) => {
       try {
@@ -678,7 +652,7 @@ router.post("/save-conversation", async (req, res) => {
           sequence: index
         };
 
-        await messagesCollection.insertOne(messageDoc);
+        await chatHistoryDB.insertOne(messageDoc);
       } catch (msgError) {
         console.warn(` Error saving individual message:`, msgError.message);
       }
@@ -706,14 +680,11 @@ router.post("/save-conversation", async (req, res) => {
   }
 });
 
-/**
- * Get conversation history for authenticated users - PERFORMANCE OPTIMIZED
- */
 router.get("/conversations", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
     const { limit = 50, skip = 0 } = req.query; // 🚀 PERFORMANCE: Pagination support
-    const conversationsCollection = await getCollection("conversations");
+    const chatSessionsDB = await getCollection("conversations");
 
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.set('Pragma', 'no-cache');
@@ -724,7 +695,6 @@ router.get("/conversations", authMiddleware, async (req, res) => {
 
     console.log(` [GET] Fetching conversations for user: ${userId} (limit: ${parsedLimit}, skip: ${parsedSkip})`);
 
-    // 🚀 PERFORMANCE: Field projection - only fetch needed fields
     const projection = {
       _id: 1,
       title: 1,
@@ -738,8 +708,7 @@ router.get("/conversations", authMiddleware, async (req, res) => {
       universityContext: 1
     };
 
-    // Get user's conversations - handle both ObjectId and string user_ids
-    const conversations = await conversationsCollection
+    const conversations = await chatSessionsDB
       .find({
         $or: [
           { user_id: userId }, // String comparison
@@ -751,7 +720,7 @@ router.get("/conversations", authMiddleware, async (req, res) => {
       .skip(parsedSkip)
       .toArray();
 
-    const totalCount = await conversationsCollection.countDocuments({
+    const totalCount = await chatSessionsDB.countDocuments({
       $or: [
         { user_id: userId },
         { user_id: new ObjectId(userId) }
@@ -773,7 +742,6 @@ router.get("/conversations", authMiddleware, async (req, res) => {
       });
     }
 
-    // FIXED: Ensure field name consistency with frontend expectations
     res.json({
       success: true,
       conversations: conversations.map(conv => ({
@@ -805,19 +773,15 @@ router.get("/conversations", authMiddleware, async (req, res) => {
   }
 });
 
-/**
- * Get conversation history for demo/guest users - PERFORMANCE OPTIMIZED
- */
 router.get("/conversations-demo", async (req, res) => {
   try {
-    const conversationsCollection = await getCollection("conversations");
+    const chatSessionsDB = await getCollection("conversations");
     const { limit = 20, skip = 0 } = req.query;
     const parsedLimit = Math.min(parseInt(limit) || 20, 50);
     const parsedSkip = parseInt(skip) || 0;
     
     console.log(` [DEMO] Loading conversations (limit: ${parsedLimit}, skip: ${parsedSkip})`);
-    
-    // 🚀 PERFORMANCE: Field projection + pagination
+
     const projection = {
       _id: 1,
       title: 1,
@@ -831,14 +795,14 @@ router.get("/conversations-demo", async (req, res) => {
       universityContext: 1
     };
     
-    const conversations = await conversationsCollection
+    const conversations = await chatSessionsDB
       .find({}, { projection })
       .sort({ updated_at: -1 })
       .limit(parsedLimit)
       .skip(parsedSkip)
       .toArray();
 
-    const totalCount = await conversationsCollection.countDocuments({});
+    const totalCount = await chatSessionsDB.countDocuments({});
     console.log(` Retrieved ${conversations.length}/${totalCount} demo conversations in ${Date.now()}`);
     
     res.json({ 
@@ -868,21 +832,17 @@ router.get("/conversations-demo", async (req, res) => {
   }
 });
 
-/**
- * Get messages for demo/guest users - PERFORMANCE OPTIMIZED
- */
 router.get("/conversations-demo/:conversation_id/messages", async (req, res) => {
   try {
     const { conversation_id } = req.params;
     const { limit = 100, skip = 0 } = req.query;
-    const messagesCollection = await getCollection("messages");
+    const chatHistoryDB = await getCollection("messages");
     
     const parsedLimit = Math.min(parseInt(limit) || 100, 200);
     const parsedSkip = parseInt(skip) || 0;
     
     console.log(` [DEMO] Loading messages for ${conversation_id} (limit: ${parsedLimit}, skip: ${parsedSkip})`);
-    
-    // 🚀 PERFORMANCE: Field projection
+
     const projection = {
       _id: 1,
       message: 1,
@@ -901,14 +861,14 @@ router.get("/conversations-demo/:conversation_id/messages", async (req, res) => 
       try { convIdCandidates.push(new ObjectId(conversation_id)); } catch (e) {}
     }
     
-    const messages = await messagesCollection
+    const messages = await chatHistoryDB
       .find({ conversation_id: { $in: convIdCandidates } }, { projection })
       .sort({ sequence: 1, created_at: 1 })
       .skip(parsedSkip)
       .limit(parsedLimit)
       .toArray();
     
-    const totalCount = await messagesCollection.countDocuments({
+    const totalCount = await chatHistoryDB.countDocuments({
       conversation_id: { $in: convIdCandidates }
     });
     
@@ -946,15 +906,12 @@ router.get("/conversations-demo/:conversation_id/messages", async (req, res) => 
   }
 });
 
-/**
- * Get messages for a specific conversation - PERFORMANCE OPTIMIZED
- */
 router.get("/conversations/:conversation_id/messages", authMiddleware, async (req, res) => {
   try {
     const { conversation_id } = req.params;
     const { limit = 100, skip = 0 } = req.query; // 🚀 PERFORMANCE: Pagination support
     const userId = req.user.id;
-    const messagesCollection = await getCollection("messages");
+    const chatHistoryDB = await getCollection("messages");
 
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.set('Pragma', 'no-cache');
@@ -965,7 +922,6 @@ router.get("/conversations/:conversation_id/messages", authMiddleware, async (re
 
     console.log(` Fetching messages for conversation: ${conversation_id} (user: ${userId}, limit: ${parsedLimit}, skip: ${parsedSkip})`);
 
-    // SECURITY FIX: Filter by both conversation_id AND user_id (support string/ObjectId)
     const userIdCandidates2 = [userId];
     if (/^[a-fA-F0-9]{24}$/.test(userId)) {
       try { userIdCandidates2.push(new ObjectId(userId)); } catch (e) {}
@@ -976,7 +932,6 @@ router.get("/conversations/:conversation_id/messages", authMiddleware, async (re
       try { convIdCandidates2.push(new ObjectId(conversation_id)); } catch (e) {}
     }
 
-    // 🚀 PERFORMANCE: Field projection - only fetch needed fields
     const projection = {
       _id: 1,
       message: 1,
@@ -990,7 +945,7 @@ router.get("/conversations/:conversation_id/messages", authMiddleware, async (re
       sequence: 1
     };
 
-    const messages = await messagesCollection
+    const messages = await chatHistoryDB
       .find({
         conversation_id: { $in: convIdCandidates2 },
         user_id: { $in: userIdCandidates2 }
@@ -1000,14 +955,13 @@ router.get("/conversations/:conversation_id/messages", authMiddleware, async (re
       .limit(parsedLimit)
       .toArray();
 
-    const totalCount = await messagesCollection.countDocuments({
+    const totalCount = await chatHistoryDB.countDocuments({
       conversation_id: { $in: convIdCandidates2 },
       user_id: { $in: userIdCandidates2 }
     });
 
     console.log(` Retrieved ${messages.length}/${totalCount} raw messages for conversation ${conversation_id} (user: ${userId})`);
 
-    // CRITICAL: Deduplicate messages in case there are database duplicates
     const dedupedMessages = [];
     const seenSignatures = new Set();
     
@@ -1058,17 +1012,14 @@ router.get("/conversations/:conversation_id/messages", authMiddleware, async (re
   }
 });
 
-/**
- * Clear chat history (messages only)
- */
 router.delete("/:conversation_id/clear", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
     const { conversation_id } = req.params;
-    const messagesCollection = await getCollection("messages");
+    const chatHistoryDB = await getCollection("messages");
 
     const deleteFilter = { user_id: userId, conversation_id };
-    await messagesCollection.deleteMany(deleteFilter);
+    await chatHistoryDB.deleteMany(deleteFilter);
 
     res.json({ 
       success: true,
@@ -1083,49 +1034,42 @@ router.delete("/:conversation_id/clear", authMiddleware, async (req, res) => {
   }
 });
 
-/**
- * Delete conversation entirely (conversation + all messages)
- * CRITICAL: Conversation IDs are stored as strings (conv_TIMESTAMP), not ObjectIds
- */
 router.delete("/:conversation_id", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
     const { conversation_id } = req.params;
-    const messagesCollection = await getCollection("messages");
-    const conversationsCollection = await getCollection("conversations");
+    const chatHistoryDB = await getCollection("messages");
+    const chatSessionsDB = await getCollection("conversations");
 
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
 
-    console.log(`🗑️ [DELETE] Starting deletion of conversation ${conversation_id} for user ${userId}`);
+    console.log(`[DELETE] Starting deletion of conversation ${conversation_id} for user ${userId}`);
 
-    const messagesResult = await messagesCollection.deleteMany({ 
+    const messagesResult = await chatHistoryDB.deleteMany({ 
       user_id: userId, 
       conversation_id 
     });
     console.log(` [DELETE] Deleted ${messagesResult.deletedCount} messages for conversation ${conversation_id}`);
 
-    // IMPORTANT: Conversations are stored with _id as STRING (e.g., 'conv_1734556789123')
-    // NOT as MongoDB ObjectId. Query by string ID directly.
     let conversationResult = { deletedCount: 0 };
     
-    conversationResult = await conversationsCollection.deleteOne({
+    conversationResult = await chatSessionsDB.deleteOne({
       _id: conversation_id,
       user_id: userId
     });
-    console.log(`💾 [DELETE] Query by string ID: ${conversation_id}, deleted: ${conversationResult.deletedCount}`);
-    
-    // If string ID didn't work, try ObjectId (in case some are stored as ObjectId)
+    console.log(`[DELETE] Query by string ID: ${conversation_id}, deleted: ${conversationResult.deletedCount}`);
+
     if (conversationResult.deletedCount === 0 && /^[a-fA-F0-9]{24}$/.test(conversation_id)) {
-      console.log(`🔄 [DELETE] String ID query returned 0, trying ObjectId format...`);
+      console.log(`[DELETE] String ID query returned 0, trying ObjectId format...`);
       try {
         const conversationObjectId = new ObjectId(conversation_id);
-        conversationResult = await conversationsCollection.deleteOne({
+        conversationResult = await chatSessionsDB.deleteOne({
           _id: conversationObjectId,
           user_id: userId
         });
-        console.log(`💾 [DELETE] Query by ObjectId: ${conversation_id}, deleted: ${conversationResult.deletedCount}`);
+        console.log(`[DELETE] Query by ObjectId: ${conversation_id}, deleted: ${conversationResult.deletedCount}`);
       } catch (objectIdError) {
         console.log(` [DELETE] ObjectId conversion failed: ${objectIdError.message}`);
       }
@@ -1155,10 +1099,6 @@ router.delete("/:conversation_id", authMiddleware, async (req, res) => {
   }
 });
 
-/**
- * Send message - Enhanced RAG+CAG endpoint (for frontend compatibility)
- */
-// FIXED: Enhanced endpoint for authenticated users with comprehensive error handling
 router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPayload, async (req, res) => {
   const startTime = Date.now();
   let userMessageSaved = false;
@@ -1167,7 +1107,7 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
     const { message, conversation_id, university_name, user_context } = req.body;
     const userId = req.user.id;
 
-    console.log(`📨 [CHAT-SEND] User ${userId} sending message (${message?.length || 0} chars) to conversation ${conversation_id}`);
+    console.log(` [CHAT-SEND] User ${userId} sending message (${message?.length || 0} chars) to conversation ${conversation_id}`);
 
     if (!message || !conversation_id) {
       console.warn(` [CHAT-SEND] Missing required fields: message=${!!message}, conversation_id=${!!conversation_id}`);
@@ -1177,9 +1117,9 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
       });
     }
 
-    const messagesCollection = await getCollection('messages');
+    const chatHistoryDB = await getCollection('messages');
 
-    const userMessage = {
+    const studentMessage = {
       user_id: userId,
       conversation_id: conversation_id,
       message: message,
@@ -1189,14 +1129,14 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
     };
 
     try {
-      await messagesCollection.insertOne(userMessage);
+      await chatHistoryDB.insertOne(studentMessage);
       userMessageSaved = true;
       console.log(` [CHAT-SEND] User message saved to MongoDB`);
     } catch (dbError) {
       console.error(` [CHAT-SEND] Failed to save user message:`, dbError);
     }
 
-    const ragRequest = {
+    const knowledgeRequestPayload = {
       message: message,
       conversation_id: conversation_id,
       university_name: university_name || null,
@@ -1210,45 +1150,44 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
 
     console.log(` [CHAT-SEND] Sending to RAG service: ${AI_SERVICE_URL}`);
 
-    // ✅ FIXED: Use AbortController for proper timeout cleanup
     const abortController = new AbortController();
     const timeoutId = setTimeout(() => {
-      console.warn(`⏱️ [CHAT-SEND] RAG service timeout after 30s, aborting request`);
+      console.warn(`[CHAT-SEND] RAG service timeout after 30s, aborting request`);
       abortController.abort();
     }, 30000);
 
-    let ragData;
+    let aiKnowledgeResponse;
     try {
-      const ragResponse = await fetch(AI_SERVICE_URL, {
+      const knowledgeServiceResponse = await fetch(AI_SERVICE_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "x-user-id": userId,
         },
-        body: JSON.stringify(ragRequest),
+        body: JSON.stringify(knowledgeRequestPayload),
         signal: abortController.signal
       });
 
       clearTimeout(timeoutId);
 
-      if (!ragResponse.ok) {
-        const errorText = await ragResponse.text().catch(() => 'Unknown error');
-        console.error(` [CHAT-SEND] RAG service error: ${ragResponse.status} ${ragResponse.statusText} - ${errorText}`);
+      if (!knowledgeServiceResponse.ok) {
+        const errorText = await knowledgeServiceResponse.text().catch(() => 'Unknown error');
+        console.error(` [CHAT-SEND] RAG service error: ${knowledgeServiceResponse.status} ${knowledgeServiceResponse.statusText} - ${errorText}`);
         
-        throw new Error(`RAG service returned ${ragResponse.status}: ${errorText}`);
+        throw new Error(`RAG service returned ${knowledgeServiceResponse.status}: ${errorText}`);
       }
 
-      ragData = await ragResponse.json();
+      aiKnowledgeResponse = await knowledgeServiceResponse.json();
       console.log(` [CHAT-SEND] RAG response received successfully`);
-      console.log(`   └─ Confidence: ${ragData.confidence || 0}`);
-      console.log(`   └─ Sources: ${ragData.sources?.length || 0}`);
-      console.log(`   └─ Reply length: ${ragData.reply?.length || 0} chars`);
+      console.log(`   └─ Confidence: ${aiKnowledgeResponse.confidence || 0}`);
+      console.log(`   └─ Sources: ${aiKnowledgeResponse.sources?.length || 0}`);
+      console.log(`   └─ Reply length: ${aiKnowledgeResponse.reply?.length || 0} chars`);
 
     } catch (ragError) {
       clearTimeout(timeoutId);
 
       if (ragError.name === 'AbortError') {
-        console.error(`⏱️ [CHAT-SEND] RAG service request aborted (timeout)`);
+        console.error(` [CHAT-SEND] RAG service request aborted (timeout)`);
       } else if (ragError.code === 'ECONNREFUSED') {
         console.error(` [CHAT-SEND] RAG service connection refused - service may be down`);
       } else if (ragError.code === 'ENOTFOUND') {
@@ -1256,8 +1195,7 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
       } else {
         console.error(` [CHAT-SEND] RAG service error:`, ragError.message);
       }
-      
-      // ✅ Generate intelligent fallback
+
       const fallbackMessage = generateContextualFallback(message, university_name);
       console.log(` [CHAT-SEND] Using contextual fallback response`);
       
@@ -1275,16 +1213,15 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
       };
 
       try {
-        await messagesCollection.insertOne(fallbackAiMessage);
+        await chatHistoryDB.insertOne(fallbackAiMessage);
         console.log(` [CHAT-SEND] Fallback response saved to MongoDB`);
       } catch (dbError) {
         console.error(` [CHAT-SEND] Failed to save fallback:`, dbError.message);
       }
 
       const processingTime = Date.now() - startTime;
-      console.log(`⏱️ [CHAT-SEND] Fallback processing time: ${processingTime}ms`);
-      
-      // ✅ ALWAYS return success with fallback (never fail the user)
+      console.log(` [CHAT-SEND] Fallback processing time: ${processingTime}ms`);
+
       return res.status(200).json({
         success: true,
         message: fallbackMessage,
@@ -1299,41 +1236,39 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
       });
     }
 
-    // ✅ SUCCESS PATH: Save AI response to MongoDB
     const aiMessage = {
       user_id: userId,
       conversation_id: conversation_id,
-      message: ragData.reply,
+      message: aiKnowledgeResponse.reply,
       is_bot: true,
       created_at: new Date(),
-      timestamp: ragData.timestamp || new Date().toISOString(),
-      sources: ragData.sources || [],
-      confidence: ragData.confidence || 0.0
+      timestamp: aiKnowledgeResponse.timestamp || new Date().toISOString(),
+      sources: aiKnowledgeResponse.sources || [],
+      confidence: aiKnowledgeResponse.confidence || 0.0
     };
 
     try {
-      await messagesCollection.insertOne(aiMessage);
+      await chatHistoryDB.insertOne(aiMessage);
       console.log(` [CHAT-SEND] AI response saved to MongoDB`);
     } catch (dbError) {
       console.error(` [CHAT-SEND] Failed to save AI response:`, dbError.message);
       console.error(`   └─ Database error details:`, dbError);
     }
 
-    // 🏷️ AUTO-GENERATE TITLE: Generate conversation title from first user message
     try {
-      const conversationsCollection = await getCollection('conversations');
+      const chatSessionsDB = await getCollection('conversations');
       
-      const messageCount = await messagesCollection.countDocuments({
+      const messageCount = await chatHistoryDB.countDocuments({
         conversation_id: conversation_id,
         user_id: userId
       });
 
-      console.log(`📊 [TITLE-GEN] Message count for conversation ${conversation_id}: ${messageCount}`);
+      console.log(`[TITLE-GEN] Message count for conversation ${conversation_id}: ${messageCount}`);
 
       if (messageCount === 2) {
-        console.log(`🏷️ [TITLE-GEN] This is the first exchange! Generating title from first user message...`);
+        console.log(` [TITLE-GEN] This is the first exchange! Generating title from first user message...`);
         
-        const conversation = await conversationsCollection.findOne({
+        const conversation = await chatSessionsDB.findOne({
           _id: conversation_id,
           user_id: userId
         });
@@ -1344,15 +1279,15 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
                               !conversation.title.startsWith('conv_');
 
         if (!hasCustomTitle) {
-          console.log(`🏷️ [TITLE-GEN] No custom title set, generating from first message...`);
+          console.log(`[TITLE-GEN] No custom title set, generating from first message...`);
           
           setImmediate(async () => {
             try {
               const titleResult = await generateTitleWithFallback(
-                message, // First user message (current message)
-                ragData.reply, // First bot reply
+                message, // First user message 
+                aiKnowledgeResponse.reply, // First bot reply
                 university_name,
-                // Fallback: Extract key phrase from first message
+
                 () => {
                   const cleanMsg = message.trim();
                   const firstSentence = cleanMsg.match(/^[^.!?]+/)?.[0] || cleanMsg;
@@ -1362,7 +1297,7 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
                 }
               );
 
-              const updateResult = await conversationsCollection.updateOne(
+              const updateResult = await chatSessionsDB.updateOne(
                 { _id: conversation_id, user_id: userId },
                 { 
                   $set: { 
@@ -1377,7 +1312,7 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
                     message_count: 0
                   }
                 },
-                { upsert: true } // ✅ FIX: Create conversation if it doesn't exist
+                { upsert: true } 
               );
 
               if (updateResult.upsertedCount > 0) {
@@ -1387,33 +1322,32 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
               }
             } catch (titleError) {
               console.error(` [TITLE-GEN] Failed to generate title:`, titleError.message);
-              // Non-critical error, don't fail the request
+
             }
           });
         } else {
-          console.log(`ℹ️ [TITLE-GEN] Conversation already has custom title: "${conversation.title}"`);
+          console.log(`[TITLE-GEN] Conversation already has custom title: "${conversation.title}"`);
         }
       } else {
-        console.log(`ℹ️ [TITLE-GEN] Not first exchange (count: ${messageCount}), skipping title generation`);
+        console.log(` [TITLE-GEN] Not first exchange (count: ${messageCount}), skipping title generation`);
       }
     } catch (titleCheckError) {
       console.error(` [TITLE-GEN] Error checking for title generation:`, titleCheckError.message);
-      // Non-critical error, don't fail the request
+
     }
 
     const processingTime = Date.now() - startTime;
-    console.log(`⏱️ [CHAT-SEND] Total processing time: ${processingTime}ms`);
+    console.log(`[CHAT-SEND] Total processing time: ${processingTime}ms`);
     console.log(` [CHAT-SEND] Response sent successfully to client`);
 
-    // ✅ Return successful response
     res.json({
       success: true,
-      message: ragData.reply,
-      reply: ragData.reply,
+      message: aiKnowledgeResponse.reply,
+      reply: aiKnowledgeResponse.reply,
       conversation_id: conversation_id,
-      sources: ragData.sources || [],
-      confidence: ragData.confidence || 0.0,
-      timestamp: ragData.timestamp || new Date().toISOString(),
+      sources: aiKnowledgeResponse.sources || [],
+      confidence: aiKnowledgeResponse.confidence || 0.0,
+      timestamp: aiKnowledgeResponse.timestamp || new Date().toISOString(),
       processing_time: processingTime
     });
 
@@ -1441,7 +1375,6 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
   }
 });
 
-// Helper: Generate contextual fallback responses
 function generateContextualFallback(message, universityName) {
   const messageLower = (message || '').toLowerCase();
   
@@ -1460,7 +1393,6 @@ function generateContextualFallback(message, universityName) {
   return `I'm currently experiencing some technical difficulties, but I'm still here to help! I can assist with information about Ghanaian university admissions, application requirements, fees, and deadlines. What would you like to know?`;
 }
 
-// Demo endpoint (no authentication required)
 router.post("/send-message-demo", async (req, res) => {
   try {
     const { message, conversation_id, university_name } = req.body;
@@ -1473,7 +1405,7 @@ router.post("/send-message-demo", async (req, res) => {
       });
     }
 
-    const ragRequest = {
+    const knowledgeRequestPayload = {
       message: message,
       conversation_id: conversation_id,
       university_name: university_name || null,
@@ -1483,20 +1415,20 @@ router.post("/send-message-demo", async (req, res) => {
       }
     };
 
-    const ragResponse = await fetch(AI_SERVICE_URL, {
+    const knowledgeServiceResponse = await fetch(AI_SERVICE_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-user-id": userId,
       },
-      body: JSON.stringify(ragRequest),
+      body: JSON.stringify(knowledgeRequestPayload),
     });
 
-    const ragData = await ragResponse.json();
+    const aiKnowledgeResponse = await knowledgeServiceResponse.json();
 
-    const messagesCollection = await getCollection("messages");
+    const chatHistoryDB = await getCollection("messages");
 
-    await messagesCollection.insertOne({
+    await chatHistoryDB.insertOne({
       user_id: userId,
       conversation_id: conversation_id,
       message: message,
@@ -1505,38 +1437,36 @@ router.post("/send-message-demo", async (req, res) => {
       timestamp: new Date().toISOString()
     });
 
-    // Save AI response
-    await messagesCollection.insertOne({
+    await chatHistoryDB.insertOne({
       user_id: userId,
       conversation_id: conversation_id,
-      message: ragData.reply,
+      message: aiKnowledgeResponse.reply,
       is_bot: true,
       created_at: new Date(),
-      timestamp: ragData.timestamp || new Date().toISOString(),
-      sources: ragData.sources || [],
-      confidence: ragData.confidence || 0.0
+      timestamp: aiKnowledgeResponse.timestamp || new Date().toISOString(),
+      sources: aiKnowledgeResponse.sources || [],
+      confidence: aiKnowledgeResponse.confidence || 0.0
     });
 
-    // 🏷️ AUTO-GENERATE TITLE: Generate title from first user message (DEMO MODE)
     try {
-      const conversationsCollection = await getCollection('conversations');
+      const chatSessionsDB = await getCollection('conversations');
       
-      const messageCount = await messagesCollection.countDocuments({
+      const messageCount = await chatHistoryDB.countDocuments({
         conversation_id: conversation_id,
         user_id: userId
       });
 
-      console.log(`📊 [DEMO-TITLE] Message count for conversation ${conversation_id}: ${messageCount}`);
+      console.log(`[DEMO-TITLE] Message count for conversation ${conversation_id}: ${messageCount}`);
 
       if (messageCount === 2) {
-        console.log(`🏷️ [DEMO-TITLE] First exchange! Generating title...`);
+        console.log(`[DEMO-TITLE] First exchange! Generating title...`);
         
         const convIdCandidates = [conversation_id];
         if (/^[a-fA-F0-9]{24}$/.test(conversation_id)) {
           try { convIdCandidates.push(new ObjectId(conversation_id)); } catch (e) {}
         }
         
-        const conversation = await conversationsCollection.findOne({
+        const conversation = await chatSessionsDB.findOne({
           _id: { $in: convIdCandidates }
         });
 
@@ -1552,7 +1482,7 @@ router.post("/send-message-demo", async (req, res) => {
             try {
               const titleResult = await generateTitleWithFallback(
                 message, // First user message
-                ragData.reply, // First bot reply
+                aiKnowledgeResponse.reply, // First bot reply
                 university_name,
                 () => {
                   const cleanMsg = message.trim();
@@ -1563,7 +1493,7 @@ router.post("/send-message-demo", async (req, res) => {
                 }
               );
 
-              const updateResult = await conversationsCollection.updateOne(
+              const updateResult = await chatSessionsDB.updateOne(
                 { _id: { $in: convIdCandidates } },
                 { 
                   $set: { 
@@ -1579,7 +1509,7 @@ router.post("/send-message-demo", async (req, res) => {
                     message_count: 0
                   }
                 },
-                { upsert: true } // ✅ FIX: Create conversation if it doesn't exist
+                { upsert: true } // 
               );
 
               if (updateResult.upsertedCount > 0) {
@@ -1592,10 +1522,10 @@ router.post("/send-message-demo", async (req, res) => {
             }
           });
         } else {
-          console.log(`ℹ️ [DEMO-TITLE] Has custom title: "${conversation.title}"`);
+          console.log(`[DEMO-TITLE] Has custom title: "${conversation.title}"`);
         }
       } else {
-        console.log(`ℹ️ [DEMO-TITLE] Not first exchange (count: ${messageCount})`);
+        console.log(`[DEMO-TITLE] Not first exchange (count: ${messageCount})`);
       }
     } catch (titleCheckError) {
       console.error(` [DEMO-TITLE] Error:`, titleCheckError.message);
@@ -1603,12 +1533,12 @@ router.post("/send-message-demo", async (req, res) => {
 
     res.json({
       success: true,
-      message: ragData.reply,
-      reply: ragData.reply,
+      message: aiKnowledgeResponse.reply,
+      reply: aiKnowledgeResponse.reply,
       conversation_id: conversation_id,
-      sources: ragData.sources || [],
-      confidence: ragData.confidence || 0.0,
-      timestamp: ragData.timestamp || new Date().toISOString()
+      sources: aiKnowledgeResponse.sources || [],
+      confidence: aiKnowledgeResponse.confidence || 0.0,
+      timestamp: aiKnowledgeResponse.timestamp || new Date().toISOString()
     });
 
   } catch (error) {
@@ -1621,13 +1551,12 @@ router.post("/send-message-demo", async (req, res) => {
   }
 });
 
-// 🏷️ Generate LLM-powered title for conversation from FIRST user message
 router.post("/conversations/:id/generate-title", async (req, res) => {
   try {
     const conversationId = req.params.id;
     const { firstUserMessage, firstBotReply, universityContext, fallbackTitle } = req.body;
 
-    console.log('🏷️ Generating LLM title from FIRST user message for conversation:', conversationId);
+    console.log('Generating LLM title from FIRST user message for conversation:', conversationId);
     console.log('   └─ First user message:', firstUserMessage?.substring(0, 100));
 
     if (!firstUserMessage || firstUserMessage.trim().length < 5) {
@@ -1641,14 +1570,14 @@ router.post("/conversations/:id/generate-title", async (req, res) => {
       firstUserMessage,
       firstBotReply,
       universityContext,
-      // Fallback function: just return the provided fallback title if available
+
       () => fallbackTitle || firstUserMessage.substring(0, 50).trim()
     );
 
     console.log(' Generated title:', result.title, '(method:', result.method + ')');
 
-    const conversationsCollection = await getCollection("conversations");
-    await conversationsCollection.updateOne(
+    const chatSessionsDB = await getCollection("conversations");
+    await chatSessionsDB.updateOne(
       { _id: conversationId },
       { 
         $set: { 

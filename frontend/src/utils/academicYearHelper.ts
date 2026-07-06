@@ -1,13 +1,13 @@
 /**
  * Academic Year Helper - Ghanaian University Admission Cycles
  * Automatically updates based on current date
- * 
+ *
  * Ghanaian universities follow an academic calendar where:
  * - Applications open: June/July each year
  * - Deadlines: August/September
  * - Admission lists released: November/December
  * - Academic year starts: September
- * 
+ *
  * So the 2025/2026 cycle runs from September 2025 to August 2026
  */
 
@@ -20,7 +20,7 @@ export const AcademicYearCycle = {
   getCurrentYear(): string {
     const now = new Date();
     const currentYear = now.getFullYear();
-    
+
     // So from Sept onward, we're in the current-year/next-year cycle
     if (now.getMonth() >= 8) {
       return `${currentYear}/${currentYear + 1}`;
@@ -74,22 +74,22 @@ export const AcademicYearCycle = {
   getKeyDates() {
     const now = new Date();
     const currentYear = now.getFullYear();
-    
+
     const cycleStartYear = now.getMonth() >= 8 ? currentYear : currentYear - 1;
-    
+
     return {
       applicationStart: new Date(cycleStartYear, 5, 1), // June 1
       applicationDeadline: new Date(cycleStartYear, 8, 30), // September 30
-      
+
       // Admission results
       admissionListsRelease: new Date(cycleStartYear + 1, 0, 15), // January 15
-      
+
       // Academic year
       academicYearStart: new Date(cycleStartYear + 1, 8, 1), // September 1
       academicYearEnd: new Date(cycleStartYear + 2, 7, 31), // August 31
-      
+
       // Accreditation/Verification (if applicable)
-      verificationPeriod: new Date(cycleStartYear, 10, 1) // November 1
+      verificationPeriod: new Date(cycleStartYear, 10, 1), // November 1
     };
   },
 
@@ -124,53 +124,53 @@ export const AcademicYearCycle = {
   getUniversitiesAdmissionCalendar() {
     const cycle = this.getCurrentYear();
     const keyDates = this.getKeyDates();
-    
+
     return {
       cycle,
       universities: {
-        "University of Ghana": {
-          code: "UG",
+        'University of Ghana': {
+          code: 'UG',
           applicationDeadline: keyDates.applicationDeadline,
           admissionListsRelease: keyDates.admissionListsRelease,
           healthSciencesDeadline: new Date(keyDates.applicationDeadline.getFullYear(), 9, 31), // Early deadline
-          website: "https://www.ug.edu.gh",
-          admissionPortal: "https://apply.ug.edu.gh"
+          website: 'https://www.ug.edu.gh',
+          admissionPortal: 'https://apply.ug.edu.gh',
         },
-        "Kwame Nkrumah University of Science and Technology": {
-          code: "KNUST",
+        'Kwame Nkrumah University of Science and Technology': {
+          code: 'KNUST',
           applicationDeadline: keyDates.applicationDeadline,
           admissionListsRelease: keyDates.admissionListsRelease,
-          website: "https://www.knust.edu.gh",
-          admissionPortal: "https://admissions.knust.edu.gh"
+          website: 'https://www.knust.edu.gh',
+          admissionPortal: 'https://admissions.knust.edu.gh',
         },
-        "University of Cape Coast": {
-          code: "UCC",
+        'University of Cape Coast': {
+          code: 'UCC',
           applicationDeadline: keyDates.applicationDeadline,
           admissionListsRelease: keyDates.admissionListsRelease,
-          website: "https://www.ucc.edu.gh",
-          admissionPortal: "https://admissions.ucc.edu.gh"
+          website: 'https://www.ucc.edu.gh',
+          admissionPortal: 'https://admissions.ucc.edu.gh',
         },
-        "University of Development Studies": {
-          code: "UDS",
+        'University of Development Studies': {
+          code: 'UDS',
           applicationDeadline: keyDates.applicationDeadline,
           admissionListsRelease: keyDates.admissionListsRelease,
-          website: "https://www.uds.edu.gh",
-          admissionPortal: "https://admissions.uds.edu.gh"
+          website: 'https://www.uds.edu.gh',
+          admissionPortal: 'https://admissions.uds.edu.gh',
         },
-        "University of Professional Studies": {
-          code: "UPSA",
+        'University of Professional Studies': {
+          code: 'UPSA',
           applicationDeadline: keyDates.applicationDeadline,
           admissionListsRelease: keyDates.admissionListsRelease,
-          website: "https://www.upsa.edu.gh",
-          admissionPortal: "https://admissions.upsa.edu.gh"
+          website: 'https://www.upsa.edu.gh',
+          admissionPortal: 'https://admissions.upsa.edu.gh',
         },
-        "Ghana Institute of Management and Public Administration": {
-          code: "GIMPA",
+        'Ghana Institute of Management and Public Administration': {
+          code: 'GIMPA',
           applicationDeadline: keyDates.applicationDeadline,
           admissionListsRelease: keyDates.admissionListsRelease,
-          website: "https://www.gimpa.edu.gh"
-        }
-      }
+          website: 'https://www.gimpa.edu.gh',
+        },
+      },
     };
   },
 
@@ -182,7 +182,7 @@ export const AcademicYearCycle = {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     }).format(date);
   },
 
@@ -192,12 +192,12 @@ export const AcademicYearCycle = {
   getCountdownText(deadline: Date): string {
     const now = new Date();
     const diff = deadline.getTime() - now.getTime();
-    
+
     if (diff < 0) return 'Deadline passed';
-    
+
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-    
+
     if (days > 30) {
       return `${Math.floor(days / 7)} weeks remaining`;
     } else if (days > 0) {
@@ -207,7 +207,7 @@ export const AcademicYearCycle = {
     } else {
       return 'Less than 1 hour remaining';
     }
-  }
+  },
 };
 
 export default AcademicYearCycle;

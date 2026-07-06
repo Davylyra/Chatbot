@@ -7,16 +7,11 @@ interface UniversityChatOptions {
   logo?: string;
 }
 
-/**
- * Custom hook for navigating to chat with university context
- * Shared between Universities page and Forms page to avoid code duplication
- */
 export const useUniversityChat = () => {
   const navigate = useNavigate();
   const { currentConversation, saveCurrentConversation } = useAppStore();
 
   const startUniversityChat = (university: UniversityChatOptions) => {
-
     if (currentConversation) {
       saveCurrentConversation();
     }
@@ -26,11 +21,11 @@ export const useUniversityChat = () => {
         universityContext: {
           name: university.name,
           fullName: university.fullName,
-          logo: university.logo
+          logo: university.logo,
         },
         forceNewConversation: true,
-        initialMessage: `Tell me about ${university.fullName} - their programs, admission requirements, and application process.`
-      }
+        initialMessage: `Tell me about ${university.fullName} - their programs, admission requirements, and application process.`,
+      },
     });
   };
 

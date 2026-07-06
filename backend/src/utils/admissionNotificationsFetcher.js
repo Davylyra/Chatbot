@@ -79,13 +79,12 @@ const checkRobotsTxt = async (domain) => {
 // NOTE: Mock data generation permanently removed
 
 export const fetchAdmissionNotifications = async () => {
-  console.log('🌐 [ADMISSION-FETCH] Starting admission notifications fetch...');
+  console.log(' [ADMISSION-FETCH] Starting admission notifications fetch...');
   const allNotifications = [];
   const errors = [];
 
   try {
-    // STEP 1: Fetch LIVE notifications from real university sources
-    console.log('📡 [ADMISSION-FETCH] Fetching live notifications from Ghanaian universities...');
+    console.log(' [ADMISSION-FETCH] Fetching live notifications from Ghanaian universities...');
     const liveNotifications = await fetchLiveAdmissionNotifications();
     if (Array.isArray(liveNotifications) && liveNotifications.length > 0) {
       console.log(` [ADMISSION-FETCH] Fetched ${liveNotifications.length} live notifications`);
@@ -94,17 +93,14 @@ export const fetchAdmissionNotifications = async () => {
       console.warn(' [ADMISSION-FETCH] Live fetch returned no data');
     }
 
-    // ✅ STEP 2: Only use live data - NO FALLBACKS, NO MOCK DATA
     if (allNotifications.length === 0) {
       console.log(' [ADMISSION-FETCH] No live notifications fetched - returning empty result');
     }
 
-    // STEP 3: Legacy source checking (kept for backward compatibility)
     for (const source of CONFIG.SOURCES.filter(s => s.enabled)) {
       try {
-        console.log(`📡 [ADMISSION-FETCH] Checking legacy source: ${source.name}`);
+        console.log(`[ADMISSION-FETCH] Checking legacy source: ${source.name}`);
         
-        // Rate limiting
         await sleep(CONFIG.REQUEST_DELAY);
 
         const domain = new URL(source.url).origin;
@@ -124,9 +120,8 @@ export const fetchAdmissionNotifications = async () => {
       }
     }
 
-    // ✅ STEP 4: Store all collected notifications in database
     if (allNotifications.length > 0) {
-      console.log(`💾 [ADMISSION-FETCH] Storing ${allNotifications.length} notifications to database...`);
+      console.log(` [ADMISSION-FETCH] Storing ${allNotifications.length} notifications to database...`);
       const result = await storeAdmissionNotifications(allNotifications);
       console.log(`[ADMISSION-FETCH] Stored ${result.insertedCount || 0} new admission notifications`);
     } else {
@@ -189,7 +184,7 @@ export const storeAdmissionNotifications = async (notifications) => {
           console.warn(` Failed to insert notification: ${notification.title}`, insertError.message);
         }
       } else {
-        console.log(`⏭️ Skipped duplicate notification: ${notification.title}`);
+        console.log(` Skipped duplicate notification: ${notification.title}`);
       }
     }
 

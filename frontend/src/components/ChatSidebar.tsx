@@ -9,7 +9,7 @@ import {
   FiSearch,
   FiUser,
   FiX,
-  FiMenu
+  FiMenu,
 } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -29,11 +29,7 @@ interface ChatSidebarProps {
   isDesktop?: boolean;
 }
 
-const ChatSidebar: React.FC<ChatSidebarProps> = memo(({
-  isOpen,
-  onClose,
-  isDesktop = false
-}) => {
+const ChatSidebar: React.FC<ChatSidebarProps> = memo(({ isOpen, onClose, isDesktop = false }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isGuest } = useAuth();
@@ -50,14 +46,16 @@ const ChatSidebar: React.FC<ChatSidebarProps> = memo(({
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
-        const endpoint = token ? `${API_BASE_URL}/chat/conversations?limit=15` : `${API_BASE_URL}/chat/conversations-demo?limit=15`;
-        
+        const endpoint = token
+          ? `${API_BASE_URL}/chat/conversations?limit=15`
+          : `${API_BASE_URL}/chat/conversations-demo?limit=15`;
+
         const response = await fetch(endpoint, {
           method: 'GET',
           headers: {
-            ...(token && { 'Authorization': `Bearer ${token}` }),
-            'Content-Type': 'application/json'
-          }
+            ...(token && { Authorization: `Bearer ${token}` }),
+            'Content-Type': 'application/json',
+          },
         });
 
         if (response.ok) {
@@ -86,31 +84,56 @@ const ChatSidebar: React.FC<ChatSidebarProps> = memo(({
   const quickAccess = [
     {
       icon: FiStar,
-      label: "Career Coach",
-      color: "bg-purple-500",
-      action: () => navigate('/chat', { state: { forceNewConversation: true, forceCoachMode: true, initialMessage: "I am confused about my career path and need help finding out what I'm good at." } })
+      label: 'Career Coach',
+      color: 'bg-purple-500',
+      action: () =>
+        navigate('/chat', {
+          state: {
+            forceNewConversation: true,
+            forceCoachMode: true,
+            initialMessage:
+              "I am confused about my career path and need help finding out what I'm good at.",
+          },
+        }),
     },
     {
       icon: FiUsers,
-      label: "Compare Schools",
-      color: "bg-blue-500",
-      action: () => navigate('/chat', { state: { forceNewConversation: true, initialMessage: "Compare KNUST and UG" } })
+      label: 'Compare Schools',
+      color: 'bg-blue-500',
+      action: () =>
+        navigate('/chat', {
+          state: { forceNewConversation: true, initialMessage: 'Compare KNUST and UG' },
+        }),
     },
     {
       icon: FiFileText,
-      label: "Admission Requirements",
-      color: "bg-green-500",
-      action: () => navigate('/chat', { state: { forceNewConversation: true, initialMessage: "What are the admission requirements?" } })
+      label: 'Admission Requirements',
+      color: 'bg-green-500',
+      action: () =>
+        navigate('/chat', {
+          state: {
+            forceNewConversation: true,
+            initialMessage: 'What are the admission requirements?',
+          },
+        }),
     },
     {
       icon: FiSearch,
-      label: "Explore Programs",
-      color: "bg-orange-500",
-      action: () => navigate('/chat', { state: { forceNewConversation: true, initialMessage: "I want to explore university programs" } })
-    }
+      label: 'Explore Programs',
+      color: 'bg-orange-500',
+      action: () =>
+        navigate('/chat', {
+          state: {
+            forceNewConversation: true,
+            initialMessage: 'I want to explore university programs',
+          },
+        }),
+    },
   ];
 
-  const filteredConversations = conversations.filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredConversations = conversations.filter((c) =>
+    c.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <>
@@ -127,27 +150,46 @@ const ChatSidebar: React.FC<ChatSidebarProps> = memo(({
       </AnimatePresence>
 
       <motion.div
-        animate={{ 
+        animate={{
           width: isDesktop ? (isOpen ? 280 : 72) : 280,
-          x: !isDesktop && !isOpen ? -300 : 0
+          x: !isDesktop && !isOpen ? -300 : 0,
         }}
-        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
         className={`${isDesktop ? 'relative' : 'fixed'} left-0 top-0 h-full shadow-2xl z-50 flex flex-col transition-colors duration-200 ${theme === 'dark' ? 'bg-[#13161a] border-gray-800' : 'bg-gray-50 border-gray-200'} border-r overflow-hidden whitespace-nowrap`}
       >
         {/* Header */}
-        <div className={`p-4 border-b flex items-center h-[72px] ${isOpen ? 'justify-between' : 'justify-center'} ${theme === 'dark' ? 'border-gray-800' : 'border-gray-200'}`}>
+        <div
+          className={`p-4 border-b flex items-center h-[72px] ${isOpen ? 'justify-between' : 'justify-center'} ${theme === 'dark' ? 'border-gray-800' : 'border-gray-200'}`}
+        >
           {isOpen ? (
             <>
-              <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate('/')}>
+              <div
+                className="flex items-center space-x-3 cursor-pointer"
+                onClick={() => navigate('/')}
+              >
                 <img src="/cerkyl.svg" alt="CERKYL" className="w-8 h-8 object-contain" />
-                <span className={`text-xl font-bold tracking-wide ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>CERKYL</span>
+                <span
+                  className={`text-xl font-bold tracking-wide ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+                >
+                  CERKYL
+                </span>
               </div>
-              <button onClick={onClose} className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'text-gray-400 hover:bg-gray-800 hover:text-white' : 'text-gray-500 hover:bg-gray-200 hover:text-black'}`}>
+              <button
+                onClick={onClose}
+                aria-label="Close sidebar"
+                title="Close sidebar"
+                className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'text-gray-400 hover:bg-gray-800 hover:text-white' : 'text-gray-500 hover:bg-gray-200 hover:text-black'}`}
+              >
                 {isDesktop ? <FiMenu className="w-5 h-5" /> : <FiX className="w-5 h-5" />}
               </button>
             </>
           ) : (
-            <button onClick={() => window.dispatchEvent(new CustomEvent('toggleSidebar'))} className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'text-gray-400 hover:bg-gray-800 hover:text-white' : 'text-gray-500 hover:bg-gray-200 hover:text-black'}`}>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('toggleSidebar'))}
+              aria-label="Open sidebar"
+              title="Open sidebar"
+              className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'text-gray-400 hover:bg-gray-800 hover:text-white' : 'text-gray-500 hover:bg-gray-200 hover:text-black'}`}
+            >
               <FiMenu className="w-6 h-6" />
             </button>
           )}
@@ -155,18 +197,20 @@ const ChatSidebar: React.FC<ChatSidebarProps> = memo(({
 
         {isOpen && (
           <div className="px-5 py-4">
-            <div className={`flex items-center rounded-2xl px-4 py-3 mb-4 transition-colors ${theme === 'dark' ? 'bg-[#1e2329]' : 'bg-white border border-gray-200 shadow-sm'}`}>
+            <div
+              className={`flex items-center rounded-2xl px-4 py-3 mb-4 transition-colors ${theme === 'dark' ? 'bg-[#1e2329]' : 'bg-white border border-gray-200 shadow-sm'}`}
+            >
               <FiSearch className="text-gray-500 w-5 h-5 mr-3 shrink-0" />
-              <input 
-                type="text" 
-                placeholder="Search chats..." 
+              <input
+                type="text"
+                placeholder="Search chats..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={`bg-transparent w-full focus:outline-none text-sm ${theme === 'dark' ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-400'}`}
               />
             </div>
-            
-            <button 
+
+            <button
               onClick={() => {
                 if (location.pathname === '/chat') {
                   window.dispatchEvent(new CustomEvent('triggerNewChat'));
@@ -183,8 +227,8 @@ const ChatSidebar: React.FC<ChatSidebarProps> = memo(({
         )}
 
         {!isOpen && (
-           <div className="px-2 py-4 flex justify-center">
-            <button 
+          <div className="px-2 py-4 flex justify-center">
+            <button
               onClick={() => {
                 if (location.pathname === '/chat') {
                   window.dispatchEvent(new CustomEvent('triggerNewChat'));
@@ -197,27 +241,40 @@ const ChatSidebar: React.FC<ChatSidebarProps> = memo(({
             >
               <span className="text-xl">+</span>
             </button>
-           </div>
+          </div>
         )}
 
         {/* Scrollable Middle Section */}
         <div className="flex-1 overflow-y-auto scrollbar-hide flex flex-col">
           {/* Quick Access */}
           <div className={`${isOpen ? 'px-5 py-4' : 'px-2 py-4'} shrink-0`}>
-            {isOpen && <h3 className={`text-xs font-bold mb-3 tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>QUICK ACCESS</h3>}
+            {isOpen && (
+              <h3
+                className={`text-xs font-bold mb-3 tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}
+              >
+                QUICK ACCESS
+              </h3>
+            )}
             <div className={`space-y-2 ${!isOpen && 'flex flex-col items-center'}`}>
               {quickAccess.map((item, index) => (
                 <button
                   key={index}
-                  onClick={() => { item.action(); if (!isDesktop) onClose(); }}
+                  onClick={() => {
+                    item.action();
+                    if (!isDesktop) onClose();
+                  }}
                   title={!isOpen ? item.label : undefined}
                   className={`${isOpen ? 'w-full px-2.5' : 'w-10 justify-center'} flex items-center space-x-3 py-2.5 rounded-xl transition-all duration-200 group ${theme === 'dark' ? 'hover:bg-[#1e2329]' : 'hover:bg-gray-200'}`}
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white ${item.color}`}>
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white ${item.color}`}
+                  >
                     <item.icon className="w-4 h-4" />
                   </div>
                   {isOpen && (
-                    <span className={`font-semibold text-sm ${theme === 'dark' ? 'text-gray-300 group-hover:text-white' : 'text-gray-600 group-hover:text-gray-900'}`}>
+                    <span
+                      className={`font-semibold text-sm ${theme === 'dark' ? 'text-gray-300 group-hover:text-white' : 'text-gray-600 group-hover:text-gray-900'}`}
+                    >
                       {item.label}
                     </span>
                   )}
@@ -228,40 +285,70 @@ const ChatSidebar: React.FC<ChatSidebarProps> = memo(({
 
           {/* Recent Chats */}
           <div className={`${isOpen ? 'px-5 py-2' : 'px-2 py-2'} flex-1`}>
-            {isOpen && <h3 className={`text-xs font-bold mb-3 tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>RECENT ACTIVITY</h3>}
+            {isOpen && (
+              <h3
+                className={`text-xs font-bold mb-3 tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}
+              >
+                RECENT ACTIVITY
+              </h3>
+            )}
             <div className={`space-y-1 pb-4 ${!isOpen && 'flex flex-col items-center'}`}>
-              {loading ? (
-                isOpen && <div className={`text-sm ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>Loading...</div>
-              ) : filteredConversations.length > 0 ? (
-                filteredConversations.map((conv) => (
-                  <button
-                    key={conv.id}
-                    title={!isOpen ? conv.title : undefined}
-                    onClick={() => { navigate('/chat', { state: { conversationId: conv.id, conversationTitle: conv.title } }); if (!isDesktop) onClose(); }}
-                    className={`${isOpen ? 'w-full px-2.5' : 'w-10 justify-center'} flex items-center space-x-3 py-2.5 rounded-xl transition-all duration-200 group ${theme === 'dark' ? 'hover:bg-[#1e2329] text-gray-400 hover:text-gray-200' : 'hover:bg-gray-200 text-gray-500 hover:text-gray-800'}`}
-                  >
-                    <FiMessageCircle className="w-5 h-5 shrink-0" />
-                    {isOpen && <span className="text-sm truncate text-left">{conv.title}</span>}
-                  </button>
-                ))
-              ) : (
-                isOpen && <div className={`text-sm ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>No recent chats</div>
-              )}
+              {loading
+                ? isOpen && (
+                    <div
+                      className={`text-sm ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}
+                    >
+                      Loading...
+                    </div>
+                  )
+                : filteredConversations.length > 0
+                  ? filteredConversations.map((conv) => (
+                      <button
+                        key={conv.id}
+                        title={!isOpen ? conv.title : undefined}
+                        onClick={() => {
+                          navigate('/chat', {
+                            state: { conversationId: conv.id, conversationTitle: conv.title },
+                          });
+                          if (!isDesktop) onClose();
+                        }}
+                        className={`${isOpen ? 'w-full px-2.5' : 'w-10 justify-center'} flex items-center space-x-3 py-2.5 rounded-xl transition-all duration-200 group ${theme === 'dark' ? 'hover:bg-[#1e2329] text-gray-400 hover:text-gray-200' : 'hover:bg-gray-200 text-gray-500 hover:text-gray-800'}`}
+                      >
+                        <FiMessageCircle className="w-5 h-5 shrink-0" />
+                        {isOpen && <span className="text-sm truncate text-left">{conv.title}</span>}
+                      </button>
+                    ))
+                  : isOpen && (
+                      <div
+                        className={`text-sm ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}
+                      >
+                        No recent chats
+                      </div>
+                    )}
             </div>
           </div>
         </div>
 
         {/* User Profile */}
-        <div className={`p-4 border-t flex ${isOpen ? 'items-center space-x-3' : 'justify-center'} ${theme === 'dark' ? 'border-gray-800' : 'border-gray-200'}`}>
-          <div onClick={() => navigate('/profile')} className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center cursor-pointer transition-colors border ${theme === 'dark' ? 'bg-[#1e2329] border-gray-700 hover:bg-gray-800' : 'bg-white shadow-sm border-gray-200 hover:bg-gray-100'}`}>
+        <div
+          className={`p-4 border-t flex ${isOpen ? 'items-center space-x-3' : 'justify-center'} ${theme === 'dark' ? 'border-gray-800' : 'border-gray-200'}`}
+        >
+          <div
+            onClick={() => navigate('/profile')}
+            className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center cursor-pointer transition-colors border ${theme === 'dark' ? 'bg-[#1e2329] border-gray-700 hover:bg-gray-800' : 'bg-white shadow-sm border-gray-200 hover:bg-gray-100'}`}
+          >
             <FiUser className={`w-5 h-5 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`} />
           </div>
           {isOpen && (
             <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate('/profile')}>
-              <h4 className={`font-bold text-sm truncate ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                {isGuest ? 'Guest' : (user?.name || 'User')}
+              <h4
+                className={`font-bold text-sm truncate ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+              >
+                {isGuest ? 'Guest' : user?.name || 'User'}
               </h4>
-              <p className={`text-xs mt-0.5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+              <p
+                className={`text-xs mt-0.5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}
+              >
                 {isGuest ? 'Limited Plan' : 'Free Plan'}
               </p>
             </div>

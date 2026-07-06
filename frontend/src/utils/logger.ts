@@ -1,6 +1,6 @@
 /**
  * Development Logger Utility
- * 
+ *
  * Provides conditional logging that only runs in development mode.
  * In production, all logs are suppressed to improve performance and security.
  */

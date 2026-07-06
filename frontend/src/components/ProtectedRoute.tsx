@@ -19,11 +19,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requireAuth = true,
   allowGuest = false,
-  redirectTo = '/login'
+  redirectTo = '/login',
 }) => {
   const { isAuthenticated, isGuest } = useAuth();
   const location = useLocation();
-
 
   if (allowGuest) {
     if (isAuthenticated || isGuest) {

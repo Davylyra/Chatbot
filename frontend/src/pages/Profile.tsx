@@ -20,10 +20,10 @@ const Profile: React.FC = () => {
     location: '',
     bio: '',
     interests: [] as string[],
-    preferredUniversities: [] as string[]
+    preferredUniversities: [] as string[],
   });
 
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [profileData, setProfileData] = useState<any>(null);
@@ -32,9 +32,9 @@ const Profile: React.FC = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ;
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
         const token = localStorage.getItem('token');
-        
+
         if (!token) {
           setIsLoading(false);
           return;
@@ -43,27 +43,27 @@ const Profile: React.FC = () => {
         const response = await fetch(`${API_BASE_URL}/profile/me`, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         });
 
-        const data = await response.json();
-        if (data.success && data.user) {
-          setProfileData(data.user);
+        const profilePayload = await response.json();
+        if (profilePayload.success && profilePayload.user) {
+          setProfileData(profilePayload.user);
           setFormData({
-            name: data.user.name || '',
-            email: data.user.email || '',
-            location: data.user.location || '',
-            bio: data.user.bio || '',
-            interests: data.user.interests || [],
-            preferredUniversities: data.user.preferredUniversities || []
+            name: profilePayload.user.name || '',
+            email: profilePayload.user.email || '',
+            location: profilePayload.user.location || '',
+            bio: profilePayload.user.bio || '',
+            interests: profilePayload.user.interests || [],
+            preferredUniversities: profilePayload.user.preferredUniversities || [],
           });
           updateProfile({
-            name: data.user.name,
-            email: data.user.email,
-            createdAt: data.user.createdAt,
-            assessmentCompleted: data.user.stats?.assessmentCount > 0
+            name: profilePayload.user.name,
+            email: profilePayload.user.email,
+            createdAt: profilePayload.user.createdAt,
+            assessmentCompleted: profilePayload.user.stats?.assessmentCount > 0,
           });
         }
       } catch (error) {
@@ -79,12 +79,12 @@ const Profile: React.FC = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && !isLoading) {
-        setRefreshTrigger(prev => prev + 1);
+        setRefreshTrigger((prev) => prev + 1);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
@@ -98,92 +98,91 @@ const Profile: React.FC = () => {
         location: '',
         bio: '',
         interests: [],
-        preferredUniversities: []
+        preferredUniversities: [],
       });
     }
   }, [user, profileData]);
 
   const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
-    
+    const newErrors: { [key: string]: string } = {};
+
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
     }
-    
+
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
     }
-    
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSave = async () => {
     if (!validateForm()) return;
-    
+
     setIsSaving(true);
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ;
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         setErrors({ submit: 'Please log in to update your profile' });
         setIsSaving(false);
         return;
       }
-      
+
       const response = await fetch(`${API_BASE_URL}/profile/update`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
           location: formData.location,
-          bio: formData.bio
-        })
+          bio: formData.bio,
+        }),
       });
-      
-      const data = await response.json();
-      
+
+      const updatePayload = await response.json();
+
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to update profile');
+        throw new Error(updatePayload.message || 'Failed to update profile');
       }
-      
-      if (data.success) {
-        setProfileData(data.user);
-        
+
+      if (updatePayload.success) {
+        setProfileData(updatePayload.user);
+
         setFormData({
-          name: data.user.name || '',
-          email: data.user.email || '',
-          location: data.user.location || '',
-          bio: data.user.bio || '',
-          interests: data.user.interests || formData.interests,
-          preferredUniversities: data.user.preferredUniversities || formData.preferredUniversities
+          name: updatePayload.user.name || '',
+          email: updatePayload.user.email || '',
+          location: updatePayload.user.location || '',
+          bio: updatePayload.user.bio || '',
+          interests: updatePayload.user.interests || formData.interests,
+          preferredUniversities: updatePayload.user.preferredUniversities || formData.preferredUniversities,
         });
-        
-        updateProfile({ 
-          name: data.user.name, 
-          email: data.user.email,
-          createdAt: data.user.createdAt
+
+        updateProfile({
+          name: updatePayload.user.name,
+          email: updatePayload.user.email,
+          createdAt: updatePayload.user.createdAt,
         });
-        
+
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           const userData = JSON.parse(storedUser);
-          userData.name = data.user.name;
-          userData.email = data.user.email;
+          userData.name = updatePayload.user.name;
+          userData.email = updatePayload.user.email;
           localStorage.setItem('user', JSON.stringify(userData));
         }
-        
+
         setIsEditing(false);
         setErrors({});
-        
+
         showSuccess('Profile Updated', 'Your profile has been saved successfully', 3000);
       }
     } catch (error: any) {
@@ -197,7 +196,7 @@ const Profile: React.FC = () => {
   const handleCancel = () => {
     setIsEditing(false);
     setErrors({});
-    
+
     if (profileData) {
       setFormData({
         name: profileData.name || '',
@@ -205,7 +204,7 @@ const Profile: React.FC = () => {
         location: profileData.location || '',
         bio: profileData.bio || '',
         interests: profileData.interests || [],
-        preferredUniversities: profileData.preferredUniversities || []
+        preferredUniversities: profileData.preferredUniversities || [],
       });
     } else if (user) {
       setFormData({
@@ -214,19 +213,21 @@ const Profile: React.FC = () => {
         location: '',
         bio: '',
         interests: [],
-        preferredUniversities: []
+        preferredUniversities: [],
       });
     }
   };
 
   return (
-    <div className={`min-h-screen ${
-      theme === 'dark' 
-        ? 'bg-gradient-to-b from-transparent via-gray-800/50 to-gray-800' 
-        : 'bg-gradient-to-b from-transparent via-white/50 to-white'
-    }`}>
+    <div
+      className={`min-h-screen ${
+        theme === 'dark'
+          ? 'bg-gradient-to-b from-transparent via-gray-800/50 to-gray-800'
+          : 'bg-gradient-to-b from-transparent via-white/50 to-white'
+      }`}
+    >
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
-      <Navbar 
+      <Navbar
         title="PROFILE OVERVIEW"
         showBackButton={true}
         onBackClick={() => navigate('/')}
@@ -240,9 +241,7 @@ const Profile: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className={`backdrop-blur-md rounded-2xl p-6 mb-6 border transition-all duration-200 ${
-            theme === 'dark' 
-              ? 'bg-white/10 border-white/20' 
-              : 'bg-white/80 border-white/30'
+            theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-white/80 border-white/30'
           }`}
         >
           <div className="flex items-center space-x-4">
@@ -255,26 +254,32 @@ const Profile: React.FC = () => {
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className={`w-full bg-transparent border-b-2 outline-none font-bold text-xl transition-colors duration-200 ${
-                      theme === 'dark' 
-                        ? 'text-white border-gray-600 focus:border-primary-400' 
+                      theme === 'dark'
+                        ? 'text-white border-gray-600 focus:border-primary-400'
                         : 'text-gray-800 border-gray-300 focus:border-primary-500'
                     } ${errors.name ? 'border-red-500' : ''}`}
                     placeholder="Enter your name"
                   />
-                  {errors.name && (
-                    <p className="text-red-500 text-sm truncate">{errors.name}</p>
-                  )}
+                  {errors.name && <p className="text-red-500 text-sm truncate">{errors.name}</p>}
                 </div>
               ) : (
-                <h2 className={`text-xl font-bold truncate transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-800'
-                }`}>{user?.name || 'User'}</h2>
+                <h2
+                  className={`text-xl font-bold truncate transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-white' : 'text-gray-800'
+                  }`}
+                >
+                  {user?.name || 'User'}
+                </h2>
               )}
-              <p className={`text-sm truncate transition-colors duration-200 ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-              }`}>{user?.email || 'user@example.com'}</p>
+              <p
+                className={`text-sm truncate transition-colors duration-200 ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                }`}
+              >
+                {user?.email || 'user@example.com'}
+              </p>
             </div>
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -297,32 +302,40 @@ const Profile: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className={`backdrop-blur-md rounded-2xl p-6 border transition-all duration-200 ${
-            theme === 'dark' 
-              ? 'bg-white/10 border-white/20' 
-              : 'bg-white/80 border-white/30'
+            theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-white/80 border-white/30'
           }`}
         >
-          <h3 className={`text-lg font-bold mb-4 transition-colors duration-200 ${
-            theme === 'dark' ? 'text-white' : 'text-gray-800'
-          }`}>Personal Information</h3>
-          
+          <h3
+            className={`text-lg font-bold mb-4 transition-colors duration-200 ${
+              theme === 'dark' ? 'text-white' : 'text-gray-800'
+            }`}
+          >
+            Personal Information
+          </h3>
+
           <div className="space-y-6">
             <div className="space-y-2">
               <div className="flex items-center space-x-3">
-                <FiMail className={`w-5 h-5 transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                }`} />
-                <label className={`text-sm font-medium transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                }`}>Email Address</label>
+                <FiMail
+                  className={`w-5 h-5 transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                  }`}
+                />
+                <label
+                  className={`text-sm font-medium transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  }`}
+                >
+                  Email Address
+                </label>
               </div>
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 disabled={!isEditing}
                 className={`w-full px-4 py-3 rounded-xl border transition-all duration-200 ${
-                  isEditing 
+                  isEditing
                     ? theme === 'dark'
                       ? 'bg-gray-800/50 border-gray-600 text-white focus:border-primary-400 focus:bg-gray-700/50'
                       : 'bg-gray-50 border-gray-300 text-gray-800 focus:border-primary-500 focus:bg-white'
@@ -332,27 +345,31 @@ const Profile: React.FC = () => {
                 } ${errors.email ? 'border-red-500' : ''}`}
                 placeholder="Enter your email"
               />
-              {errors.email && (
-                <p className="text-red-500 text-sm ml-8">{errors.email}</p>
-              )}
+              {errors.email && <p className="text-red-500 text-sm ml-8">{errors.email}</p>}
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center space-x-3">
-                <FiMapPin className={`w-5 h-5 transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                }`} />
-                <label className={`text-sm font-medium transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                }`}>Location</label>
+                <FiMapPin
+                  className={`w-5 h-5 transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                  }`}
+                />
+                <label
+                  className={`text-sm font-medium transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  }`}
+                >
+                  Location
+                </label>
               </div>
               <input
                 type="text"
                 value={formData.location}
-                onChange={(e) => setFormData({...formData, location: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 disabled={!isEditing}
                 className={`w-full px-4 py-3 rounded-xl border transition-all duration-200 ${
-                  isEditing 
+                  isEditing
                     ? theme === 'dark'
                       ? 'bg-gray-800/50 border-gray-600 text-white focus:border-primary-400 focus:bg-gray-700/50'
                       : 'bg-gray-50 border-gray-300 text-gray-800 focus:border-primary-500 focus:bg-white'
@@ -362,27 +379,31 @@ const Profile: React.FC = () => {
                 } ${errors.location ? 'border-red-500' : ''}`}
                 placeholder="Enter your location"
               />
-              {errors.location && (
-                <p className="text-red-500 text-sm ml-8">{errors.location}</p>
-              )}
+              {errors.location && <p className="text-red-500 text-sm ml-8">{errors.location}</p>}
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center space-x-3">
-                <FiUser className={`w-5 h-5 transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                }`} />
-                <label className={`text-sm font-medium transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                }`}>Bio</label>
+                <FiUser
+                  className={`w-5 h-5 transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                  }`}
+                />
+                <label
+                  className={`text-sm font-medium transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  }`}
+                >
+                  Bio
+                </label>
               </div>
               <textarea
                 value={formData.bio}
-                onChange={(e) => setFormData({...formData, bio: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                 disabled={!isEditing}
                 rows={3}
                 className={`w-full px-4 py-3 rounded-xl border transition-all duration-200 resize-none ${
-                  isEditing 
+                  isEditing
                     ? theme === 'dark'
                       ? 'bg-gray-800/50 border-gray-600 text-white focus:border-primary-400 focus:bg-gray-700/50'
                       : 'bg-gray-50 border-gray-300 text-gray-800 focus:border-primary-500 focus:bg-white'
@@ -447,42 +468,51 @@ const Profile: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           className={`backdrop-blur-md rounded-2xl p-6 border transition-all duration-200 ${
-            theme === 'dark' 
-              ? 'bg-white/10 border-white/20' 
-              : 'bg-white/80 border-white/30'
+            theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-white/80 border-white/30'
           }`}
         >
-          <h3 className={`text-lg font-bold mb-4 transition-colors duration-200 ${
-            theme === 'dark' ? 'text-white' : 'text-gray-800'
-          }`}>Account Information</h3>
-          
+          <h3
+            className={`text-lg font-bold mb-4 transition-colors duration-200 ${
+              theme === 'dark' ? 'text-white' : 'text-gray-800'
+            }`}
+          >
+            Account Information
+          </h3>
+
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <FiCalendar className={`w-5 h-5 transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                }`} />
+                <FiCalendar
+                  className={`w-5 h-5 transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                  }`}
+                />
                 <div>
-                  <p className={`font-medium transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-white' : 'text-gray-800'
-                  }`}>Member Since</p>
-                  <p className={`text-sm transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                  }`}>
-                    {profileData?.createdAt 
+                  <p
+                    className={`font-medium transition-colors duration-200 ${
+                      theme === 'dark' ? 'text-white' : 'text-gray-800'
+                    }`}
+                  >
+                    Member Since
+                  </p>
+                  <p
+                    className={`text-sm transition-colors duration-200 ${
+                      theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                    }`}
+                  >
+                    {profileData?.createdAt
                       ? new Date(profileData.createdAt).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'long',
-                          day: 'numeric'
+                          day: 'numeric',
                         })
-                      : user?.createdAt 
+                      : user?.createdAt
                         ? new Date(user.createdAt).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'long',
-                            day: 'numeric'
+                            day: 'numeric',
                           })
-                        : 'January 18, 2025'
-                    }
+                        : 'January 18, 2025'}
                   </p>
                 </div>
               </div>
@@ -490,16 +520,26 @@ const Profile: React.FC = () => {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <FiShield className={`w-5 h-5 transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                }`} />
+                <FiShield
+                  className={`w-5 h-5 transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                  }`}
+                />
                 <div>
-                  <p className={`font-medium transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-white' : 'text-gray-800'
-                  }`}>Account Status</p>
-                  <p className={`text-sm transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-green-400' : 'text-green-600'
-                  }`}>Verified</p>
+                  <p
+                    className={`font-medium transition-colors duration-200 ${
+                      theme === 'dark' ? 'text-white' : 'text-gray-800'
+                    }`}
+                  >
+                    Account Status
+                  </p>
+                  <p
+                    className={`text-sm transition-colors duration-200 ${
+                      theme === 'dark' ? 'text-green-400' : 'text-green-600'
+                    }`}
+                  >
+                    Verified
+                  </p>
                 </div>
               </div>
             </div>
@@ -512,15 +552,17 @@ const Profile: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
           className={`backdrop-blur-md rounded-2xl p-6 border transition-all duration-200 ${
-            theme === 'dark' 
-              ? 'bg-white/10 border-white/20' 
-              : 'bg-white/80 border-white/30'
+            theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-white/80 border-white/30'
           }`}
         >
-          <h3 className={`text-lg font-bold mb-4 transition-colors duration-200 ${
-            theme === 'dark' ? 'text-white' : 'text-gray-800'
-          }`}>Interests & Preferences</h3>
-          
+          <h3
+            className={`text-lg font-bold mb-4 transition-colors duration-200 ${
+              theme === 'dark' ? 'text-white' : 'text-gray-800'
+            }`}
+          >
+            Interests & Preferences
+          </h3>
+
           {isLoading ? (
             <div className="text-center py-4">
               <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
@@ -530,10 +572,14 @@ const Profile: React.FC = () => {
           ) : (
             <div className="space-y-4">
               <div>
-                <p className={`text-sm font-medium mb-2 transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                }`}>Areas of Interest</p>
-                {(profileData?.interests && profileData.interests.length > 0) ? (
+                <p
+                  className={`text-sm font-medium mb-2 transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  }`}
+                >
+                  Areas of Interest
+                </p>
+                {profileData?.interests && profileData.interests.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {profileData.interests.map((interest: string, index: number) => (
                       <span
@@ -549,19 +595,26 @@ const Profile: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className={`text-sm italic ${
-                    theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-                  }`}>
+                  <p
+                    className={`text-sm italic ${
+                      theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                    }`}
+                  >
                     Complete an assessment to see your interests
                   </p>
                 )}
               </div>
 
               <div>
-                <p className={`text-sm font-medium mb-2 transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                }`}>Preferred Universities</p>
-                {(profileData?.preferredUniversities && profileData.preferredUniversities.length > 0) ? (
+                <p
+                  className={`text-sm font-medium mb-2 transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  }`}
+                >
+                  Preferred Universities
+                </p>
+                {profileData?.preferredUniversities &&
+                profileData.preferredUniversities.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {profileData.preferredUniversities.map((university: string, index: number) => (
                       <span
@@ -577,15 +630,19 @@ const Profile: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className={`text-sm italic ${
-                    theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-                  }`}>
+                  <p
+                    className={`text-sm italic ${
+                      theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                    }`}
+                  >
                     Complete an assessment to see university recommendations
                   </p>
                 )}
               </div>
 
-              <div className={`mt-6 pt-6 border-t transition-colors duration-200 ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div
+                className={`mt-6 pt-6 border-t transition-colors duration-200 ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}
+              >
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}

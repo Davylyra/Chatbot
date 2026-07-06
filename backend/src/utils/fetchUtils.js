@@ -59,7 +59,7 @@ export function getCuratedFallbackNotifications(academicYear) {
     {
       id: `ug_applications_${now.getTime()}`,
       university: 'University of Ghana',
-      title: '📝 UG Applications Information',
+      title: ' UG Applications Information',
       message: `University of Ghana ${academicYear} undergraduate applications information available. Check official website.`,
       type: 'info',
       priority: month >= 11 || month <= 1 ? 'high' : 'normal',
@@ -70,7 +70,7 @@ export function getCuratedFallbackNotifications(academicYear) {
     {
       id: `knust_info_${now.getTime()}`,
       university: 'KNUST',
-      title: '🎓 KNUST Admissions',
+      title: 'KNUST Admissions',
       message: 'Check KNUST for admission requirements, application deadlines, and programs offered.',
       type: 'info',
       priority: 'normal',
@@ -81,7 +81,7 @@ export function getCuratedFallbackNotifications(academicYear) {
     {
       id: `ucc_info_${now.getTime()}`,
       university: 'University of Cape Coast',
-      title: '📚 UCC Admissions',
+      title: ' UCC Admissions',
       message: 'University of Cape Coast admission information and program details available online.',
       type: 'info',
       priority: 'normal',
@@ -92,7 +92,7 @@ export function getCuratedFallbackNotifications(academicYear) {
     {
       id: `uenr_info_${now.getTime()}`,
       university: 'UENR',
-      title: '🌿 UENR Admissions',
+      title: 'UENR Admissions',
       message: 'University of Energy and Natural Resources admission details and programs.',
       type: 'info',
       priority: 'normal',
@@ -103,7 +103,7 @@ export function getCuratedFallbackNotifications(academicYear) {
     {
       id: `uds_info_${now.getTime()}`,
       university: 'UDS',
-      title: '🎯 UDS Admissions',
+      title: 'UDS Admissions',
       message: 'University for Development Studies admission requirements and application process.',
       type: 'info',
       priority: 'normal',
@@ -114,7 +114,7 @@ export function getCuratedFallbackNotifications(academicYear) {
     {
       id: `umat_info_${now.getTime()}`,
       university: 'UMaT',
-      title: '⛏️ UMaT Admissions',
+      title: 'UMaT Admissions',
       message: 'University of Mines and Technology admission information and mining-related programs.',
       type: 'info',
       priority: 'normal',
@@ -125,7 +125,7 @@ export function getCuratedFallbackNotifications(academicYear) {
     {
       id: `uew_info_${now.getTime()}`,
       university: 'UEW',
-      title: '👨‍🏫 UEW Admissions',
+      title: 'UEW Admissions',
       message: 'University of Education, Winneba teacher training and education programs.',
       type: 'info',
       priority: 'normal',
@@ -136,7 +136,7 @@ export function getCuratedFallbackNotifications(academicYear) {
     {
       id: `upsa_info_${now.getTime()}`,
       university: 'UPSA',
-      title: '💼 UPSA Admissions',
+      title: 'UPSA Admissions',
       message: 'University of Professional Studies business and professional programs.',
       type: 'info',
       priority: 'normal',
@@ -148,7 +148,7 @@ export function getCuratedFallbackNotifications(academicYear) {
     {
       id: `gctu_info_${now.getTime()}`,
       university: 'GCTU',
-      title: '📡 GCTU Admissions',
+      title: 'GCTU Admissions',
       message: 'Ghana Communication Technology University communications and technology programs.',
       type: 'info',
       priority: 'normal',
@@ -159,7 +159,7 @@ export function getCuratedFallbackNotifications(academicYear) {
     {
       id: `aamusted_info_${now.getTime()}`,
       university: 'AAMUSTED',
-      title: '🔧 AAMUSTED Admissions',
+      title: 'AAMUSTED Admissions',
       message: 'Akenten Appiah-Menka University skills training and technical programs.',
       type: 'info',
       priority: 'normal',
@@ -170,7 +170,7 @@ export function getCuratedFallbackNotifications(academicYear) {
     {
       id: `general_info_${now.getTime()}`,
       university: 'Ghana Tertiary Education',
-      title: '💡 University Admission Tips',
+      title: 'University Admission Tips',
       message: 'Ensure you meet WASSCE requirements (6 credits including English & Math).',
       type: 'info',
       priority: 'normal',

@@ -7,100 +7,78 @@ import path from "path";
 
 export const getAllChats = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const conversationsCollection = await getCollection("conversations");
-
-    const chats = await conversationsCollection
-      .find({ user_id: userId })
+    const studentId = req.user.id;
+    const conversationCollection = await getCollection("conversations");
+    const activeConversations = await conversationCollection
+      .find({ user_id: studentId })
       .sort({ created_at: -1 })
       .toArray();
 
     res.json({ 
       success: true, 
-      data: chats.map(chat => ({
-        id: chat._id.toString(),
-        title: chat.title,
-        created_at: chat.created_at || chat.createdAt
+      data: activeConversations.map(conv => ({
+        id: conv._id.toString(),
+        title: conv.title,
+        created_at: conv.created_at || conv.createdAt
       }))
     });
   } catch (error) {
-    console.error("Get chats error:", error);
-    res.status(500).json({ 
-      success: false, 
-      message: "Failed to fetch chats" 
-    });
+    res.status(500).json({ success: false, message: "Failed to fetch chats" });
   }
 };
 
 export const createChat = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const studentId = req.user.id;
     const { title } = req.body;
+    const conversationCollection = await getCollection('conversations');
 
-    const conversationsCollection = await getCollection('conversations');
-
-    const newConversation = {
-      user_id: userId,
+    const chatSession = {
+      user_id: studentId,
       title: title || 'New Conversation',
       created_at: new Date(),
       updated_at: new Date(),
       message_count: 0
     };
 
-    const result = await conversationsCollection.insertOne(newConversation);
+    const insertionRecord = await conversationCollection.insertOne(chatSession);
 
     res.json({
       success: true,
       data: {
-        id: result.insertedId.toString(),
-        title: newConversation.title,
-        created_at: newConversation.created_at
+        id: insertionRecord.insertedId.toString(),
+        title: chatSession.title,
+        created_at: chatSession.created_at
       }
     });
   } catch (error) {
-    console.error("Create chat error:", error);
-    res.status(500).json({ 
-      success: false, 
-      message: "Failed to create chat" 
-    });
+    res.status(500).json({ success: false, message: "Failed to create chat" });
   }
 };
 
 export const getChatMessages = async (req, res) => {
   try {
-    const chatId = req.params.id;
-    const userId = req.user.id;
+    const { id: chatId } = req.params;
+    const studentId = req.user.id;
+    const chatHistoryCollection = await getCollection("messages");
 
-    const messagesCollection = await getCollection("messages");
-
-    const messages = await messagesCollection
-      .find({
-        conversation_id: chatId,
-        user_id: userId
-      })
+    const messageThread = await chatHistoryCollection
+      .find({ conversation_id: chatId, user_id: studentId })
       .sort({ sequence: 1, created_at: 1 })
       .toArray();
 
-    const dedupedMessages = [];
-    const seenSignatures = new Set();
-    
-    for (const msg of messages) {
-      const timestamp = msg.created_at || msg.createdAt;
-      const timestampSec = Math.floor(new Date(timestamp).getTime() / 1000);
-      const signature = `${chatId}|${msg.is_bot}|${msg.message}|${timestampSec}`;
-      
-      if (!seenSignatures.has(signature)) {
-        seenSignatures.add(signature);
-        dedupedMessages.push(msg);
-        console.log(`Keeping message: ${msg.message.substring(0, 50)}...`);
-      } else {
-        console.log(`Skipping duplicate: ${msg.message.substring(0, 50)}...`);
-      }
-    }
+    const uniqueSignatures = new Set();
+    const distinctMessages = messageThread.filter(msg => {
+      const timeReference = msg.created_at || msg.createdAt;
+      const signature = `${chatId}|${msg.is_bot}|${msg.message}|${Math.floor(new Date(timeReference).getTime() / 1000)}`;
+      if (uniqueSignatures.has(signature)) return false;
+      uniqueSignatures.add(signature);
+      return true;
+    });
 
     res.json({
       success: true,
-      data: dedupedMessages.map(msg => ({
+      data: distinctMessages.map(msg => ({
         id: msg._id.toString(),
         message: msg.message,
         is_bot: msg.is_bot,
@@ -110,522 +88,345 @@ export const getChatMessages = async (req, res) => {
         confidence: msg.confidence || 0
       })),
       metadata: {
-        total: messages.length,
-        deduped: dedupedMessages.length,
-        duplicates_removed: messages.length - dedupedMessages.length
+        total: messageThread.length,
+        deduped: distinctMessages.length,
+        duplicates_removed: messageThread.length - distinctMessages.length
       }
     });
   } catch (error) {
-    console.error("Get messages error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch messages"
-    });
+    res.status(500).json({ success: false, message: "Failed to fetch messages" });
   }
 };
 
 export const sendMessageToRag = async (req, res) => {
   try {
-    const { message, conversation_id, university_name } = req.body;
-    const userId = req.user.id;
+    const { message: studentQuery, conversation_id, university_name } = req.body;
+    const studentId = req.user.id;
 
-    console.log('Processing enhanced RAG request:', { 
-      message: message?.substring(0, 100), 
-      conversation_id, 
-      university_name,
-      userId 
-    });
-
-    if (!message || !conversation_id) {
-      return res.status(400).json({ 
-        success: false,
-        message: "Message and conversation_id are required" 
-      });
+    if (!studentQuery || !conversation_id) {
+      return res.status(400).json({ success: false, message: "Message and conversation_id are required" });
     }
 
-    //const chatsCollection = await getCollection('chats');
-    const messagesCollection = await getCollection('messages');
-
-    // Use string IDs unless a valid 24-hex string is provided
-    let conversationKey = conversation_id;
+    const messageArchive = await getCollection('messages');
+    let threadIdentifier = conversation_id;
     if (/^[a-fA-F0-9]{24}$/.test(conversation_id)) {
-      try {
-        conversationKey = new ObjectId(conversation_id);
-      } catch {
-        conversationKey = conversation_id; // fallback to plain string
-      }
+      try { threadIdentifier = new ObjectId(conversation_id); } catch { threadIdentifier = conversation_id; }
     }
 
-    // DEDUPLICATION: Check if this exact message was just saved (within last 2 seconds)
-    const now = new Date();
-    const twoSecsAgo = new Date(now.getTime() - 2000);
-    
-    const recentDuplicate = await messagesCollection.findOne({
-      user_id: userId,
-      conversation_id: conversation_id,
-      message: message,
+    const timeThreshold = new Date(Date.now() - 2000);
+    const existingDuplicate = await messageArchive.findOne({
+      user_id: studentId,
+      conversation_id,
+      message: studentQuery,
       is_bot: false,
-      created_at: { $gte: twoSecsAgo }
+      created_at: { $gte: timeThreshold }
     });
     
-    if (recentDuplicate) {
-      console.log(`SKIPPING: Duplicate user message detected (created ${(now - recentDuplicate.created_at)/1000}s ago)`);
-      return res.status(409).json({
-        success: false,
-        message: "This message was already sent. Please wait for a response.",
-        isDuplicate: true
-      });
+    if (existingDuplicate) {
+      return res.status(409).json({ success: false, message: "This message was already sent. Please wait for a response.", isDuplicate: true });
     }
 
-    const userMessage = {
-      user_id: userId, // store as plain string for consistency
-      conversation_id: conversation_id, // keep as string for flexibility
-      message: message,
+    await messageArchive.insertOne({
+      user_id: studentId,
+      conversation_id,
+      message: studentQuery,
       is_bot: false,
       created_at: new Date(),
       timestamp: new Date().toISOString()
-    };
+    });
 
-    const userMsgResult = await messagesCollection.insertOne(userMessage);
-    console.log('Saved user message to MongoDB, ID:', userMsgResult.insertedId);
-
-    // Load User Assessment Profile from user_assessments collection
-    let assessmentProfile = null;
+    let studentProfile = null;
     try {
-      const assessmentsCollection = await getCollection('user_assessments');
-      let userQueryObjId = null;
-      if (/^[a-fA-F0-9]{24}$/.test(userId)) {
-        try { userQueryObjId = new ObjectId(userId); } catch {}
+      const profileCollection = await getCollection('user_assessments');
+      let studentObjId = null;
+      if (/^[a-fA-F0-9]{24}$/.test(studentId)) {
+        try { studentObjId = new ObjectId(studentId); } catch {}
       }
       
-      const query = userQueryObjId ? { $or: [{ user_id: userQueryObjId }, { user_id: userId }] } : { user_id: userId };
-      
-      const assessment = await assessmentsCollection.findOne(query, { sort: { created_at: -1 } });
-      if (assessment && assessment.assessment_data) {
-        assessmentProfile = assessment.assessment_data;
-        console.log(` Found assessment for user ${userId}`);
+      const searchParams = studentObjId ? { $or: [{ user_id: studentObjId }, { user_id: studentId }] } : { user_id: studentId };
+      const assessmentRecord = await profileCollection.findOne(searchParams, { sort: { created_at: -1 } });
+      if (assessmentRecord?.assessment_data) {
+        studentProfile = assessmentRecord.assessment_data;
       }
-    } catch (e) {
-      console.warn("Could not load user assessment profile", e);
-    }
+    } catch {}
 
-    // Load Chat History (last 20 messages)
-    let chatHistory = [];
+    let contextThread = [];
     try {
-      const previousMessages = await messagesCollection.find({
-        conversation_id: conversation_id
-      })
-      .sort({ created_at: -1 })
-      .limit(20) // fetch last 20 messages
-      .toArray();
+      const priorExchanges = await messageArchive.find({ conversation_id })
+        .sort({ created_at: -1 })
+        .limit(20)
+        .toArray();
       
-      chatHistory = previousMessages.reverse().map(msg => ({
-        role: msg.is_bot ? 'assistant' : 'user',
-        content: msg.message
+      contextThread = priorExchanges.reverse().map(exchange => ({
+        role: exchange.is_bot ? 'assistant' : 'user',
+        content: exchange.message
       }));
       
-      // (which will be processed as the current prompt query)
-      if (chatHistory.length > 0 && chatHistory[chatHistory.length - 1].content === message) {
-        chatHistory.pop();
+      if (contextThread.length > 0 && contextThread[contextThread.length - 1].content === studentQuery) {
+        contextThread.pop();
       }
-    } catch (e) {
-      console.warn("Could not load chat history", e);
-    }
+    } catch {}
 
-    let finalMessage = message;
+    let processedPrompt = studentQuery;
     if (req.body?.user_context?.is_coach_mode) {
-      if (chatHistory.length === 0) {
-        finalMessage = `[SYSTEM NOTE: Act strictly as a Socratic career coach. Ask me one question at a time to uncover my strengths. Do not list universities yet.]\n\nUser: ${message}`;
-      } else {
-        finalMessage = `[SYSTEM NOTE: Continue acting strictly as a Socratic career coach. Uncover my strengths. Keep answers short.]\n\nUser: ${message}`;
-      }
+      const coachDirective = contextThread.length === 0 
+        ? `[SYSTEM NOTE: Act strictly as a Socratic career coach. Ask me one question at a time to uncover my strengths. Do not list universities yet.]\n\nUser: ` 
+        : `[SYSTEM NOTE: Continue acting strictly as a Socratic career coach. Uncover my strengths. Keep answers short.]\n\nUser: `;
+      processedPrompt = coachDirective + studentQuery;
     }
 
-    const ragRequest = {
-      message: finalMessage,
-      conversation_id: conversation_id,
+    const aiPayload = {
+      message: processedPrompt,
+      conversation_id,
       university_name: university_name || null,
-      chat_history: chatHistory,
+      chat_history: contextThread,
       user_context: {
         ...(req.body?.user_context || {}),
-        user_id: userId,
+        user_id: studentId,
         preferred_university: university_name,
-        assessment_data: assessmentProfile || req.body?.user_context?.assessment_data,
-        conversation_history_length: chatHistory.length
+        assessment_data: studentProfile || req.body?.user_context?.assessment_data,
+        conversation_history_length: contextThread.length
       }
     };
 
-    console.log('Sending to enhanced RAG service...');
-
-    const ragResponse = await axios.post(process.env.AI_SERVICE_URL || "http://localhost:8000/respond", ragRequest, {
-      headers: {
-        "Content-Type": "application/json",
-        "x-user-id": userId,
-      },
-      timeout: 30000 // 30 second timeout
+    const ragServiceCall = await axios.post(process.env.AI_SERVICE_URL || "http://localhost:8000/respond", aiPayload, {
+      headers: { "Content-Type": "application/json", "x-user-id": studentId },
+      timeout: 30000
     });
 
-    const ragData = ragResponse.data;
-    console.log('RAG service response received:', {
-      confidence: ragData.confidence,
-      sources_count: ragData.sources?.length || 0,
-      response_length: ragData.reply?.length || 0
-    });
-
-    // PROFESSIONALIZED BOT REPLY: Structure and enhance bot response
-    let professionalReply = ragData.reply || "I'm here to help with Ghanaian university information.";
+    const ragContent = ragServiceCall.data;
     
-    if (!ragData.reply || ragData.reply.length < 10) {
-      professionalReply = `**University Information** 🎓\n\n${ragData.reply || 'I apologize, I did not fully understand your question.'}\n\n**💡 Tip:** Try asking about specific universities like UG, KNUST, or UCC.`;
+    let structuredResponse = ragContent.reply || "I'm here to help with Ghanaian university information.";
+    if (!ragContent.reply || ragContent.reply.length < 10) {
+      structuredResponse = `**University Information** 🎓\n\n${ragContent.reply || 'I apologize, I did not fully understand your question.'}\n\n**💡 Tip:** Try asking about specific universities like UG, KNUST, or UCC.`;
     }
 
-    // Save AI response to MongoDB with consistent field naming
-    const aiMessage = {
-      user_id: userId, // plain string
-      conversation_id: conversation_id, // keep as string
-      message: professionalReply,
+    await messageArchive.insertOne({
+      user_id: studentId,
+      conversation_id,
+      message: structuredResponse,
       is_bot: true,
       created_at: new Date(),
-      timestamp: ragData.timestamp || new Date().toISOString(),
-      sources: ragData.sources || [],
-      confidence: ragData.confidence || 0.0,
+      timestamp: ragContent.timestamp || new Date().toISOString(),
+      sources: ragContent.sources || [],
+      confidence: ragContent.confidence || 0.0,
       rag_metadata: {
-        source_count: ragData.sources?.length || 0,
-        processing_time: ragData.processing_time,
-        model_used: ragData.model_used || 'hybrid-rag'
+        source_count: ragContent.sources?.length || 0,
+        processing_time: ragContent.processing_time,
+        model_used: ragContent.model_used || 'hybrid-rag'
       }
-    };
-
-    await messagesCollection.insertOne(aiMessage);
-    console.log('Saved AI response to MongoDB');
-
-    const conversationsCollection = await getCollection('conversations');
-    
-    const messageCount = await messagesCollection.countDocuments({
-      conversation_id: conversation_id
     });
+
+    const threadCollection = await getCollection('conversations');
+    const totalExchanges = await messageArchive.countDocuments({ conversation_id });
     
-    let conversationTitle = null; // Initialize as null instead of conversation_id
-    if (messageCount === 2) {
-      console.log('First message exchange detected, generating conversation title...');
+    let dynamicTitle = null;
+    if (totalExchanges === 2) {
       try {
         const { generateTitleWithFallback } = await import('../utils/llmTitleGenerator.js');
-        const titleResult = await generateTitleWithFallback(
-          message,
-          professionalReply,
-          university_name,
-          () => message.substring(0, 50).trim()
-        );
-        conversationTitle = titleResult.title;
-        console.log(`Generated conversation title: "${conversationTitle}" (method: ${titleResult.method})`);
-      } catch (titleError) {
-        console.error('Title generation failed:', titleError);
-        const cleanMessage = message.trim();
-        conversationTitle = cleanMessage.length > 50 
-          ? cleanMessage.substring(0, 50).trim() + '...' 
-          : cleanMessage;
-        console.warn(`Using fallback title: "${conversationTitle}"`);
+        const generatedHeader = await generateTitleWithFallback(studentQuery, structuredResponse, university_name, () => studentQuery.substring(0, 50).trim());
+        dynamicTitle = generatedHeader.title;
+      } catch {
+        const cleanPrompt = studentQuery.trim();
+        dynamicTitle = cleanPrompt.length > 50 ? cleanPrompt.substring(0, 50).trim() + '...' : cleanPrompt;
       }
     }
     
-    const updateOps = {
-      last_message: professionalReply.substring(0, 100),
+    const updateOperations = {
+      last_message: structuredResponse.substring(0, 100),
       updated_at: new Date(),
-      message_count: messageCount
+      message_count: totalExchanges
     };
+    if (dynamicTitle) updateOperations.title = dynamicTitle;
     
-    if (conversationTitle) {
-      updateOps.title = conversationTitle;
-    }
-    
-    await conversationsCollection.updateOne(
-      { 
-        _id: conversation_id, // use string ID
-        user_id: userId 
-      },
-      {
-        $set: updateOps,
-        $setOnInsert: {
-          created_at: new Date(),
-          user_id: userId,
-          title: 'New Conversation' // Default title for new conversations
-        }
-      },
+    await threadCollection.updateOne(
+      { _id: conversation_id, user_id: studentId },
+      { $set: updateOperations, $setOnInsert: { created_at: new Date(), user_id: studentId, title: 'New Conversation' } },
       { upsert: true }
     );
-    console.log(' Updated conversation metadata' + (conversationTitle ? ` with title: "${conversationTitle}"` : ''));
 
     res.json({
       success: true,
-      message: professionalReply,
-      reply: professionalReply, // For backward compatibility
-      conversation_id: conversation_id,
-      conversation_title: conversationTitle, // Include generated title
-      sources: ragData.sources || [],
-      confidence: ragData.confidence || 0.0,
-      timestamp: ragData.timestamp || new Date().toISOString(),
+      message: structuredResponse,
+      reply: structuredResponse,
+      conversation_id,
+      conversation_title: dynamicTitle,
+      sources: ragContent.sources || [],
+      confidence: ragContent.confidence || 0.0,
+      timestamp: ragContent.timestamp || new Date().toISOString(),
       metadata: {
         university_context: university_name,
-        response_type: ragData.confidence > 0.85 ? 'local_knowledge' : 'hybrid_search',
-        processing_info: ragData.processing_info,
-        message_count: messageCount
+        response_type: ragContent.confidence > 0.85 ? 'local_knowledge' : 'hybrid_search',
+        processing_info: ragContent.processing_info,
+        message_count: totalExchanges
       }
     });
 
   } catch (error) {
-    console.error(" Enhanced RAG processing error:", error);
-    
-    // Provide user-friendly error message in Ghanaian English
-    const errorMessage = error.response?.status === 500 
-      ? "Ei, the AI service dey down small. Please try again in a few minutes."
-      : error.response?.status === 404
-      ? "I no fit find the information you dey look for. Please try a different question."
-      : error.code === 'ECONNREFUSED'
-      ? "The AI service no dey respond right now. Please try again later."
+    const errorFeedback = error.response?.status === 500 ? "Ei, the AI service dey down small. Please try again in a few minutes."
+      : error.response?.status === 404 ? "I no fit find the information you dey look for. Please try a different question."
+      : error.code === 'ECONNREFUSED' ? "The AI service no dey respond right now. Please try again later."
       : "I get some technical wahala right now. Please try again or contact support.";
 
     res.status(error.response?.status || 500).json({ 
       success: false,
-      message: errorMessage,
+      message: errorFeedback,
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
       conversation_id: req.body.conversation_id
     });
   }
 };
 
-// 🧩 Demo chat endpoint (no authentication required)
 export const sendDemoMessage = async (req, res) => {
   try {
-    const { message, conversation_id } = req.body;
-
-    console.log(`📥 Demo message: ${message.substring(0, 100)}...`);
-
-    if (!message || !conversation_id) {
-      return res.status(400).json({
-        success: false,
-        message: "Message and conversation_id are required"
-      });
+    const { message: demoQuery, conversation_id } = req.body;
+    if (!demoQuery || !conversation_id) {
+      return res.status(400).json({ success: false, message: "Message and conversation_id are required" });
     }
 
-    const aiServiceUrl = process.env.AI_SERVICE_URL || "http://localhost:8000";
-    console.log(` Sending demo request to: ${aiServiceUrl}/respond`);
+    const aiEndpoint = process.env.AI_SERVICE_URL || "http://localhost:8000";
     
     try {
-      const response = await axios.post(`${aiServiceUrl}/respond`, {
-        message,
-        conversation_id: conversation_id,
-        user_context: {
-          user_id: 'demo_user',
-          demo_mode: true,
-          timestamp: new Date().toISOString()
-        }
-      }, {
-        timeout: 30000,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      console.log(" Demo response received from RAG service");
+      const serviceResponse = await axios.post(`${aiEndpoint}/respond`, {
+        message: demoQuery,
+        conversation_id,
+        user_context: { user_id: 'demo_user', demo_mode: true, timestamp: new Date().toISOString() }
+      }, { timeout: 30000, headers: { 'Content-Type': 'application/json' } });
 
       res.json({
         success: true,
-        reply: response.data.reply || "I'm here to help with Ghanaian university information!",
-        sources: response.data.sources || [],
-        confidence: response.data.confidence || 0.5,
-        processing_time: response.data.processing_time || 0,
+        reply: serviceResponse.data.reply || "I'm here to help with Ghanaian university information!",
+        sources: serviceResponse.data.sources || [],
+        confidence: serviceResponse.data.confidence || 0.5,
+        processing_time: serviceResponse.data.processing_time || 0,
         demo_mode: true
       });
-
-    } catch (ragError) {
-      console.error(" Demo RAG Service Error:", ragError.message);
-      
-      const fallbackReply = generateDemoFallbackResponse(message);
-      
+    } catch {
       res.json({
         success: true,
-        reply: fallbackReply,
+        reply: generateDemoFallbackResponse(demoQuery),
         sources: [{"source": "Local Knowledge", "type": "fallback"}],
         confidence: 0.3,
         demo_mode: true
       });
     }
-
   } catch (error) {
-    console.error(" Demo Chat Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to process your message. Please try again.",
-      demo_mode: true
-    });
+    res.status(500).json({ success: false, message: "Failed to process your message. Please try again.", demo_mode: true });
   }
 };
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = './uploads/';
-    if (!fs.existsSync(uploadDir)){
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
+const storageConfig = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadPath = './uploads/';
+    if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
+    cb(null, uploadPath);
   },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  filename: (req, file, cb) => {
+    cb(null, `${file.fieldname}-${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(file.originalname)}`);
   }
 });
 
-const upload = multer({ 
-  storage: storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-    files: 5 // Maximum 5 files
-  },
-  fileFilter: function (req, file, cb) {
-    // Allow images, documents, and PDFs
-    const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt|rtf/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only images, PDFs, and documents are allowed!'));
-    }
+const uploadHandler = multer({ 
+  storage: storageConfig,
+  limits: { fileSize: 10 * 1024 * 1024, files: 5 },
+  fileFilter: (req, file, cb) => {
+    const isValidFormat = /jpeg|jpg|png|gif|pdf|doc|docx|txt|rtf/.test(path.extname(file.originalname).toLowerCase()) && 
+                          /jpeg|jpg|png|gif|pdf|doc|docx|txt|rtf/.test(file.mimetype);
+    if (isValidFormat) return cb(null, true);
+    cb(new Error('Only images, PDFs, and documents are allowed!'));
   }
 });
 
-// 🧩 Send message with file attachments
+export const uploadMiddleware = uploadHandler.array('files', 5);
+
 export const sendMessageWithFiles = async (req, res) => {
   try {
-    const { message, conversation_id, university_name } = req.body;
-    const userId = req.user?.id || 'demo_user';
-    const files = req.files || [];
+    const { message: studentCaption, conversation_id, university_name } = req.body;
+    const studentId = req.user?.id || 'demo_user';
+    const uploadedFiles = req.files || [];
 
-    console.log(' Processing message with files:', {
-      message: message?.substring(0, 100),
-      fileCount: files.length,
-      conversation_id,
-      university_name
-    });
-
-    if (!message && files.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Either message or files are required"
-      });
+    if (!studentCaption && uploadedFiles.length === 0) {
+      return res.status(400).json({ success: false, message: "Either message or files are required" });
     }
 
-    const chatsCollection = await getCollection('chats');
-    const messagesCollection = await getCollection('messages');
+    const conversationArchive = await getCollection('chats');
+    const messageArchive = await getCollection('messages');
 
-    // Use string IDs unless a valid 24-hex string is provided
-    let conversationKey = conversation_id;
+    let threadIdentifier = conversation_id;
     if (/^[a-fA-F0-9]{24}$/.test(conversation_id)) {
-      try {
-        conversationKey = new ObjectId(conversation_id);
-      } catch {
-        conversationKey = conversation_id;
-      }
+      try { threadIdentifier = new ObjectId(conversation_id); } catch {}
     }
 
-    const fileAttachments = files.map(file => ({
-      originalName: file.originalname,
-      filename: file.filename,
-      mimetype: file.mimetype,
-      size: file.size,
-      path: file.path
+    const fileRecords = uploadedFiles.map(fileItem => ({
+      originalName: fileItem.originalname,
+      filename: fileItem.filename,
+      mimetype: fileItem.mimetype,
+      size: fileItem.size,
+      path: fileItem.path
     }));
 
-    let messageText = message || '';
-    if (files.length > 0) {
-      const fileInfo = files.map(f => `📎 ${f.originalname} (${(f.size/1024).toFixed(1)}KB)`).join('\n');
-      messageText = message ? `${message}\n\n${fileInfo}` : fileInfo;
+    let aggregatedMessage = studentCaption || '';
+    if (uploadedFiles.length > 0) {
+      const summary = uploadedFiles.map(f => `📎 ${f.originalname} (${(f.size/1024).toFixed(1)}KB)`).join('\n');
+      aggregatedMessage = studentCaption ? `${studentCaption}\n\n${summary}` : summary;
     }
 
-    const userMessage = {
-      user_id: userId, // store as plain string (even for demo)
-      conversation_id: conversationKey,
-      message: messageText,
+    await messageArchive.insertOne({
+      user_id: studentId,
+      conversation_id: threadIdentifier,
+      message: aggregatedMessage,
       is_bot: false,
       created_at: new Date(),
       timestamp: new Date().toISOString(),
-      attachments: fileAttachments
-    };
-
-    await messagesCollection.insertOne(userMessage);
-    console.log(' Saved user message with files to MongoDB');
-
-    const ragRequest = {
-      message: message || `User sent ${files.length} file(s)`,
-      conversation_id: conversation_id,
-      university_name: university_name || null,
-      files: fileAttachments,
-      user_context: {
-        user_id: userId,
-        preferred_university: university_name,
-        has_attachments: files.length > 0,
-        file_types: files.map(f => f.mimetype),
-        conversation_history_length: await messagesCollection.countDocuments({
-          conversation_id: conversation_id
-        })
-      }
-    };
-
-    console.log(' Sending message with files to RAG service...');
-
-    const ragResponse = await axios.post(
-      process.env.AI_SERVICE_URL || "http://localhost:8000/respond", 
-      ragRequest, 
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-id": userId,
-        },
-        timeout: 30000
-      }
-    );
-
-    const ragData = ragResponse.data;
-    console.log('📥 RAG service response for files received:', {
-      confidence: ragData.confidence,
-      sources_count: ragData.sources?.length || 0,
-      response_length: ragData.reply?.length || 0
+      attachments: fileRecords
     });
 
-    // Save AI response to MongoDB
-    const aiMessage = {
-      user_id: userId,
-      conversation_id: conversationKey,
-      message: ragData.reply,
-      is_bot: true,
-      created_at: new Date(),
-      timestamp: ragData.timestamp || new Date().toISOString(),
-      sources: ragData.sources || [],
-      confidence: ragData.confidence || 0.0,
-      rag_metadata: {
-        source_count: ragData.sources?.length || 0,
-        processing_time: ragData.processing_time,
-        model_used: ragData.model_used || 'hybrid-rag',
-        processed_files: files.length
+    const filePayload = {
+      message: studentCaption || `User sent ${uploadedFiles.length} file(s)`,
+      conversation_id,
+      university_name: university_name || null,
+      files: fileRecords,
+      user_context: {
+        user_id: studentId,
+        preferred_university: university_name,
+        has_attachments: uploadedFiles.length > 0,
+        file_types: uploadedFiles.map(f => f.mimetype),
+        conversation_history_length: await messageArchive.countDocuments({ conversation_id })
       }
     };
 
-    await messagesCollection.insertOne(aiMessage);
-    console.log(' Saved AI response for files to MongoDB');
+    const serviceInteraction = await axios.post(
+      process.env.AI_SERVICE_URL || "http://localhost:8000/respond", 
+      filePayload, 
+      { headers: { "Content-Type": "application/json", "x-user-id": studentId }, timeout: 30000 }
+    );
 
-    await chatsCollection.updateOne(
-      { 
-        user_id: userId, 
-        conversation_id: conversationKey 
-      },
+    const serviceResult = serviceInteraction.data;
+
+    await messageArchive.insertOne({
+      user_id: studentId,
+      conversation_id: threadIdentifier,
+      message: serviceResult.reply,
+      is_bot: true,
+      created_at: new Date(),
+      timestamp: serviceResult.timestamp || new Date().toISOString(),
+      sources: serviceResult.sources || [],
+      confidence: serviceResult.confidence || 0.0,
+      rag_metadata: {
+        source_count: serviceResult.sources?.length || 0,
+        processing_time: serviceResult.processing_time,
+        model_used: serviceResult.model_used || 'hybrid-rag',
+        processed_files: uploadedFiles.length
+      }
+    });
+
+    await conversationArchive.updateOne(
+      { user_id: studentId, conversation_id: threadIdentifier },
       {
         $set: {
-          last_message: ragData.reply.substring(0, 100),
+          last_message: serviceResult.reply.substring(0, 100),
           last_updated: new Date(),
-          message_count: await messagesCollection.countDocuments({
-            conversation_id: conversation_id
-          }),
+          message_count: await messageArchive.countDocuments({ conversation_id }),
           has_attachments: true
         }
       },
@@ -634,51 +435,45 @@ export const sendMessageWithFiles = async (req, res) => {
 
     res.json({
       success: true,
-      message: ragData.reply,
-      reply: ragData.reply,
-      conversation_id: conversation_id,
-      sources: ragData.sources || [],
-      confidence: ragData.confidence || 0.0,
-      timestamp: ragData.timestamp || new Date().toISOString(),
-      files_processed: files.length,
+      message: serviceResult.reply,
+      reply: serviceResult.reply,
+      conversation_id,
+      sources: serviceResult.sources || [],
+      confidence: serviceResult.confidence || 0.0,
+      timestamp: serviceResult.timestamp || new Date().toISOString(),
+      files_processed: uploadedFiles.length,
       metadata: {
         university_context: university_name,
-        response_type: ragData.confidence > 0.85 ? 'local_knowledge' : 'hybrid_search',
-        processing_info: ragData.processing_info,
-        attachments: fileAttachments
+        response_type: serviceResult.confidence > 0.85 ? 'local_knowledge' : 'hybrid_search',
+        processing_info: serviceResult.processing_info,
+        attachments: fileRecords
       }
     });
 
   } catch (error) {
-    console.error(" File upload processing error:", error);
-    
-    const errorMessage = error.response?.status === 500 
-      ? "The AI service is having trouble processing your files. Please try again."
-      : error.response?.status === 404
-      ? "I couldn't process the information in your files. Please try a different format."
-      : error.code === 'ECONNREFUSED'
-      ? "The AI service is not responding right now. Please try again later."
+    const feedbackMsg = error.response?.status === 500 ? "The AI service is having trouble processing your files. Please try again."
+      : error.response?.status === 404 ? "I couldn't process the information in your files. Please try a different format."
+      : error.code === 'ECONNREFUSED' ? "The AI service is not responding right now. Please try again later."
       : "There was an issue processing your files. Please try again or contact support.";
 
     res.status(error.response?.status || 500).json({ 
       success: false,
-      message: errorMessage,
+      message: feedbackMsg,
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
       conversation_id: req.body.conversation_id
     });
   }
 };
 
-// GET /api/history/:userId
 export const getHistory = async (req, res) => {
-  const { userId } = req.params;
-  if (!userId || typeof userId !== 'string') {
+  const { userId: studentId } = req.params;
+  if (!studentId || typeof studentId !== 'string') {
     return res.status(400).json({ success: false, message: 'Invalid userId parameter' });
   }
   try {
-    const messagesCollection = await getCollection('messages');
-    const pipeline = [
-      { $match: { user_id: userId } },
+    const threadCollection = await getCollection('messages');
+    const aggregationPipeline = [
+      { $match: { user_id: studentId } },
       { $sort: { conversation_id: 1, timestamp: 1 } },
       { $group: {
           _id: '$conversation_id',
@@ -688,184 +483,69 @@ export const getHistory = async (req, res) => {
       }},
       { $sort: { last_active: -1 } }
     ];
-    const cursor = messagesCollection.aggregate(pipeline);
-    const history = [];
-    for await (const doc of cursor) {
-      const last = doc.last_active;
-      history.push({
-        conversation_id: (doc._id && typeof doc._id === 'object' && doc._id.toString) ? doc._id.toString() : String(doc._id),
-        title: (doc.title || 'Untitled conversation').slice(0, 120),
-        last_active_date: last instanceof Date ? last.toISOString() : String(last || ''),
-        message_count: Number(doc.message_count || 0)
+    
+    const executionCursor = threadCollection.aggregate(aggregationPipeline);
+    const historyManifest = [];
+    for await (const threadItem of executionCursor) {
+      historyManifest.push({
+        conversation_id: threadItem._id?.toString ? threadItem._id.toString() : String(threadItem._id),
+        title: (threadItem.title || 'Untitled conversation').slice(0, 120),
+        last_active_date: threadItem.last_active instanceof Date ? threadItem.last_active.toISOString() : String(threadItem.last_active || ''),
+        message_count: Number(threadItem.message_count || 0)
       });
     }
-    return res.json({ success: true, history });
-  } catch (err) {
-    console.error(' GetHistory error:', err);
+    return res.json({ success: true, history: historyManifest });
+  } catch {
     return res.status(500).json({ success: false, message: 'Failed to fetch conversation history' });
   }
 };
 
-// GET /api/history/details/:conversationId
 export const getConversationDetails = async (req, res) => {
   const { conversationId } = req.params;
   if (!conversationId || typeof conversationId !== 'string') {
     return res.status(400).json({ success: false, message: 'Invalid conversationId parameter' });
   }
   try {
-    const messagesCollection = await getCollection('messages');
-    let queryConversationId = conversationId;
+    const detailsCollection = await getCollection('messages');
+    let searchId = conversationId;
     if (/^[a-fA-F0-9]{24}$/.test(conversationId)) {
-      try { queryConversationId = new ObjectId(conversationId); } catch { queryConversationId = conversationId; }
+      try { searchId = new ObjectId(conversationId); } catch {}
     }
-    const cursor = messagesCollection.find({ conversation_id: queryConversationId }).sort({ timestamp: 1 });
-    const messages = [];
-    for await (const doc of cursor) {
-      const ts = doc.timestamp;
-      const tsIso = ts instanceof Date ? ts.toISOString() : String(ts || '');
-      if (doc.message && doc.is_bot === false) {
-        messages.push({ role: 'user', content: doc.message, timestamp: tsIso });
-      } else if (doc.message && doc.is_bot === true) {
-        messages.push({ role: 'assistant', content: doc.message, timestamp: tsIso, meta: { confidence: doc.confidence, sources: doc.sources || [] } });
+    
+    const messageCursor = detailsCollection.find({ conversation_id: searchId }).sort({ timestamp: 1 });
+    const compiledMessages = [];
+    for await (const messageEntry of messageCursor) {
+      const timeReference = messageEntry.timestamp instanceof Date ? messageEntry.timestamp.toISOString() : String(messageEntry.timestamp || '');
+      if (messageEntry.message && messageEntry.is_bot === false) {
+        compiledMessages.push({ role: 'user', content: messageEntry.message, timestamp: timeReference });
+      } else if (messageEntry.message && messageEntry.is_bot === true) {
+        compiledMessages.push({ role: 'assistant', content: messageEntry.message, timestamp: timeReference, meta: { confidence: messageEntry.confidence, sources: messageEntry.sources || [] } });
       }
     }
-    return res.json({ success: true, conversation_id: conversationId, messages });
-  } catch (err) {
-    console.error(' GetConversationDetails error:', err);
+    return res.json({ success: true, conversation_id: conversationId, messages: compiledMessages });
+  } catch {
     return res.status(500).json({ success: false, message: 'Failed to fetch conversation thread' });
   }
 };
 
-export const uploadMiddleware = upload.array('files', 5);
-
 function generateDemoFallbackResponse(message) {
-  const messageLower = message.toLowerCase();
+  const normalizedQuery = message.toLowerCase();
   
-  if (messageLower.includes('hello') || messageLower.includes('hi') || messageLower.includes('hey')) {
-    return `Hello! 👋 Welcome to CERKYL - your AI assistant for Ghanaian university admissions!
-
-I can help you with:
-🎓 University information (UG, KNUST, UCC, UDS, etc.)
-📚 Program details and requirements
-💰 Fees and costs
-📝 Application procedures
-📞 Contact information
-🎯 Scholarship opportunities
-
-What would you like to know about Ghanaian universities?`;
+  if (['hello', 'hi', 'hey'].some(greeting => normalizedQuery.includes(greeting))) {
+    return `Hello! 👋 Welcome to CERKYL - your AI assistant for Ghanaian university admissions!\n\nI can help you with:\n🎓 University information (UG, KNUST, UCC, UDS, etc.)\n📚 Program details and requirements\n💰 Fees and costs\n📝 Application procedures\n📞 Contact information\n🎯 Scholarship opportunities\n\nWhat would you like to know about Ghanaian universities?`;
   }
   
-  if (messageLower.includes('university of ghana') || messageLower.includes('ug') || messageLower.includes('legon')) {
-    return `**University of Ghana (Legon) 🎓**
-
-**Location:** Legon, Accra
-**Established:** 1948
-**Motto:** "Integri Procedamus" (Let us proceed with integrity)
-
-**🔥 Popular Programs:**
-• **Computer Science** - 4 years, GHS 8,500/year
-• **Medicine** - 6 years, GHS 15,000/year  
-• **Business Administration** - 4 years, GHS 6,500/year
-• **Law** - 4 years, GHS 7,500/year
-• **Engineering** - 4 years, GHS 10,000/year
-
-**📋 General Requirements:**
-WASSCE with 6 credits (A1-C6) including English & Mathematics
-
-**📞 Contact Info:**
-• Phone: +233-30-213-8501
-• Email: admissions@ug.edu.gh
-• Website: www.ug.edu.gh
-
-**📅 Application Deadline:** March 31st (next academic year)
-**💳 Application Fee:** GHS 200
-
-Would you like specific information about any program?`;
+  if (['university of ghana', 'ug', 'legon'].some(term => normalizedQuery.includes(term))) {
+    return `**University of Ghana (Legon) 🎓**\n\n**Location:** Legon, Accra\n**Established:** 1948\n**Motto:** "Integri Procedamus" (Let us proceed with integrity)\n\n**🔥 Popular Programs:**\n• **Computer Science** - 4 years, GHS 8,500/year\n• **Medicine** - 6 years, GHS 15,000/year  \n• **Business Administration** - 4 years, GHS 6,500/year\n• **Law** - 4 years, GHS 7,500/year\n• **Engineering** - 4 years, GHS 10,000/year\n\n**📋 General Requirements:**\nWASSCE with 6 credits (A1-C6) including English & Mathematics\n\n**📞 Contact Info:**\n• Phone: +233-30-213-8501\n• Email: admissions@ug.edu.gh\n• Website: www.ug.edu.gh\n\n**📅 Application Deadline:** March 31st (next academic year)\n**💳 Application Fee:** GHS 200\n\nWould you like specific information about any program?`;
   }
   
-  if (messageLower.includes('knust') || messageLower.includes('kumasi') || messageLower.includes('kwame nkrumah')) {
-    return `**KNUST - Kwame Nkrumah University of Science and Technology 🔧**
-
-**Location:** Kumasi, Ashanti Region
-**Established:** 1952
-**Motto:** "Technology for Development and Progress"
-
-**🔥 Popular Programs:**
-• **Computer Engineering** - 4 years, GHS 9,500/year
-• **Civil Engineering** - 4 years, GHS 12,000/year
-• **Medicine** - 6 years, GHS 18,000/year
-• **Architecture** - 5 years, GHS 10,000/year
-• **Mechanical Engineering** - 4 years, GHS 11,000/year
-
-**📋 Requirements:**
-WASSCE with strong Math & Science subjects (A1-C6)
-
-**📞 Contact Info:**
-• Phone: +233-32-206-0331
-• Email: admissions@knust.edu.gh
-• Website: www.knust.edu.gh
-
-**📅 Application Deadline:** April 15th
-**💳 Application Fee:** GHS 250
-
-KNUST is Ghana's premier technology university! What program interests you?`;
+  if (['knust', 'kumasi', 'kwame nkrumah'].some(term => normalizedQuery.includes(term))) {
+    return `**KNUST - Kwame Nkrumah University of Science and Technology 🔧**\n\n**Location:** Kumasi, Ashanti Region\n**Established:** 1952\n**Motto:** "Technology for Development and Progress"\n\n**🔥 Popular Programs:**\n• **Computer Engineering** - 4 years, GHS 9,500/year\n• **Civil Engineering** - 4 years, GHS 12,000/year\n• **Medicine** - 6 years, GHS 18,000/year\n• **Architecture** - 5 years, GHS 10,000/year\n• **Mechanical Engineering** - 4 years, GHS 11,000/year\n\n**📋 Requirements:**\nWASSCE with strong Math & Science subjects (A1-C6)\n\n**📞 Contact Info:**\n• Phone: +233-32-206-0331\n• Email: admissions@knust.edu.gh\n• Website: www.knust.edu.gh\n\n**📅 Application Deadline:** April 15th\n**💳 Application Fee:** GHS 250\n\nKNUST is Ghana's premier technology university! What program interests you?`;
   }
   
-  if (messageLower.includes('fee') || messageLower.includes('cost') || messageLower.includes('money') || messageLower.includes('tuition')) {
-    return `**💰 University Fees in Ghana (2025/2026)**
-
-**🎓 University of Ghana:**
-• Arts/Business: GHS 7,000 - 8,500/year
-• Science: GHS 9,000 - 13,000/year
-• Medicine: GHS 16,000/year
-• Accommodation: GHS 2,800 - 4,200/year
-
-**🔧 KNUST:**
-• Engineering: GHS 10,000 - 13,000/year
-• Medicine: GHS 19,000/year
-• Architecture: GHS 11,000/year
-• Accommodation: GHS 3,800 - 5,500/year
-
-**🎓 UCC (Cape Coast):**
-• Education: GHS 6,000 - 8,500/year
-• Business: GHS 6,500 - 9,500/year
-• Accommodation: GHS 2,500 - 3,800/year
-
-**📝 Additional Costs:**
-• Application fees: GHS 200 - 300
-• Registration: GHS 500 - 800
-• Library/Lab fees: GHS 100 - 300
-
-**💡 Pro Tip:** Fees change annually. Always confirm current rates with university admissions offices!
-
-Need info about a specific university or program?`;
+  if (['fee', 'cost', 'money', 'tuition'].some(term => normalizedQuery.includes(term))) {
+    return `**💰 University Fees in Ghana (2025/2026)**\n\n**🎓 University of Ghana:**\n• Arts/Business: GHS 7,000 - 8,500/year\n• Science: GHS 9,000 - 13,000/year\n• Medicine: GHS 16,000/year\n• Accommodation: GHS 2,800 - 4,200/year\n\n**🔧 KNUST:**\n• Engineering: GHS 10,000 - 13,000/year\n• Medicine: GHS 19,000/year\n• Architecture: GHS 11,000/year\n• Accommodation: GHS 3,800 - 5,500/year\n\n**🎓 UCC (Cape Coast):**\n• Education: GHS 6,000 - 8,500/year\n• Business: GHS 6,500 - 9,500/year\n• Accommodation: GHS 2,500 - 3,800/year\n\n**📝 Additional Costs:**\n• Application fees: GHS 200 - 300\n• Registration: GHS 500 - 800\n• Library/Lab fees: GHS 100 - 300\n\n**💡 Pro Tip:** Fees change annually. Always confirm current rates with university admissions offices!\n\nNeed info about a specific university or program?`;
   }
   
-  // General response
-  return `**Welcome to CERKYL🎓**
-
-I'm here to help with Ghanaian university admissions. Here's what I can help you with:
-
-**🏫 Top Universities:**
-• University of Ghana (Legon)
-• KNUST (Kumasi)  
-• University of Cape Coast
-• University for Development Studies (Tamale)
-• UPSA (Accra)
-
-**📚 Information I Provide:**
-• Admission requirements
-• Program details & duration
-• Fees & costs
-• Application deadlines
-• Contact information
-• Scholarship opportunities
-
-**💬 Try asking:**
-• "Tell me about Computer Science at UG"
-• "What are KNUST engineering requirements?"
-• "How much are UCC fees?"
-• "When is the application deadline for UDS?"
-
-What would you like to know? I'm here to help! 😊`;
+  return `**Welcome to CERKYL🎓**\n\nI'm here to help with Ghanaian university admissions. Here's what I can help you with:\n\n**🏫 Top Universities:**\n• University of Ghana (Legon)\n• KNUST (Kumasi)  \n• University of Cape Coast\n• University for Development Studies (Tamale)\n• UPSA (Accra)\n\n**📚 Information I Provide:**\n• Admission requirements\n• Program details & duration\n• Fees & costs\n• Application deadlines\n• Contact information\n• Scholarship opportunities\n\n**💬 Try asking:**\n• "Tell me about Computer Science at UG"\n• "What are KNUST engineering requirements?"\n• "How much are UCC fees?"\n• "When is the application deadline for UDS?"\n\nWhat would you like to know? I'm here to help! 😊`;
 }

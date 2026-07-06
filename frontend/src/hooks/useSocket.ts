@@ -19,9 +19,9 @@ export const useSocket = () => {
 
   const loadInitialNotifications = useCallback(async () => {
     if (hasLoadedInitial.current) return;
-    
+
     try {
-      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ;
+      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL;
       const token = localStorage.getItem('token');
       if (!token) {
         return;
@@ -29,19 +29,19 @@ export const useSocket = () => {
       const response = await fetch(`${API_BASE_URL}/notifications?limit=10`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
         throw new Error(`Failed to load notifications: ${response.status}`);
       }
 
-      const data = await response.json();
-      if (data.success && Array.isArray(data.notifications)) {
-        const loadedNotifications: NotificationData[] = data.notifications.map((notif: any) => ({
+      const notificationsPayload = await response.json();
+      if (notificationsPayload.success && Array.isArray(notificationsPayload.notifications)) {
+        const loadedNotifications: NotificationData[] = notificationsPayload.notifications.map((notif: any) => ({
           id: notif.id,
           title: notif.title,
           message: notif.message,
@@ -58,12 +58,14 @@ export const useSocket = () => {
           readAt: notif.readAt ? new Date(notif.readAt) : undefined,
           readNowUrl: notif.readNowUrl,
           readNowExpiresAt: notif.readNowExpiresAt ? new Date(notif.readNowExpiresAt) : undefined,
-          scheduledDeletionAt: notif.scheduledDeletionAt ? new Date(notif.scheduledDeletionAt) : undefined,
-          isRealTime: false
+          scheduledDeletionAt: notif.scheduledDeletionAt
+            ? new Date(notif.scheduledDeletionAt)
+            : undefined,
+          isRealTime: false,
         }));
 
         setNotifications(loadedNotifications);
-        const unread = loadedNotifications.filter(n => !n.isRead).length;
+        const unread = loadedNotifications.filter((n) => !n.isRead).length;
         setUnreadCount(unread);
         hasLoadedInitial.current = true;
       }
@@ -83,7 +85,7 @@ export const useSocket = () => {
 
     isConnectingRef.current = true;
     // Remove /api path from base URL for Socket.io connection
-    const apiUrl = import.meta.env.VITE_API_BASE_URL ;
+    const apiUrl = import.meta.env.VITE_API_BASE_URL;
     const API_BASE_URL = apiUrl.replace(/\/api$/, '');
 
     if (socketRef.current) {
@@ -128,167 +130,167 @@ export const useSocket = () => {
         }
       });
 
-      socket.on('room-joined', (_data: any) => {
+      socket.on('room-joined', (_data: any) => {});
+
+      socket.on('disconnect', (reason: string) => {
+        setIsConnected(false);
+        isConnectingRef.current = false;
+
+        // Don't attempt reconnection if disconnected by client
+        if (reason === 'io client disconnect') {
+          reconnectAttemptsRef.current = 0;
+        }
       });
 
-    socket.on('disconnect', (reason: string) => {
-      setIsConnected(false);
-      isConnectingRef.current = false;
+      socket.on('connect_error', (error: Error) => {
+        console.error('Socket connection error:', error.message || error);
+        setIsConnected(false);
+        isConnectingRef.current = false;
+        reconnectAttemptsRef.current++;
 
-      // Don't attempt reconnection if disconnected by client
-      if (reason === 'io client disconnect') {
+        if (reconnectAttemptsRef.current >= 10) {
+          console.error('Max reconnection attempts reached');
+          if (socketRef.current) {
+            socketRef.current.disconnect();
+          }
+        }
+      });
+
+      socket.on('reconnect', (_attemptNumber: number) => {
+        setIsConnected(true);
+        isConnectingRef.current = false;
         reconnectAttemptsRef.current = 0;
-      }
-    });
 
-    socket.on('connect_error', (error: Error) => {
-      console.error('Socket connection error:', error.message || error);
-      setIsConnected(false);
-      isConnectingRef.current = false;
-      reconnectAttemptsRef.current++;
-
-      if (reconnectAttemptsRef.current >= 10) {
-        console.error('Max reconnection attempts reached');
-        if (socketRef.current) {
-          socketRef.current.disconnect();
+        // Re-join user room after reconnect
+        if (user?.id) {
+          socket.emit('join-user-room', user.id);
         }
-      }
-    });
 
-    socket.on('reconnect', (_attemptNumber: number) => {
-      setIsConnected(true);
-      isConnectingRef.current = false;
-      reconnectAttemptsRef.current = 0;
-      
-      // Re-join user room after reconnect
-      if (user?.id) {
-        socket.emit('join-user-room', user.id);
-      }
-
-      hasLoadedInitial.current = false;
-      loadInitialNotifications();
-    });
-
-    socket.on('reconnect_attempt', (_attemptNumber: number) => {
-    });
-
-    socket.on('reconnect_failed', () => {
-      console.error('Socket reconnection failed after all attempts');
-      setIsConnected(false);
-      isConnectingRef.current = false;
-    });
-
-    socket.on('error', (error: Error) => {
-      console.error('Socket error:', error);
-    });
-
-    // User-specific notification events
-    socket.on('notification', (notificationData: any) => {
-
-      const notification: NotificationData = {
-        id: notificationData.id || `notif_${Date.now()}`,
-        title: notificationData.title,
-        message: notificationData.message,
-        type: notificationData.type || 'info',
-        category: notificationData.category || 'general',
-        priority: notificationData.priority || 'normal',
-        actionUrl: notificationData.actionUrl,
-        link: notificationData.link || notificationData.actionUrl, // Only real URLs, no fake links
-        linkText: notificationData.linkText,
-        metadata: notificationData.metadata,
-        createdAt: new Date(notificationData.createdAt || Date.now()),
-        timestamp: notificationData.timestamp || new Date(notificationData.createdAt || Date.now()).toISOString(),
-        isRead: false,
-        isRealTime: true
-      };
-
-      setNotifications(prev => {
-
-        const exists = prev.some(n => 
-          n.id === notification.id || 
-          (n.title === notification.title && n.message === notification.message)
-        );
-        
-        if (exists) {
-          return prev;
-        }
-        
-        return [notification, ...prev];
+        hasLoadedInitial.current = false;
+        loadInitialNotifications();
       });
-      
-      setUnreadCount(prev => prev + 1);
 
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(notification.title, {
-          body: notification.message,
-          icon: '/glinax-icon.png',
-          tag: notification.category,
-          requireInteraction: notification.priority === 'urgent'
-        });
-      }
-    });
+      socket.on('reconnect_attempt', (_attemptNumber: number) => {});
 
-    socket.on('broadcast-notification', (notificationData: any) => {
-
-      const notification: NotificationData = {
-        id: notificationData.id || `broadcast_${Date.now()}`,
-        title: notificationData.title,
-        message: notificationData.message,
-        type: notificationData.type || 'info',
-        category: notificationData.category || 'general',
-        priority: notificationData.priority || 'normal',
-        actionUrl: notificationData.actionUrl,
-        link: notificationData.link || notificationData.actionUrl,
-        linkText: notificationData.linkText,
-        metadata: notificationData.metadata,
-        createdAt: new Date(notificationData.createdAt || Date.now()),
-        timestamp: notificationData.timestamp || new Date(notificationData.createdAt || Date.now()).toISOString(),
-        isRead: false,
-        isRealTime: true
-      };
-
-      setNotifications(prev => {
-
-        const exists = prev.some(n => 
-          n.id === notification.id || 
-          (n.title === notification.title && n.message === notification.message)
-        );
-        
-        if (exists) {
-          return prev;
-        }
-        
-        return [notification, ...prev];
+      socket.on('reconnect_failed', () => {
+        console.error('Socket reconnection failed after all attempts');
+        setIsConnected(false);
+        isConnectingRef.current = false;
       });
-      
-      setUnreadCount(prev => prev + 1);
 
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(notification.title, {
-          body: notification.message,
-          icon: '/glinax-icon.png',
-          badge: '/glinax-badge.png'
+      socket.on('error', (error: Error) => {
+        console.error('Socket error:', error);
+      });
+
+      // User-specific notification events
+      socket.on('notification', (notificationData: any) => {
+        const notification: NotificationData = {
+          id: notificationData.id || `notif_${Date.now()}`,
+          title: notificationData.title,
+          message: notificationData.message,
+          type: notificationData.type || 'info',
+          category: notificationData.category || 'general',
+          priority: notificationData.priority || 'normal',
+          actionUrl: notificationData.actionUrl,
+          link: notificationData.link || notificationData.actionUrl, // Only real URLs, no fake links
+          linkText: notificationData.linkText,
+          metadata: notificationData.metadata,
+          createdAt: new Date(notificationData.createdAt || Date.now()),
+          timestamp:
+            notificationData.timestamp ||
+            new Date(notificationData.createdAt || Date.now()).toISOString(),
+          isRead: false,
+          isRealTime: true,
+        };
+
+        setNotifications((prev) => {
+          const exists = prev.some(
+            (n) =>
+              n.id === notification.id ||
+              (n.title === notification.title && n.message === notification.message)
+          );
+
+          if (exists) {
+            return prev;
+          }
+
+          return [notification, ...prev];
         });
-      }
-    });
 
-    socket.on('notification_deleted', async (data: any) => {
-      const { notificationId } = data;
+        setUnreadCount((prev) => prev + 1);
 
-      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(notification.title, {
+            body: notification.message,
+            icon: '/glinax-icon.png',
+            tag: notification.category,
+            requireInteraction: notification.priority === 'urgent',
+          });
+        }
+      });
 
-      await fetchReplacementNotification();
-    });
-  } catch (error) {
-    console.error('Failed to create Socket.io connection:', error);
-    isConnectingRef.current = false;
-    setIsConnected(false);
-  }
+      socket.on('broadcast-notification', (notificationData: any) => {
+        const notification: NotificationData = {
+          id: notificationData.id || `broadcast_${Date.now()}`,
+          title: notificationData.title,
+          message: notificationData.message,
+          type: notificationData.type || 'info',
+          category: notificationData.category || 'general',
+          priority: notificationData.priority || 'normal',
+          actionUrl: notificationData.actionUrl,
+          link: notificationData.link || notificationData.actionUrl,
+          linkText: notificationData.linkText,
+          metadata: notificationData.metadata,
+          createdAt: new Date(notificationData.createdAt || Date.now()),
+          timestamp:
+            notificationData.timestamp ||
+            new Date(notificationData.createdAt || Date.now()).toISOString(),
+          isRead: false,
+          isRealTime: true,
+        };
+
+        setNotifications((prev) => {
+          const exists = prev.some(
+            (n) =>
+              n.id === notification.id ||
+              (n.title === notification.title && n.message === notification.message)
+          );
+
+          if (exists) {
+            return prev;
+          }
+
+          return [notification, ...prev];
+        });
+
+        setUnreadCount((prev) => prev + 1);
+
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(notification.title, {
+            body: notification.message,
+            icon: '/glinax-icon.png',
+            badge: '/glinax-badge.png',
+          });
+        }
+      });
+
+      socket.on('notification_deleted', async (data: any) => {
+        const { notificationId } = data;
+
+        setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+
+        await fetchReplacementNotification();
+      });
+    } catch (error) {
+      console.error('Failed to create Socket.io connection:', error);
+      isConnectingRef.current = false;
+      setIsConnected(false);
+    }
   }, [user?.id, isAuthenticated, loadInitialNotifications]);
 
   const fetchReplacementNotification = useCallback(async () => {
     try {
-      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ;
+      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL;
       const token = localStorage.getItem('token');
       if (!token) return;
 
@@ -298,18 +300,18 @@ export const useSocket = () => {
       const resp = await fetch(`${API_BASE_URL}/notifications?limit=5`, {
         method: 'GET',
         headers,
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!resp.ok) return;
 
-      const data = await resp.json();
-      if (data.success && data.notifications && data.notifications.length > 0) {
-        setNotifications(prev => {
-          const currentIds = new Set(prev.map(n => n.id));
+      const replacementPayload = await resp.json();
+      if (replacementPayload.success && replacementPayload.notifications && replacementPayload.notifications.length > 0) {
+        setNotifications((prev) => {
+          const currentIds = new Set(prev.map((n) => n.id));
           const newNotifications: NotificationData[] = [];
 
-          for (const newNotif of data.notifications) {
+          for (const newNotif of replacementPayload.notifications) {
             if (!currentIds.has(newNotif.id)) {
               const notification: NotificationData = {
                 id: newNotif.id,
@@ -323,15 +325,19 @@ export const useSocket = () => {
                 linkText: newNotif.linkText,
                 metadata: newNotif.metadata,
                 createdAt: new Date(newNotif.createdAt || newNotif.fetchedAt),
-                timestamp: newNotif.timestamp || new Date(newNotif.createdAt || newNotif.fetchedAt).toISOString(),
+                timestamp:
+                  newNotif.timestamp ||
+                  new Date(newNotif.createdAt || newNotif.fetchedAt).toISOString(),
                 isRead: newNotif.isRead || false,
                 readNowUrl: newNotif.readNowUrl,
-                readNowExpiresAt: newNotif.readNowExpiresAt ? new Date(newNotif.readNowExpiresAt) : undefined,
-                isRealTime: false
+                readNowExpiresAt: newNotif.readNowExpiresAt
+                  ? new Date(newNotif.readNowExpiresAt)
+                  : undefined,
+                isRealTime: false,
               };
               newNotifications.push(notification);
               currentIds.add(newNotif.id);
-              
+
               if (newNotifications.length >= 1) break;
             }
           }
@@ -339,7 +345,7 @@ export const useSocket = () => {
           if (newNotifications.length > 0) {
             return [...prev, ...newNotifications];
           }
-          
+
           return prev;
         });
       }
@@ -348,65 +354,76 @@ export const useSocket = () => {
     }
   }, []);
 
-  const markAsRead = useCallback(async (notificationId: string) => {
-    const now = new Date();
-    const optimisticDeletion = new Date(now.getTime() + 2 * 1000); // 2 seconds
+  const markAsRead = useCallback(
+    async (notificationId: string) => {
+      const now = new Date();
+      const optimisticDeletion = new Date(now.getTime() + 2 * 1000); // 2 seconds
 
-    // Optimistic UI update - mark as read and schedule deletion
-    setNotifications(prev =>
-      prev.map(n => n.id === notificationId ? {
-        ...n,
-        isRead: true,
-        readAt: now,
-        scheduledDeletionAt: optimisticDeletion,
-        metadata: { ...n.metadata, read: true }
-      } : n)
-    );
-    setUnreadCount(prev => Math.max(0, prev - 1));
-
-    try {
-      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL;
-      const token = localStorage.getItem('token');
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
-      const resp = await fetch(`${API_BASE_URL}/notifications/${notificationId}/read`, {
-        method: 'PUT',
-        headers,
-        credentials: 'include'
-      });
-
-      if (!resp.ok) throw new Error(`Failed to mark as read: ${resp.status}`);
-
-      const data = await resp.json();
-      const serverDeletionAt = data?.scheduledDeletionAt ? new Date(data.scheduledDeletionAt) : optimisticDeletion;
-
-      // Sync scheduledDeletionAt with server's value
-      setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, scheduledDeletionAt: serverDeletionAt } : n)
+      // Optimistic UI update - mark as read and schedule deletion
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === notificationId
+            ? {
+                ...n,
+                isRead: true,
+                readAt: now,
+                scheduledDeletionAt: optimisticDeletion,
+                metadata: { ...n.metadata, read: true },
+              }
+            : n
+        )
       );
-    } catch (err) {
-      console.error('Mark-as-read API failed:', err);
-      setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, scheduledDeletionAt: undefined } : n)
-      );
-    }
+      setUnreadCount((prev) => Math.max(0, prev - 1));
 
-    setTimeout(async () => {
-      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      try {
+        const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL;
+        const token = localStorage.getItem('token');
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      await fetchReplacementNotification();
-    }, 2 * 1000); // Changed from 5 to 2 seconds
-  }, [fetchReplacementNotification]);
+        const resp = await fetch(`${API_BASE_URL}/notifications/${notificationId}/read`, {
+          method: 'PUT',
+          headers,
+          credentials: 'include',
+        });
+
+        if (!resp.ok) throw new Error(`Failed to mark as read: ${resp.status}`);
+
+        const readMarkPayload = await resp.json();
+        const serverDeletionAt = readMarkPayload?.scheduledDeletionAt
+          ? new Date(readMarkPayload.scheduledDeletionAt)
+          : optimisticDeletion;
+
+        // Sync scheduledDeletionAt with server's value
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.id === notificationId ? { ...n, scheduledDeletionAt: serverDeletionAt } : n
+          )
+        );
+      } catch (err) {
+        console.error('Mark-as-read API failed:', err);
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notificationId ? { ...n, scheduledDeletionAt: undefined } : n))
+        );
+      }
+
+      setTimeout(async () => {
+        setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+
+        await fetchReplacementNotification();
+      }, 2 * 1000); // Changed from 5 to 2 seconds
+    },
+    [fetchReplacementNotification]
+  );
 
   const removeNotification = useCallback((notificationId: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== notificationId));
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+    setUnreadCount((prev) => Math.max(0, prev - 1));
   }, []);
 
   const markAllAsRead = useCallback(async () => {
     try {
-      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ;
+      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL;
       const token = localStorage.getItem('token');
       if (!token) {
         return { success: false };
@@ -415,17 +432,17 @@ export const useSocket = () => {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       headers['Authorization'] = `Bearer ${token}`;
 
-      const unreadCount = notifications.filter(n => !n.isRead).length;
+      const unreadCount = notifications.filter((n) => !n.isRead).length;
 
       const now = new Date();
       const optimisticDeletion = new Date(now.getTime() + 2 * 1000);
-      setNotifications(prev =>
-        prev.map(n => ({
+      setNotifications((prev) =>
+        prev.map((n) => ({
           ...n,
           isRead: true,
           readAt: now,
           scheduledDeletionAt: optimisticDeletion,
-          metadata: { ...n.metadata, read: true }
+          metadata: { ...n.metadata, read: true },
         }))
       );
       setUnreadCount(0);
@@ -433,7 +450,7 @@ export const useSocket = () => {
       const resp = await fetch(`${API_BASE_URL}/notifications/read-all`, {
         method: 'PUT',
         headers,
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!resp.ok) throw new Error(`Failed to mark all as read: ${resp.status}`);
@@ -443,7 +460,7 @@ export const useSocket = () => {
 
         for (let i = 0; i < Math.min(unreadCount, 5); i++) {
           await fetchReplacementNotification();
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
       }, 2 * 1000);
 
@@ -461,7 +478,7 @@ export const useSocket = () => {
 
   const accessReadMessage = useCallback(async (notificationId: string) => {
     try {
-      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ;
+      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL;
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('Not authenticated');
@@ -469,53 +486,59 @@ export const useSocket = () => {
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
       };
 
       const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}/read-message`, {
         method: 'GET',
         headers,
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
         if (response.status === 403) {
-          const data = await response.json();
+          const errorPayload = await response.json();
           return {
             success: false,
             expired: true,
-            message: data.message || '24-hour access window has expired'
+            message: errorPayload.message || '24-hour access window has expired',
           };
         }
         throw new Error(`Failed to access read message: ${response.status}`);
       }
 
-      const data = await response.json();
+      const accessPayload = await response.json();
 
-      setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? {
-          ...n,
-          firstAccessedAt: new Date(new Date(data.accessibleUntil).getTime() - 24 * 60 * 60 * 1000),
-          readMessageAccessibleUntil: new Date(data.accessibleUntil),
-          readMessageAvailable: true
-        } : n)
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === notificationId
+            ? {
+                ...n,
+                firstAccessedAt: new Date(
+                  new Date(accessPayload.accessibleUntil).getTime() - 24 * 60 * 60 * 1000
+                ),
+                readMessageAccessibleUntil: new Date(accessPayload.accessibleUntil),
+                readMessageAvailable: true,
+              }
+            : n
+        )
       );
 
       return {
         success: true,
-        fullContent: data.fullContent,
-        title: data.title,
-        accessibleUntil: new Date(data.accessibleUntil),
-        timeRemainingMinutes: data.timeRemainingMinutes,
-        isFirstAccess: data.isFirstAccess,
-        source: data.source,
-        link: data.link
+        fullContent: accessPayload.fullContent,
+        title: accessPayload.title,
+        accessibleUntil: new Date(accessPayload.accessibleUntil),
+        timeRemainingMinutes: accessPayload.timeRemainingMinutes,
+        isFirstAccess: accessPayload.isFirstAccess,
+        source: accessPayload.source,
+        link: accessPayload.link,
       };
     } catch (error) {
       console.error('Failed to access read message:', error);
       return {
         success: false,
-        error: (error as Error).message || 'Failed to access message'
+        error: (error as Error).message || 'Failed to access message',
       };
     }
   }, []);
@@ -542,7 +565,7 @@ export const useSocket = () => {
 
   const fetchReadMessages = useCallback(async () => {
     try {
-      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ;
+      const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL;
       const token = localStorage.getItem('token');
       if (!token) return;
 
@@ -552,14 +575,14 @@ export const useSocket = () => {
       const resp = await fetch(`${API_BASE_URL}/notifications/read-messages?limit=20`, {
         method: 'GET',
         headers,
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!resp.ok) return;
 
-      const data = await resp.json();
-      if (data.success && data.readMessages) {
-        const messages = data.readMessages.map((msg: any) => ({
+      const messagesPayload = await resp.json();
+      if (messagesPayload.success && messagesPayload.readMessages) {
+        const messages = messagesPayload.readMessages.map((msg: any) => ({
           id: msg.id,
           title: msg.title,
           message: msg.message,
@@ -573,11 +596,11 @@ export const useSocket = () => {
           createdAt: new Date(msg.createdAt || msg.fetchedAt),
           readAt: msg.readAt ? new Date(msg.readAt) : undefined,
           isRealTime: false,
-          timeRemaining: msg.timeRemaining
+          timeRemaining: msg.timeRemaining,
         }));
 
         setReadMessages(messages);
-        setReadMessagesCount(data.total || messages.length);
+        setReadMessagesCount(messagesPayload.total || messages.length);
       }
     } catch (err) {
       console.error('Failed to fetch read messages:', err);
@@ -587,17 +610,13 @@ export const useSocket = () => {
   useEffect(() => {
     const cleanupInterval = setInterval(() => {
       const now = new Date();
-      setNotifications(prev => {
-        const toDelete = prev.filter(n => 
-          n.scheduledDeletionAt && n.scheduledDeletionAt <= now
-        );
-        
+      setNotifications((prev) => {
+        const toDelete = prev.filter((n) => n.scheduledDeletionAt && n.scheduledDeletionAt <= now);
+
         if (toDelete.length > 0) {
-          return prev.filter(n => 
-            !n.scheduledDeletionAt || n.scheduledDeletionAt > now
-          );
+          return prev.filter((n) => !n.scheduledDeletionAt || n.scheduledDeletionAt > now);
         }
-        
+
         return prev;
       });
     }, 10 * 1000); // Check every 10 seconds
@@ -621,7 +640,7 @@ export const useSocket = () => {
       if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission();
       }
-    }
+    },
   };
 };
 

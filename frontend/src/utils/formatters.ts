@@ -20,16 +20,8 @@ export interface DateFormatOptions {
 /**
  * Format price with proper currency and locale
  */
-export const formatPrice = (
-  amount: number, 
-  options: PriceFormatOptions = {}
-): string => {
-  const {
-    currency = 'GHS',
-    locale = 'en-GH',
-    showSymbol = true,
-    precision = 2
-  } = options;
+export const formatPrice = (amount: number, options: PriceFormatOptions = {}): string => {
+  const { currency = 'GHS', locale = 'en-GH', showSymbol = true, precision = 2 } = options;
 
   try {
     const formatter = new Intl.NumberFormat(locale, {
@@ -40,12 +32,12 @@ export const formatPrice = (
     });
 
     const formatted = formatter.format(amount);
-    
+
     // For Ghanaian Cedi, use ₵ symbol instead of GHS
     if (currency === 'GHS' && showSymbol) {
       return formatted.replace('GHS', '₵');
     }
-    
+
     return formatted;
   } catch {
     return `${currency} ${amount.toFixed(precision)}`;
@@ -55,19 +47,12 @@ export const formatPrice = (
 /**
  * Format date with various options
  */
-export const formatDate = (
-  dateString: string, 
-  options: DateFormatOptions = {}
-): string => {
-  const {
-    format = 'medium',
-    locale = 'en-GH',
-    includeTime = false
-  } = options;
+export const formatDate = (dateString: string, options: DateFormatOptions = {}): string => {
+  const { format = 'medium', locale = 'en-GH', includeTime = false } = options;
 
   try {
     const date = new Date(dateString);
-    
+
     if (isNaN(date.getTime())) {
       return 'Invalid Date';
     }
@@ -79,8 +64,10 @@ export const formatDate = (
       if (diffInDays === 0) return 'Today';
       if (diffInDays === 1) return 'Tomorrow';
       if (diffInDays === -1) return 'Yesterday';
-      if (diffInDays > 0 && diffInDays <= 7) return `In ${diffInDays} day${diffInDays > 1 ? 's' : ''}`;
-      if (diffInDays < 0 && diffInDays >= -7) return `${Math.abs(diffInDays)} day${Math.abs(diffInDays) > 1 ? 's' : ''} ago`;
+      if (diffInDays > 0 && diffInDays <= 7)
+        return `In ${diffInDays} day${diffInDays > 1 ? 's' : ''}`;
+      if (diffInDays < 0 && diffInDays >= -7)
+        return `${Math.abs(diffInDays)} day${Math.abs(diffInDays) > 1 ? 's' : ''} ago`;
     }
 
     const formatOptions: Intl.DateTimeFormatOptions = {
@@ -103,7 +90,9 @@ export const formatDate = (
 /**
  * Format deadline with status indicator
  */
-export const formatDeadline = (deadline: string): {
+export const formatDeadline = (
+  deadline: string
+): {
   formatted: string;
   status: 'expired' | 'urgent' | 'warning' | 'normal';
   daysLeft: number;
@@ -113,7 +102,7 @@ export const formatDeadline = (deadline: string): {
   const daysLeft = Math.ceil((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
   let status: 'expired' | 'urgent' | 'warning' | 'normal' = 'normal';
-  
+
   if (daysLeft < 0) {
     status = 'expired';
   } else if (daysLeft <= 3) {
@@ -127,14 +116,16 @@ export const formatDeadline = (deadline: string): {
   return {
     formatted,
     status,
-    daysLeft
+    daysLeft,
   };
 };
 
 /**
  * Format form status for display
  */
-export const formatFormStatus = (status: string): {
+export const formatFormStatus = (
+  status: string
+): {
   text: string;
   color: string;
   bgColor: string;
@@ -144,31 +135,31 @@ export const formatFormStatus = (status: string): {
       return {
         text: 'Available',
         color: 'text-green-600 dark:text-green-400',
-        bgColor: 'bg-green-100 dark:bg-green-900/30'
+        bgColor: 'bg-green-100 dark:bg-green-900/30',
       };
     case 'expired':
       return {
         text: 'Expired',
         color: 'text-red-600 dark:text-red-400',
-        bgColor: 'bg-red-100 dark:bg-red-900/30'
+        bgColor: 'bg-red-100 dark:bg-red-900/30',
       };
     case 'not_yet_open':
       return {
         text: 'Not Yet Open',
         color: 'text-blue-600 dark:text-blue-400',
-        bgColor: 'bg-blue-100 dark:bg-blue-900/30'
+        bgColor: 'bg-blue-100 dark:bg-blue-900/30',
       };
     case 'sold_out':
       return {
         text: 'Sold Out',
         color: 'text-orange-600 dark:text-orange-400',
-        bgColor: 'bg-orange-100 dark:bg-orange-900/30'
+        bgColor: 'bg-orange-100 dark:bg-orange-900/30',
       };
     default:
       return {
         text: 'Unknown',
         color: 'text-gray-600 dark:text-gray-400',
-        bgColor: 'bg-gray-100 dark:bg-gray-900/30'
+        bgColor: 'bg-gray-100 dark:bg-gray-900/30',
       };
   }
 };
@@ -178,15 +169,15 @@ export const formatFormStatus = (status: string): {
  */
 export const getCurrencySymbol = (currency: string): string => {
   const symbols: Record<string, string> = {
-    'GHS': '₵',
-    'USD': '$',
-    'EUR': '€',
-    'GBP': '£',
-    'NGN': '₦',
-    'KES': 'KSh',
-    'ZAR': 'R'
+    GHS: '₵',
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    NGN: '₦',
+    KES: 'KSh',
+    ZAR: 'R',
   };
-  
+
   return symbols[currency] || currency;
 };
 
@@ -194,7 +185,6 @@ export const getCurrencySymbol = (currency: string): string => {
  * Parse price string to number
  */
 export const parsePrice = (priceString: string): number => {
-
   const cleaned = priceString.replace(/[^\d.,]/g, '');
   return parseFloat(cleaned.replace(',', '.')) || 0;
 };
@@ -218,9 +208,9 @@ export const formatNumber = (num: number): string => {
 export const formatFileSize = (bytes: number): string => {
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   if (bytes === 0) return '0 Bytes';
-  
+
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i];
 };
 
 /**
@@ -228,14 +218,14 @@ export const formatFileSize = (bytes: number): string => {
  */
 export const formatPhoneNumber = (phone: string): string => {
   const cleaned = phone.replace(/\D/g, '');
-  
+
   if (cleaned.length === 10 && cleaned.startsWith('0')) {
     return `+233 ${cleaned.slice(1, 4)} ${cleaned.slice(4, 7)} ${cleaned.slice(7)}`;
   }
-  
+
   if (cleaned.length === 13 && cleaned.startsWith('233')) {
     return `+233 ${cleaned.slice(3, 6)} ${cleaned.slice(6, 9)} ${cleaned.slice(9)}`;
   }
-  
+
   return phone; // Return original if format not recognized
 };

@@ -1,17 +1,22 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+/// <reference types="vitest" />
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 // https://vite.dev/config/
 export default defineConfig(() => {
   return {
     plugins: [react()],
+    test: {
+      globals: true,
+      environment: 'jsdom',
+      setupFiles: './src/setupTests.ts',
+    },
     base: '/', // CRITICAL: Use '/' for SPA routing
     build: {
       outDir: 'dist',
       emptyOutDir: true,
       rollupOptions: {
-        output: {
-        },
+        output: {},
       },
       chunkSizeWarningLimit: 1000,
       sourcemap: false,
@@ -29,7 +34,14 @@ export default defineConfig(() => {
       },
     },
     optimizeDeps: {
-      include: ['react', 'react-dom', 'react-router-dom', 'framer-motion', 'react-icons', 'zustand'],
+      include: [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        'framer-motion',
+        'react-icons',
+        'zustand',
+      ],
       exclude: ['@vite/client', '@vite/env'],
     },
     esbuild: {
@@ -46,10 +58,10 @@ export default defineConfig(() => {
       // CRITICAL: Proper cache control for assets
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        Pragma: 'no-cache',
+        Expires: '0',
       },
     },
     envPrefix: 'VITE_',
-  }
-})
+  };
+});

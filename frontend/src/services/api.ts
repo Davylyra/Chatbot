@@ -1,18 +1,16 @@
-// API Service Layer
-
 let API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-let API_TIMEOUT = 10000; // 10 seconds
+let API_TIMEOUT = 10000;
 
 const initializeApiConfig = async () => {
   try {
     const { configService } = await import('./configService');
     const baseUrl = await configService.getConfig('api.base_url');
     const timeout = await configService.getConfig('api.timeout');
-    
+
     if (baseUrl) API_BASE_URL = baseUrl;
     if (timeout) API_TIMEOUT = parseInt(timeout, 10);
-  } catch (error) {
-    console.warn('Failed to load dynamic API configuration, using defaults:', error);
+  } catch (configError) {
+    console.warn('Failed to load dynamic API configuration, using defaults:', configError);
   }
 };
 
@@ -125,7 +123,6 @@ export interface AppConfig {
   };
 }
 
-// HTTP Client with error handling
 class HttpClient {
   private baseURL: string;
   private timeout: number;
@@ -135,10 +132,7 @@ class HttpClient {
     this.timeout = timeout;
   }
 
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<ApiResponse<T>> {
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
@@ -159,34 +153,19 @@ class HttpClient {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      return {
-        success: true,
-        data,
-      };
-    } catch (error) {
+      const body = await response.json();
+      return { success: true, data: body };
+    } catch (requestError) {
       clearTimeout(timeoutId);
-      
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          return {
-            success: false,
-            data: null as T,
-            error: 'Request timeout. Please try again.',
-          };
+
+      if (requestError instanceof Error) {
+        if (requestError.name === 'AbortError') {
+          return { success: false, data: null as T, error: 'Request timeout. Please try again.' };
         }
-        return {
-          success: false,
-          data: null as T,
-          error: error.message,
-        };
+        return { success: false, data: null as T, error: requestError.message };
       }
 
-      return {
-        success: false,
-        data: null as T,
-        error: 'An unexpected error occurred.',
-      };
+      return { success: false, data: null as T, error: 'An unexpected error occurred.' };
     }
   }
 
@@ -194,17 +173,17 @@ class HttpClient {
     return this.request<T>(endpoint, { method: 'GET' });
   }
 
-  async post<T>(endpoint: string, data: any): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, payload: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
   }
 
-  async put<T>(endpoint: string, data: any): Promise<ApiResponse<T>> {
+  async put<T>(endpoint: string, payload: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
   }
 
@@ -215,9 +194,7 @@ class HttpClient {
 
 const httpClient = new HttpClient(API_BASE_URL, API_TIMEOUT);
 
-// API Service Class
 export class ApiService {
-  // Universities API
   static async getUniversities(): Promise<ApiResponse<University[]>> {
     return httpClient.get<University[]>('/universities');
   }
@@ -230,7 +207,6 @@ export class ApiService {
     return httpClient.get<University[]>(`/universities/search?q=${encodeURIComponent(query)}`);
   }
 
-  // Forms API
   static async getForms(): Promise<ApiResponse<FormData[]>> {
     return httpClient.get<FormData[]>('/forms');
   }
@@ -239,12 +215,17 @@ export class ApiService {
     return httpClient.get<FormData>(`/forms/${id}`);
   }
 
-  static async purchaseForm(formId: string, paymentData: any): Promise<ApiResponse<{ transactionId: string; status: string }>> {
+  static async purchaseForm(
+    formId: string,
+    paymentData: any
+  ): Promise<ApiResponse<{ transactionId: string; status: string }>> {
     return httpClient.post(`/forms/${formId}/purchase`, paymentData);
   }
 
-  // Chat API
-  static async sendMessage(message: string, universityContext?: string): Promise<ApiResponse<ChatResponse>> {
+  static async sendMessage(
+    message: string,
+    universityContext?: string
+  ): Promise<ApiResponse<ChatResponse>> {
     return httpClient.post<ChatResponse>('/chat/message', {
       message,
       universityContext,
@@ -273,12 +254,11 @@ export class ApiService {
         firstUserMessage,
         firstBotReply,
         universityContext,
-        fallbackTitle
+        fallbackTitle,
       }
     );
   }
 
-  // Assessment API
   static async getAssessmentQuestions(): Promise<ApiResponse<AssessmentQuestion[]>> {
     return httpClient.get<AssessmentQuestion[]>('/assessment/questions');
   }
@@ -287,61 +267,58 @@ export class ApiService {
     return httpClient.post('/assessment/submit', answers);
   }
 
-      // AI Assessment API
-      static async getAIRecommendations(assessmentData: any): Promise<ApiResponse<any>> {
-        return httpClient.post('/assessment/ai-recommendations', assessmentData);
-      }
+  static async getAIRecommendations(assessmentData: any): Promise<ApiResponse<any>> {
+    return httpClient.post('/assessment/ai-recommendations', assessmentData);
+  }
 
-      // Content Management API
-      static async getPageContent(pageId: string): Promise<ApiResponse<any>> {
-        return httpClient.get(`/content/pages/${pageId}`);
-      }
+  static async getPageContent(pageId: string): Promise<ApiResponse<any>> {
+    return httpClient.get(`/content/pages/${pageId}`);
+  }
 
-      static async updatePageContent(pageId: string, content: any): Promise<ApiResponse<any>> {
-        return httpClient.put(`/content/pages/${pageId}`, content);
-      }
+  static async updatePageContent(pageId: string, content: any): Promise<ApiResponse<any>> {
+    return httpClient.put(`/content/pages/${pageId}`, content);
+  }
 
-      // Configuration Management API
-      static async getConfig(key: string): Promise<ApiResponse<any>> {
-        return httpClient.get(`/config/${key}`);
-      }
+  static async getConfig(key: string): Promise<ApiResponse<any>> {
+    return httpClient.get(`/config/${key}`);
+  }
 
-      static async getConfigCategory(category: string): Promise<ApiResponse<any>> {
-        return httpClient.get(`/config/category/${category}`);
-      }
+  static async getConfigCategory(category: string): Promise<ApiResponse<any>> {
+    return httpClient.get(`/config/category/${category}`);
+  }
 
-      static async updateConfig(key: string, config: any): Promise<ApiResponse<any>> {
-        return httpClient.put(`/config/${key}`, config);
-      }
+  static async updateConfig(key: string, config: any): Promise<ApiResponse<any>> {
+    return httpClient.put(`/config/${key}`, config);
+  }
 
-      // Dynamic Data Management API
-      static async getDynamicData(type: string, id: string): Promise<ApiResponse<any>> {
-        return httpClient.get(`/data/${type}/${id}`);
-      }
+  static async getDynamicData(type: string, id: string): Promise<ApiResponse<any>> {
+    return httpClient.get(`/data/${type}/${id}`);
+  }
 
-      static async getDynamicDataCollection(type: string, filters?: Record<string, any>): Promise<ApiResponse<any>> {
-        const queryParams = filters ? `?${new URLSearchParams(filters).toString()}` : '';
-        return httpClient.get(`/data/${type}${queryParams}`);
-      }
+  static async getDynamicDataCollection(
+    type: string,
+    filters?: Record<string, any>
+  ): Promise<ApiResponse<any>> {
+    const queryParams = filters ? `?${new URLSearchParams(filters).toString()}` : '';
+    return httpClient.get(`/data/${type}${queryParams}`);
+  }
 
-      static async createDynamicData(type: string, data: any): Promise<ApiResponse<any>> {
-        return httpClient.post(`/data/${type}`, data);
-      }
+  static async createDynamicData(type: string, payload: any): Promise<ApiResponse<any>> {
+    return httpClient.post(`/data/${type}`, payload);
+  }
 
-      static async updateDynamicData(type: string, id: string, data: any): Promise<ApiResponse<any>> {
-        return httpClient.put(`/data/${type}/${id}`, data);
-      }
+  static async updateDynamicData(type: string, id: string, payload: any): Promise<ApiResponse<any>> {
+    return httpClient.put(`/data/${type}/${id}`, payload);
+  }
 
-      static async deleteDynamicData(type: string, id: string): Promise<ApiResponse<any>> {
-        return httpClient.delete(`/data/${type}/${id}`);
-      }
+  static async deleteDynamicData(type: string, id: string): Promise<ApiResponse<any>> {
+    return httpClient.delete(`/data/${type}/${id}`);
+  }
 
-  // Payment Methods API
   static async getPaymentMethods(): Promise<ApiResponse<PaymentMethod[]>> {
     return httpClient.get<PaymentMethod[]>('/payments/methods');
   }
 
-  // App Configuration API
   static async getAppConfig(): Promise<ApiResponse<AppConfig>> {
     return httpClient.get<AppConfig>('/config');
   }
@@ -350,7 +327,6 @@ export class ApiService {
     return httpClient.put<AppConfig>('/config', config);
   }
 
-  // Notifications API
   static async getNotifications(): Promise<ApiResponse<any[]>> {
     return httpClient.get<any[]>('/notifications');
   }
@@ -359,7 +335,6 @@ export class ApiService {
     return httpClient.put<void>(`/notifications/${notificationId}/read`, {});
   }
 
-  // User API
   static async getUserProfile(userId: string): Promise<ApiResponse<any>> {
     return httpClient.get<any>(`/users/${userId}`);
   }
@@ -368,9 +343,8 @@ export class ApiService {
     return httpClient.put<any>(`/users/${userId}`, updates);
   }
 
-  // Analytics API
-  static async trackEvent(event: string, data: any): Promise<ApiResponse<void>> {
-    return httpClient.post<void>('/analytics/track', { event, data });
+  static async trackEvent(event: string, eventData: any): Promise<ApiResponse<void>> {
+    return httpClient.post<void>('/analytics/track', { event, data: eventData });
   }
 }
 
@@ -379,56 +353,52 @@ export class FallbackService {
     const { UNIVERSITIES_DATA } = await import('../data/constants');
     return {
       success: true,
-      data: UNIVERSITIES_DATA.map(uni => ({
-        ...uni,
-        name: uni.universityName, // Map universityName to name for consistency
-        id: uni.id,
-        fullName: uni.fullName,
-        location: uni.location,
-        established: uni.established,
-        studentCount: uni.studentCount,
-        type: uni.type,
-        programs: uni.programs,
-        logo: uni.logo, // Use logo from constants.ts (e.g., /university-logos/knust-logo.png)
-        formPrice: uni.formPrice,
-        buyPrice: uni.buyPrice,
-        deadline: uni.deadline,
-        isAvailable: uni.isAvailable,
-        description: uni.description,
+      data: UNIVERSITIES_DATA.map((university) => ({
+        ...university,
+        name: university.universityName,
+        id: university.id,
+        fullName: university.fullName,
+        location: university.location,
+        established: university.established,
+        studentCount: university.studentCount,
+        type: university.type,
+        programs: university.programs,
+        logo: university.logo,
+        formPrice: university.formPrice,
+        buyPrice: university.buyPrice,
+        deadline: university.deadline,
+        isAvailable: university.isAvailable,
+        description: university.description,
       })) as University[],
     };
   }
 
   static async getForms(): Promise<ApiResponse<FormData[]>> {
     const { UNIVERSITIES_DATA } = await import('../data/constants');
-    const forms = UNIVERSITIES_DATA.map(uni => ({
-      id: uni.id,
-      universityId: uni.id,
-      universityName: uni.universityName,
-      formPrice: uni.formPrice,
-      buyPrice: uni.buyPrice,
-      deadline: uni.deadline,
-      isAvailable: uni.isAvailable,
-      description: uni.description,
+    const forms = UNIVERSITIES_DATA.map((university) => ({
+      id: university.id,
+      universityId: university.id,
+      universityName: university.universityName,
+      formPrice: university.formPrice,
+      buyPrice: university.buyPrice,
+      deadline: university.deadline,
+      isAvailable: university.isAvailable,
+      description: university.description,
     }));
-    
-    return {
-      success: true,
-      data: forms,
-    };
+
+    return { success: true, data: forms };
   }
 
-  static async sendMessage(message: string, universityContext?: string): Promise<ApiResponse<ChatResponse>> {
+  static async sendMessage(
+    message: string,
+    universityContext?: string
+  ): Promise<ApiResponse<ChatResponse>> {
     const { MockApiService } = await import('./mockData');
-    const response = await MockApiService.getChatResponse(message, universityContext);
-    return {
-      success: true,
-      data: response,
-    };
+    const chatReply = await MockApiService.getChatResponse(message, universityContext);
+    return { success: true, data: chatReply };
   }
 }
 
-// Smart API Service that falls back to mock data
 export class SmartApiService {
   private static isApiAvailable: boolean | null = null;
 
@@ -440,14 +410,14 @@ export class SmartApiService {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch(`${API_BASE_URL}/health`, {
+
+      const healthCheck = await fetch(`${API_BASE_URL}/health`, {
         method: 'GET',
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
-      this.isApiAvailable = response.ok;
+      this.isApiAvailable = healthCheck.ok;
     } catch {
       this.isApiAvailable = false;
     }
@@ -457,26 +427,22 @@ export class SmartApiService {
 
   static async getUniversities(): Promise<ApiResponse<University[]>> {
     const isAvailable = await this.checkApiAvailability();
-    if (isAvailable) {
-      return ApiService.getUniversities();
-    }
-    return FallbackService.getUniversities();
+    return isAvailable ? ApiService.getUniversities() : FallbackService.getUniversities();
   }
 
   static async getForms(): Promise<ApiResponse<FormData[]>> {
     const isAvailable = await this.checkApiAvailability();
-    if (isAvailable) {
-      return ApiService.getForms();
-    }
-    return FallbackService.getForms();
+    return isAvailable ? ApiService.getForms() : FallbackService.getForms();
   }
 
-  static async sendMessage(message: string, universityContext?: string): Promise<ApiResponse<ChatResponse>> {
+  static async sendMessage(
+    message: string,
+    universityContext?: string
+  ): Promise<ApiResponse<ChatResponse>> {
     const isAvailable = await this.checkApiAvailability();
-    if (isAvailable) {
-      return ApiService.sendMessage(message, universityContext);
-    }
-    return FallbackService.sendMessage(message, universityContext);
+    return isAvailable
+      ? ApiService.sendMessage(message, universityContext)
+      : FallbackService.sendMessage(message, universityContext);
   }
 
   static async getUniversity(id: string) {
@@ -485,14 +451,16 @@ export class SmartApiService {
       return ApiService.getUniversity(id);
     }
     const { UNIVERSITIES_DATA } = await import('../data/constants');
-    const university = UNIVERSITIES_DATA.find(u => u.id === id);
+    const university = UNIVERSITIES_DATA.find((u) => u.id === id);
     return {
       success: !!university,
-      data: university ? {
-        ...university,
-        name: university.universityName, // Map universityName to name for consistency
-        logo: university.logo,
-      } as University : undefined as any,
+      data: university
+        ? ({
+            ...university,
+            name: university.universityName,
+            logo: university.logo,
+          } as University)
+        : (undefined as any),
     };
   }
 
@@ -502,17 +470,18 @@ export class SmartApiService {
       return ApiService.searchUniversities(query);
     }
     const { UNIVERSITIES_DATA } = await import('../data/constants');
-    const filtered = UNIVERSITIES_DATA.filter(uni => 
-      uni.universityName.toLowerCase().includes(query.toLowerCase()) ||
-      uni.fullName.toLowerCase().includes(query.toLowerCase()) ||
-      uni.location.toLowerCase().includes(query.toLowerCase())
+    const filtered = UNIVERSITIES_DATA.filter(
+      (university) =>
+        university.universityName.toLowerCase().includes(query.toLowerCase()) ||
+        university.fullName.toLowerCase().includes(query.toLowerCase()) ||
+        university.location.toLowerCase().includes(query.toLowerCase())
     );
     return {
       success: true,
-      data: filtered.map(uni => ({
-        ...uni,
-        name: uni.universityName, // Map universityName to name for consistency
-        logo: uni.logo,
+      data: filtered.map((university) => ({
+        ...university,
+        name: university.universityName,
+        logo: university.logo,
       })) as University[],
     };
   }
@@ -537,23 +506,15 @@ export class SmartApiService {
       return ApiService.getAppConfig();
     }
     const { APP_CONFIG } = await import('../data/constants');
-    return {
-      success: true,
-      data: APP_CONFIG as AppConfig,
-    };
+    return { success: true, data: APP_CONFIG as AppConfig };
   }
 
-  // Configuration Management API
   static async getConfig(key: string) {
     const isAvailable = await this.checkApiAvailability();
     if (isAvailable) {
       return ApiService.getConfig(key);
     }
-    return {
-      success: false,
-      data: null,
-      error: 'API not available'
-    };
+    return { success: false, data: null, error: 'API not available' };
   }
 
   static async getConfigCategory(category: string) {
@@ -561,11 +522,7 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.getConfigCategory(category);
     }
-    return {
-      success: false,
-      data: null,
-      error: 'API not available'
-    };
+    return { success: false, data: null, error: 'API not available' };
   }
 
   static async updateConfig(key: string, config: any) {
@@ -573,24 +530,15 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.updateConfig(key, config);
     }
-    return {
-      success: false,
-      data: null,
-      error: 'API not available'
-    };
+    return { success: false, data: null, error: 'API not available' };
   }
 
-  // Content Management API
   static async getPageContent(pageId: string) {
     const isAvailable = await this.checkApiAvailability();
     if (isAvailable) {
       return ApiService.getPageContent(pageId);
     }
-    return {
-      success: false,
-      data: null,
-      error: 'API not available'
-    };
+    return { success: false, data: null, error: 'API not available' };
   }
 
   static async updatePageContent(pageId: string, content: any) {
@@ -598,24 +546,15 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.updatePageContent(pageId, content);
     }
-    return {
-      success: false,
-      data: null,
-      error: 'API not available'
-    };
+    return { success: false, data: null, error: 'API not available' };
   }
 
-  // Dynamic Data Management API
   static async getDynamicData(type: string, id: string) {
     const isAvailable = await this.checkApiAvailability();
     if (isAvailable) {
       return ApiService.getDynamicData(type, id);
     }
-    return {
-      success: false,
-      data: null,
-      error: 'API not available'
-    };
+    return { success: false, data: null, error: 'API not available' };
   }
 
   static async getDynamicDataCollection(type: string, filters?: Record<string, any>) {
@@ -623,35 +562,23 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.getDynamicDataCollection(type, filters);
     }
-    return {
-      success: false,
-      data: null,
-      error: 'API not available'
-    };
+    return { success: false, data: null, error: 'API not available' };
   }
 
-  static async createDynamicData(type: string, data: any) {
+  static async createDynamicData(type: string, payload: any) {
     const isAvailable = await this.checkApiAvailability();
     if (isAvailable) {
-      return ApiService.createDynamicData(type, data);
+      return ApiService.createDynamicData(type, payload);
     }
-    return {
-      success: false,
-      data: null,
-      error: 'API not available'
-    };
+    return { success: false, data: null, error: 'API not available' };
   }
 
-  static async updateDynamicData(type: string, id: string, data: any) {
+  static async updateDynamicData(type: string, id: string, payload: any) {
     const isAvailable = await this.checkApiAvailability();
     if (isAvailable) {
-      return ApiService.updateDynamicData(type, id, data);
+      return ApiService.updateDynamicData(type, id, payload);
     }
-    return {
-      success: false,
-      data: null,
-      error: 'API not available'
-    };
+    return { success: false, data: null, error: 'API not available' };
   }
 
   static async deleteDynamicData(type: string, id: string) {
@@ -659,24 +586,15 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.deleteDynamicData(type, id);
     }
-    return {
-      success: false,
-      data: null,
-      error: 'API not available'
-    };
+    return { success: false, data: null, error: 'API not available' };
   }
 
-  // AI Assessment API
   static async getAIRecommendations(assessmentData: any) {
     const isAvailable = await this.checkApiAvailability();
     if (isAvailable) {
       return ApiService.getAIRecommendations(assessmentData);
     }
-    return {
-      success: false,
-      data: null,
-      error: 'API not available'
-    };
+    return { success: false, data: null, error: 'API not available' };
   }
 }
 

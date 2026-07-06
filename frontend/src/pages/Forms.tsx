@@ -56,7 +56,7 @@ const Forms: React.FC = () => {
 
   const handleRefresh = useCallback(async () => {
     setError(null);
-    
+
     try {
       await loadForms();
     } catch {
@@ -68,21 +68,22 @@ const Forms: React.FC = () => {
     onRefresh: handleRefresh,
     threshold: 80,
     resistance: 0.5,
-    enabled: !isLoading && !error
+    enabled: !isLoading && !error,
   });
 
   const paymentMethods = PAYMENT_METHODS;
 
-  const handleSearchResultSelect = (_selectedForm: any) => {
-  };
+  const handleSearchResultSelect = (_selectedForm: any) => {};
 
-  const filteredForms = useMemo(() => 
-    searchQuery
-      ? forms.filter(form =>
-          form.universityName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          form.fullName.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      : forms,
+  const filteredForms = useMemo(
+    () =>
+      searchQuery
+        ? forms.filter(
+            (form) =>
+              form.universityName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              form.fullName.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+        : forms,
     [searchQuery, forms]
   );
 
@@ -97,9 +98,10 @@ const Forms: React.FC = () => {
     try {
       await purchaseForm(selectedForm.id);
       const now = new Date();
-      const amountValue = typeof selectedForm.formPrice === 'number'
-        ? selectedForm.formPrice
-        : parseFloat(String(selectedForm.formPrice).replace(/[^0-9.]/g, '')) || 0;
+      const amountValue =
+        typeof selectedForm.formPrice === 'number'
+          ? selectedForm.formPrice
+          : parseFloat(String(selectedForm.formPrice).replace(/[^0-9.]/g, '')) || 0;
 
       addTransaction({
         id: reference,
@@ -112,7 +114,7 @@ const Forms: React.FC = () => {
         paymentMethod: 'Mobile Money',
         amount: `GHC ${amountValue.toFixed(2)}`,
         currency: selectedForm.currency || 'GHS',
-        reference
+        reference,
       });
 
       showSuccess(
@@ -136,11 +138,13 @@ const Forms: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen ${
-      theme === 'dark' 
-        ? 'bg-gradient-to-b from-transparent via-gray-800/50 to-gray-800' 
-        : 'bg-gradient-to-b from-transparent via-white/50 to-white'
-    }`}>
+    <div
+      className={`min-h-screen ${
+        theme === 'dark'
+          ? 'bg-gradient-to-b from-transparent via-gray-800/50 to-gray-800'
+          : 'bg-gradient-to-b from-transparent via-white/50 to-white'
+      }`}
+    >
       {/* Pull to Refresh Indicator */}
       <PullToRefreshIndicator
         isRefreshing={isRefreshing}
@@ -149,8 +153,8 @@ const Forms: React.FC = () => {
         threshold={80}
         theme={theme}
       />
-      
-      <Navbar 
+
+      <Navbar
         title="BUY ADMISSION FORMS"
         showBackButton={true}
         onBackClick={() => navigate('/')}
@@ -167,22 +171,24 @@ const Forms: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             className="mb-6"
           >
-            <div className={`p-6 rounded-2xl text-center border ${
-              theme === 'dark' 
-                ? 'bg-red-900/20 border-red-700/50' 
-                : 'bg-red-50 border-red-200'
-            }`}>
-              <FiAlertCircle className={`w-8 h-8 mx-auto mb-3 ${
-                theme === 'dark' ? 'text-red-400' : 'text-red-600'
-              }`} />
-              <h3 className={`text-lg font-semibold mb-2 ${
-                theme === 'dark' ? 'text-red-400' : 'text-red-600'
-              }`}>
+            <div
+              className={`p-6 rounded-2xl text-center border ${
+                theme === 'dark' ? 'bg-red-900/20 border-red-700/50' : 'bg-red-50 border-red-200'
+              }`}
+            >
+              <FiAlertCircle
+                className={`w-8 h-8 mx-auto mb-3 ${
+                  theme === 'dark' ? 'text-red-400' : 'text-red-600'
+                }`}
+              />
+              <h3
+                className={`text-lg font-semibold mb-2 ${
+                  theme === 'dark' ? 'text-red-400' : 'text-red-600'
+                }`}
+              >
                 Error Loading Forms
               </h3>
-              <p className={`text-sm mb-4 ${
-                theme === 'dark' ? 'text-red-300' : 'text-red-700'
-              }`}>
+              <p className={`text-sm mb-4 ${theme === 'dark' ? 'text-red-300' : 'text-red-700'}`}>
                 {error}
               </p>
               <button
@@ -200,114 +206,125 @@ const Forms: React.FC = () => {
         {/* Main Content - Only show when not loading and no error */}
         {!isLoading && !error && (
           <>
-        {/* Enhanced Search Bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-6"
-        >
-          <EnhancedSearch
-            data={forms}
-            searchFields={['universityName', 'fullName']}
-            placeholder="Search universities and forms..."
-            onResultSelect={handleSearchResultSelect}
-            onSearch={setSearchQuery}
-            showSuggestions={true}
-            theme={theme}
-          />
-        </motion.div>
-
-        {/* Payment Methods */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className={` rounded-2xl p-4 mb-6 border transition-all duration-200 ${
-            theme === 'dark' 
-              ? 'glass-card-unified-dark' 
-              : 'glass-card-unified'
-          }`}
-        >
-          <h3 className={`font-semibold mb-3 transition-colors duration-200 ${
-            theme === 'dark' ? 'text-white' : 'text-gray-800'
-          }`}>
-            {pageContent?.sections.find(s => s.id === 'payment-methods-title')?.title || 'Secure Mobile Money Payment'}
-          </h3>
-          <p className={`text-sm mb-4 transition-colors duration-200 ${
-            theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-          }`}>
-            {pageContent?.sections.find(s => s.id === 'payment-methods-title')?.content || 'Make payments via'}
-          </p>
-          <div className="flex space-x-3">
-            {paymentMethods.map((method, index) => (
-              <motion.div
-                key={method.name}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3 + index * 0.1 }}
-                className={`${method.color} text-white px-4 py-2 rounded-lg text-sm font-medium`}
-              >
-                {method.name}
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Forms List */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="space-y-4"
-        >
-          {filteredForms.length > 0 ? (
-            filteredForms.map((form, index) => (
-              <motion.div
-                key={form.universityName}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 + index * 0.1 }}
-              >
-                <FormCard
-                  universityName={form.universityName}
-                  fullName={form.fullName}
-                  formPrice={form.formPrice}
-                  currency={form.currency || 'GHS'}
-                  deadline={form.deadline}
-                  isAvailable={form.isAvailable}
-                  onBuyClick={() => handleBuyForm(form)}
-                  logo={form.logo}
-                  status={form.status || 'available'}
-                  daysUntilDeadline={form.daysUntilDeadline}
-                  lastUpdated={form.lastUpdated}
-                />
-              </motion.div>
-            ))
-          ) : (
+            {/* Enhanced Search Bar */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-center py-12"
+              transition={{ delay: 0.1 }}
+              className="mb-6"
             >
-              <div className={`text-lg font-medium mb-2 ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                {searchQuery ? 'No forms found matching your search.' : (pageContent?.sections.find(s => s.id === 'empty-state')?.content || 'No admission forms available.')}
+              <EnhancedSearch
+                data={forms}
+                searchFields={['universityName', 'fullName']}
+                placeholder="Search universities and forms..."
+                onResultSelect={handleSearchResultSelect}
+                onSearch={setSearchQuery}
+                showSuggestions={true}
+                theme={theme}
+              />
+            </motion.div>
+
+            {/* Payment Methods */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className={` rounded-2xl p-4 mb-6 border transition-all duration-200 ${
+                theme === 'dark' ? 'glass-card-unified-dark' : 'glass-card-unified'
+              }`}
+            >
+              <h3
+                className={`font-semibold mb-3 transition-colors duration-200 ${
+                  theme === 'dark' ? 'text-white' : 'text-gray-800'
+                }`}
+              >
+                {pageContent?.sections.find((s) => s.id === 'payment-methods-title')?.title ||
+                  'Secure Mobile Money Payment'}
+              </h3>
+              <p
+                className={`text-sm mb-4 transition-colors duration-200 ${
+                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                }`}
+              >
+                {pageContent?.sections.find((s) => s.id === 'payment-methods-title')?.content ||
+                  'Make payments via'}
+              </p>
+              <div className="flex space-x-3">
+                {paymentMethods.map((method, index) => (
+                  <motion.div
+                    key={method.name}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.3 + index * 0.1 }}
+                    className={`${method.color} text-white px-4 py-2 rounded-lg text-sm font-medium`}
+                  >
+                    {method.name}
+                  </motion.div>
+                ))}
               </div>
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className={`text-sm transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-primary-400 hover:text-primary-300' : 'text-primary-600 hover:text-primary-700'
-                  }`}
+            </motion.div>
+
+            {/* Forms List */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="space-y-4"
+            >
+              {filteredForms.length > 0 ? (
+                filteredForms.map((form, index) => (
+                  <motion.div
+                    key={form.universityName}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 + index * 0.1 }}
+                  >
+                    <FormCard
+                      universityName={form.universityName}
+                      fullName={form.fullName}
+                      formPrice={form.formPrice}
+                      currency={form.currency || 'GHS'}
+                      deadline={form.deadline}
+                      isAvailable={form.isAvailable}
+                      onBuyClick={() => handleBuyForm(form)}
+                      logo={form.logo}
+                      status={form.status || 'available'}
+                      daysUntilDeadline={form.daysUntilDeadline}
+                      lastUpdated={form.lastUpdated}
+                    />
+                  </motion.div>
+                ))
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-center py-12"
                 >
-                  Clear search
-                </button>
+                  <div
+                    className={`text-lg font-medium mb-2 ${
+                      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                    }`}
+                  >
+                    {searchQuery
+                      ? 'No forms found matching your search.'
+                      : pageContent?.sections.find((s) => s.id === 'empty-state')?.content ||
+                        'No admission forms available.'}
+                  </div>
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className={`text-sm transition-colors duration-200 ${
+                        theme === 'dark'
+                          ? 'text-primary-400 hover:text-primary-300'
+                          : 'text-primary-600 hover:text-primary-700'
+                      }`}
+                    >
+                      Clear search
+                    </button>
+                  )}
+                </motion.div>
               )}
             </motion.div>
-          )}
-        </motion.div>
           </>
         )}
       </div>
@@ -321,13 +338,12 @@ const Forms: React.FC = () => {
             id: selectedForm.id,
             universityName: selectedForm.universityName,
             fullName: selectedForm.fullName,
-            formPrice: selectedForm.formPrice
+            formPrice: selectedForm.formPrice,
           }}
           onSuccess={handlePaymentSuccess}
           onError={handlePaymentError}
         />
       )}
-
     </div>
   );
 };

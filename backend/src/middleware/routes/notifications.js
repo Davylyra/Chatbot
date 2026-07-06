@@ -1,4 +1,4 @@
-// NOTIFICATION ROUTES - PRODUCTION READY
+
 import express from 'express';
 import authMiddleware from '../authMiddleware.js';
 import {

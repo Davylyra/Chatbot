@@ -20,7 +20,7 @@ class ErrorBoundary extends Component<Props, State> {
     this.state = {
       hasError: false,
       error: null,
-      errorInfo: null
+      errorInfo: null,
     };
   }
 
@@ -28,14 +28,14 @@ class ErrorBoundary extends Component<Props, State> {
     return {
       hasError: true,
       error,
-      errorInfo: null
+      errorInfo: null,
     };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({
       error,
-      errorInfo
+      errorInfo,
     });
 
     if (import.meta.env.DEV) {
@@ -45,14 +45,13 @@ class ErrorBoundary extends Component<Props, State> {
     this.logErrorToService();
   }
 
-  private logErrorToService = () => {
-  };
+  private logErrorToService = () => {};
 
   private handleRetry = () => {
     this.setState({
       hasError: false,
       error: null,
-      errorInfo: null
+      errorInfo: null,
     });
   };
 
@@ -76,7 +75,7 @@ class ErrorBoundary extends Component<Props, State> {
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+              transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
               className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6"
             >
               <FiAlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
@@ -87,7 +86,8 @@ class ErrorBoundary extends Component<Props, State> {
             </h1>
 
             <p className="text-gray-600 dark:text-gray-300 mb-6">
-              We're sorry, but something unexpected happened. Don't worry, our team has been notified.
+              We're sorry, but something unexpected happened. Don't worry, our team has been
+              notified.
             </p>
 
             {import.meta.env.DEV && this.state.error && (

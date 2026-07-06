@@ -1,18 +1,11 @@
-/**
- * Updated: December 15, 2025
- * 
- * This file contains current admission data for Ghanaian universities
- * Update this regularly as universities publish new information
- * 
- * Source: Official University Websites (as of July 2026)
- */
+
 
 export const admissionData2026_2027 = {
   academic_year: '2026/2027',
   last_updated: '2026-07-04',
-  cycle_status: 'ACTIVE', // ACTIVE, CLOSED, PENDING
+  cycle_status: 'ACTIVE', 
   
-  // University of Ghana (Legon)
+  // University of Ghana 
   ug: {
     name: 'University of Ghana',
     short_name: 'UG',
@@ -27,7 +20,7 @@ export const admissionData2026_2027 = {
       application_deadline: '2026-08-31',
       result_date: '2026-06-30',
       acceptance_deadline: '2026-07-31',
-      status: 'OPEN', // OPEN, CLOSED, EXTENDED
+      status: 'OPEN',
       application_fee: 'GHS 200',
       method: 'Online portal'
     },
@@ -137,7 +130,7 @@ export const admissionData2026_2027 = {
     }
   },
 
-  // KNUST (Kwame Nkrumah University of Science and Technology)
+  // KNUST
   knust: {
     name: 'KNUST',
     full_name: 'Kwame Nkrumah University of Science and Technology',

@@ -166,13 +166,12 @@ server.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Socket.io listening at ws://localhost:${PORT}/socket.io/`);
   
-  // Connect to MongoDB (non-blocking)
+  
   try {
     await connectDB();
     isDBConnected = true;
     console.log('MongoDB connected');
     
-    // NOTE: scheduleAdmissionChecks() removed - startAdmissionNotificationsScheduler() already handles fetching
     startCleanupSchedule();
     startAdmissionNotificationsScheduler();
   } catch (error) {
@@ -186,7 +185,6 @@ server.listen(PORT, async () => {
         await connectDB();
         isDBConnected = true;
         console.log('MongoDB reconnected');
-        // NOTE: scheduleAdmissionChecks() removed to prevent duplicates
         startCleanupSchedule();
         startAdmissionNotificationsScheduler();
       } catch (retryError) {

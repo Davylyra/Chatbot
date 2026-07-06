@@ -1,5 +1,3 @@
-# Glinax RAG+CAG Service for Ghanaian University Applicants
-
 import json
 import os
 import platform
@@ -24,60 +22,46 @@ def sanitize_markdown_urls(text: str) -> str:
     if not text:
         return text
 
-    # Step 1: Fix nested/quadrupled markdown links pattern: [[URL](URL)](URL)](URL)
-    # First, normalize multiple opening brackets: [[ -> [
     text = re.sub(r"\[+", "[", text)
 
-    # Second, remove chained ](URL patterns
-    # This handles both: [URL](URL](URL](URL) and [URL](URL)](URL)
     while True:
-        before = text
-        # Pattern 1: ](URL]( - remove URL before ](
+        previous_text = text
         text = re.sub(r"\]\(https?://[^\)]+(?=\]\()", "", text)
-        # Pattern 2: ](URL)]( - remove ](URL) when followed by another ](
         text = re.sub(r"\]\(https?://[^\)]+\)(?=\]\()", "", text)
-        if text == before:
+        if text == previous_text:
             break
 
-    # This matches patterns where URLs are nested multiple times
     nested_pattern = r"\[+([^\[\]]*(?:https?://[^\s\[\]]+)[^\[\]]*)\]+\(+([^)]+)\)+"
 
     def fix_nested(match):
+        candidate_text = match.group(1)
+        candidate_url = match.group(2)
 
-        text_part = match.group(1)
-        url_part = match.group(2)
-
-        # Find the actual URL (prioritize the url_part)
         url = None
-        if url_part and url_part.startswith("http"):
-            url = url_part
-        elif "http" in text_part:
-            url_match = re.search(r"https?://[^\s\[\]]+", text_part)
+        if candidate_url and candidate_url.startswith("http"):
+            url = candidate_url
+        elif "http" in candidate_text:
+            url_match = re.search(r"https?://[^\s\[\]]+", candidate_text)
             if url_match:
                 url = url_match.group(0)
 
-        # Find proper link text (if the text is not a URL)
-        link_text = text_part
+        link_text = candidate_text
         if url and url in link_text:
-            link_text = re.sub(r"https?://[^\s\[\]]+", "", text_part).strip()
+            link_text = re.sub(r"https?://[^\s\[\]]+", "", candidate_text).strip()
 
         if not link_text or link_text == url:
             try:
-                domain = url.split("/")[2] if url else "Link"
-                link_text = domain
+                link_text = url.split("/")[2] if url else "Link"
             except Exception:
                 link_text = "Link"
 
         if url:
             return f"[{link_text}]({url})"
-        else:
-            return match.group(0)  # Return original if we can't parse it
+        return match.group(0)
 
-    # Apply nested link fix multiple times to catch all levels of nesting
-    for _ in range(3):  # Run up to 3 times to catch deeply nested patterns
+    for _ in range(3):
         text = re.sub(nested_pattern, fix_nested, text)
 
-    # Step 2: Fix simple duplicate URLs in markdown format: [URL](URL)
     url_as_text_pattern = r"\[(https?://[^\]]+)\]\(\1\)"
 
     def fix_url_as_text(match):
@@ -91,46 +75,35 @@ def sanitize_markdown_urls(text: str) -> str:
 
     text = re.sub(url_as_text_pattern, fix_url_as_text, text)
 
-    # Step 3: Standard markdown link cleanup
     markdown_link_pattern = r"\[([^\]]+)\]\(([^)]+)\)"
 
     def clean_url(match):
         link_text = match.group(1)
         url = match.group(2)
 
-        # Clean up the URL
-        # 1. Decode if over-encoded
         try:
             if "%" in url:
-                # Don't decode valid markdown URLs
-                # Only decode if it looks like unicode was encoded
-                if "%F0%9D" in url or "%2D" in url:  # These are typically bad encodings
+                if "%F0%9D" in url or "%2D" in url:
                     try:
                         decoded = urllib.parse.unquote(url)
                         if any(ord(c) > 127 for c in decoded):
-                            # Re-encode using proper URL encoding
                             url = urllib.parse.quote(
                                 decoded.encode("utf-8"), safe=":/?#[]@!$&'()*+,;="
                             )
                     except Exception:
-                        pass  # Keep original if decoding fails
+                        pass
         except Exception:
             pass
 
-        # 2. Validate URL format
         url = re.sub(r'[`\'"]*$', "", url)
 
-        # 3. Ensure URL has protocol if it's a web URL
         if url and not url.startswith(("http://", "https://", "mailto:")):
-            # If it looks like a domain, add https://
-            if "." in url and "/" in url[10:]:  # Has domain and path
-                if not url.startswith("/"):  # Not a relative path
+            if "." in url and "/" in url[10:]:
+                if not url.startswith("/"):
                     url = "https://" + url
 
-        # 4. Return cleaned markdown link
         return f"[{link_text}]({url})"
 
-    # Replace all markdown links with cleaned versions
     cleaned_text = re.sub(markdown_link_pattern, clean_url, text)
 
     return cleaned_text
@@ -171,8 +144,6 @@ def resolve_user_id(token_user: Optional[str], fallback_user: Optional[str]) -> 
     return token_user or (fallback_user or "")
 
 
-# Allow only the backend service and frontend — set ALLOWED_ORIGINS in .env
-# e.g. ALLOWED_ORIGINS=http://localhost:5173,https://yourapp.com
 _raw_origins = os.getenv(
     "ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5000"
 )
@@ -190,7 +161,6 @@ groq_client = None
 db_client = None
 ghana_universities_data = []
 
-# Configure Tesseract path on Windows if available
 TESSERACT_ENV_PATH = os.getenv("TESSERACT_CMD")
 WINDOWS_TESSERACT_CANDIDATES = [
     r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
@@ -199,7 +169,6 @@ WINDOWS_TESSERACT_CANDIDATES = [
 
 
 def configure_tesseract_path_if_needed(pytesseract_module) -> None:
-    """Ensure pytesseract knows where the Tesseract binary lives (Windows friendly)."""
     if not pytesseract_module:
         return
 
@@ -209,21 +178,17 @@ def configure_tesseract_path_if_needed(pytesseract_module) -> None:
     if getattr(pytesseract_module, "tesseract_cmd", None):
         return
 
-    # Env override wins
     if TESSERACT_ENV_PATH and os.path.exists(TESSERACT_ENV_PATH):
         pytesseract_module.tesseract_cmd = TESSERACT_ENV_PATH
         print(f"🔧 Tesseract path set from TESSERACT_CMD env: {TESSERACT_ENV_PATH}")
         return
 
-    # Windows common install locations
     if platform.system().lower() == "windows":
         for candidate in WINDOWS_TESSERACT_CANDIDATES:
             if os.path.exists(candidate):
                 pytesseract_module.tesseract_cmd = candidate
                 print(f"🔧 Tesseract path auto-configured: {candidate}")
                 return
-
-    # If still unset, leave as-is; pytesseract will use PATH
 
 
 class ChatRequest(BaseModel):
@@ -247,8 +212,6 @@ class ChatResponse(BaseModel):
     model_used: str = "hybrid-rag"
 
 
-# Ghana Universities Knowledge Base - 11 platform universities only
-# This dict seeds MongoDB on first run. After that, MongoDB is the live source.
 GHANA_UNIVERSITIES_KNOWLEDGE = {
     "Kwame Nkrumah University of Science and Technology": {
         "location": "Kumasi, Ashanti Region",
@@ -828,53 +791,46 @@ CONTACT:
 
 
 def search_local_knowledge(query: str, university_name: str = None) -> Dict[str, Any]:
-    """Search local Ghana universities knowledge base"""
-
     query_lower = query.lower()
-    results = []
-    confidence = 0.0
+    matches = []
+    top_confidence = 0.0
 
-    uni_name_variations = UNI_NAME_VARIATIONS
+    alias_map = UNI_NAME_VARIATIONS
 
-    # Find university from query if not provided
     if not university_name:
-        for variation, full_name in uni_name_variations.items():
+        for variation, full_name in alias_map.items():
             if variation in query_lower:
                 university_name = full_name
                 break
 
     if university_name:
-        uni_data = GHANA_UNIVERSITIES_KNOWLEDGE.get(university_name, {})
-        if uni_data:
-            results.append(
-                {"source": university_name, "data": uni_data, "relevance": 0.98}
+        university_data = GHANA_UNIVERSITIES_KNOWLEDGE.get(university_name, {})
+        if university_data:
+            matches.append(
+                {"source": university_name, "data": university_data, "relevance": 0.98}
             )
-            confidence = 0.98
+            top_confidence = 0.98
 
-    # Search all universities for relevant information
-    for uni_name, uni_data in GHANA_UNIVERSITIES_KNOWLEDGE.items():
-        if university_name and uni_name == university_name:
-            continue  # Already added above
+    for university_name_key, university_data in GHANA_UNIVERSITIES_KNOWLEDGE.items():
+        if university_name and university_name_key == university_name:
+            continue
 
-        relevance = 0.0
+        match_score = 0.0
 
-        # Program-specific matching
-        if "programs" in uni_data and isinstance(uni_data["programs"], dict):
-            for program_name, program_data in uni_data["programs"].items():
+        if "programs" in university_data and isinstance(university_data["programs"], dict):
+            for program_name, program_data in university_data["programs"].items():
                 program_text = f"{program_name} {json.dumps(program_data)}".lower()
                 if any(word in program_text for word in query_lower.split()):
-                    relevance += 0.4
+                    match_score += 0.4
 
-        text_to_search = f"{uni_name} {json.dumps(uni_data)}".lower()
+        text_to_search = f"{university_name_key} {json.dumps(university_data)}".lower()
 
-        # High-value keywords
-        high_keywords = ["computer science", "engineering", "medicine", "business"]
-        for keyword in high_keywords:
+        priority_keywords = ["computer science", "engineering", "medicine", "business"]
+        for keyword in priority_keywords:
             if keyword in query_lower and keyword in text_to_search:
-                relevance += 0.6
+                match_score += 0.6
 
-        # Standard keywords
-        keywords = [
+        supporting_keywords = [
             "admission",
             "fee",
             "fees",
@@ -884,65 +840,59 @@ def search_local_knowledge(query: str, university_name: str = None) -> Dict[str,
             "contact",
             "requirement",
         ]
-        for keyword in keywords:
+        for keyword in supporting_keywords:
             if keyword in query_lower and keyword in text_to_search:
-                relevance += 0.3
+                match_score += 0.3
 
-        # Direct text matching for specific terms
-        query_words = query_lower.split()
-        for word in query_words:
-            if len(word) > 3 and word in text_to_search:
-                relevance += 0.2
+        query_terms = query_lower.split()
+        for term in query_terms:
+            if len(term) > 3 and term in text_to_search:
+                match_score += 0.2
 
-        if relevance > 0.4:
-            results.append(
+        if match_score > 0.4:
+            matches.append(
                 {
-                    "source": uni_name,
-                    "data": uni_data,
-                    "relevance": min(relevance, 0.95),
+                    "source": university_name_key,
+                    "data": university_data,
+                    "relevance": min(match_score, 0.95),
                 }
             )
 
-    # Sort by relevance and take top 3
-    results = sorted(results, key=lambda x: x["relevance"], reverse=True)[:3]
+    matches = sorted(matches, key=lambda x: x["relevance"], reverse=True)[:3]
 
     return {
-        "results": results,
-        "confidence": confidence
-        or (max([r["relevance"] for r in results]) if results else 0.0),
+        "results": matches,
+        "confidence": top_confidence
+        or (max([match["relevance"] for match in matches]) if matches else 0.0),
     }
 
 
 async def search_web_realtime(query: str) -> Dict[str, Any]:
-    """Search web for real-time information using DuckDuckGo or SerpAPI if available"""
     try:
         serpapi_key = os.getenv("SERPAPI_KEY")
         if serpapi_key:
             return await search_with_serpapi(query, serpapi_key)
 
-        # Use DuckDuckGo Search as default real web search
         from duckduckgo_search import DDGS
 
         ddgs = DDGS()
         current_year = datetime.now().year
         enhanced_query = f"{query} Ghana universities {current_year} official site"
-        results = []
-        # Run synchronous ddgs in threadpool to prevent blocking the event loop
-        items = await asyncio.to_thread(
+        search_results = []
+        search_items = await asyncio.to_thread(
             lambda: list(ddgs.text(enhanced_query, region="wt-wt", safesearch="moderate", max_results=8))
         )
-        for item in items:
-            if not isinstance(item, dict):
+        for search_item in search_items:
+            if not isinstance(search_item, dict):
                 continue
-            url = item.get("href") or item.get("url") or ""
-            title = item.get("title") or ""
-            snippet = item.get("body") or item.get("snippet") or ""
-            # Prioritize official Ghana university domains
-            domain = (url or "").lower()
+            url = search_item.get("href") or search_item.get("url") or ""
+            title = search_item.get("title") or ""
+            snippet = search_item.get("body") or search_item.get("snippet") or ""
+            url_domain = (url or "").lower()
             source_type = (
                 "official_website"
                 if any(
-                    d in domain
+                    d in url_domain
                     for d in [
                         "ug.edu.gh",
                         "knust.edu.gh",
@@ -955,7 +905,7 @@ async def search_web_realtime(query: str) -> Dict[str, Any]:
                 )
                 else "web_search"
             )
-            results.append(
+            search_results.append(
                 {
                     "title": title,
                     "url": url,
@@ -966,16 +916,14 @@ async def search_web_realtime(query: str) -> Dict[str, Any]:
                     else "medium",
                 }
             )
-        return {"results": results, "confidence": 0.75 if results else 0.0}
+        return {"results": search_results, "confidence": 0.75 if search_results else 0.0}
     except Exception as e:
         print(f" Web search error (continuing with local knowledge): {e}")
         return {"results": [], "confidence": 0.0}
 
 
 async def search_with_serpapi(query: str, api_key: str) -> Dict[str, Any]:
-    """Search using SerpAPI"""
     try:
-        # Enhanced query for current year information
         current_year = datetime.now().year
         enhanced_query = f"{query} Ghana universities admission {current_year} latest"
 
@@ -991,12 +939,11 @@ async def search_with_serpapi(query: str, api_key: str) -> Dict[str, Any]:
         }
 
         response = requests.get(url, params=params, timeout=15)
-        data = response.json()
+        serpapi_payload = response.json()
 
-        results = []
-        for result in data.get("organic_results", [])[:5]:
-            # Filter for Ghana university domains
-            url = result.get("link", "")
+        search_results = []
+        for organic_result in serpapi_payload.get("organic_results", [])[:5]:
+            url = organic_result.get("link", "")
             if any(
                 domain in url.lower()
                 for domain in [
@@ -1007,27 +954,27 @@ async def search_with_serpapi(query: str, api_key: str) -> Dict[str, Any]:
                     "upsa.edu.gh",
                 ]
             ):
-                results.append(
+                search_results.append(
                     {
-                        "title": result.get("title", ""),
+                        "title": organic_result.get("title", ""),
                         "url": url,
-                        "snippet": result.get("snippet", ""),
+                        "snippet": organic_result.get("snippet", ""),
                         "source": "official_website",
                         "priority": "high",
                     }
                 )
             else:
-                results.append(
+                search_results.append(
                     {
-                        "title": result.get("title", ""),
+                        "title": organic_result.get("title", ""),
                         "url": url,
-                        "snippet": result.get("snippet", ""),
+                        "snippet": organic_result.get("snippet", ""),
                         "source": "web_search",
                         "priority": "medium",
                     }
                 )
 
-        return {"results": results, "confidence": 0.8 if results else 0.0}
+        return {"results": search_results, "confidence": 0.8 if search_results else 0.0}
 
     except Exception as e:
         print(f" SerpAPI error: {e}")
@@ -1175,7 +1122,6 @@ def generate_smart_fallback_response(
 
     query_lower = query.lower()
 
-    # 1) If web sources are available, synthesize an answer using them (prioritize official)
     web_items = []
     official_items = []
     for s in sources or []:
@@ -1195,7 +1141,6 @@ def generate_smart_fallback_response(
                     "snippet": s.get("snippet") or s.get("body") or "",
                 }
             )
-    # If sources did not include snippet/body, try to parse from context lines
     if not web_items and context:
         for line in context.splitlines():
             if line.startswith("Web Result:"):
@@ -1241,21 +1186,16 @@ def generate_smart_fallback_response(
         )
         return sanitize_markdown_urls("\n".join(lines))
 
-    # 2) Fall back to local knowledge flow (existing structured summaries)
-    # Direct access to knowledge base for accurate responses
     relevant_universities = []
 
-    # Identify universities mentioned in query - EXPANDED MAPPING
     university_keywords = UNI_NAME_VARIATIONS
 
-    # Find mentioned universities
     for keyword, uni_name in university_keywords.items():
         if keyword in query_lower:
             if uni_name in GHANA_UNIVERSITIES_KNOWLEDGE:
                 relevant_universities.append(uni_name)
 
     if not relevant_universities:
-        # Include ALL universities for comprehensive responses
         relevant_universities = list(GHANA_UNIVERSITIES_KNOWLEDGE.keys())
 
     if any(
@@ -1289,12 +1229,10 @@ def generate_smart_fallback_response(
             ):  # Show top 5 to keep response concise
                 uni_data = GHANA_UNIVERSITIES_KNOWLEDGE.get(uni_name, {})
 
-                # Find CS/tech programs
                 programs = uni_data.get("programs", {})
                 cs_program = None
                 cs_name = None
 
-                # Look for computer/technology related programs
                 for prog_name, prog_data in programs.items():
                     if any(
                         keyword in prog_name.lower()
@@ -1311,7 +1249,6 @@ def generate_smart_fallback_response(
 
                 if cs_program:
                     uni_contact = uni_data.get("contact", {})
-                    # Use dynamic key based on current year
                     current_year = datetime.now().year
                     fees_key = f"current_fees_{current_year}"
                     uni_fees = uni_data.get(fees_key, {})
@@ -1352,7 +1289,6 @@ Match universities to your learning style and career goals!
 """
         return sanitize_markdown_urls(response)
 
-    # Fees-related queries
     elif any(
         word in query_lower for word in ["fee", "cost", "money", "pay", "tuition"]
     ):
@@ -1361,7 +1297,6 @@ Match universities to your learning style and career goals!
         for uni_name, uni_data in GHANA_UNIVERSITIES_KNOWLEDGE.items():
             response += f"### {uni_name}\n\n"
 
-            # Use dynamic key based on current year
             current_year = datetime.now().year
             fees_key = f"current_fees_{current_year}"
             if fees_key in uni_data:
@@ -1395,7 +1330,6 @@ Match universities to your learning style and career goals!
         response += "\n**Note:** Fees are subject to change annually. Always confirm current rates with the university admissions office."
         return sanitize_markdown_urls(response)
 
-    # Admission requirements queries
     elif any(
         word in query_lower for word in ["admission", "apply", "requirement", "entry"]
     ):
@@ -1448,7 +1382,6 @@ Match universities to your learning style and career goals!
         response += "\n**Pro Tip:** Start your applications early and apply to multiple universities to increase your chances of admission!"
         return sanitize_markdown_urls(response)
 
-    # Default comprehensive response
     else:
         response = "## INFORMATION ABOUT GHANAIAN UNIVERSITIES\n\n"
 
@@ -1728,76 +1661,73 @@ async def respond_to_query(request: ChatRequest):
 
         print(f"📥 Processing query: {user_message[:100]}...")
 
-        # Step A: Search local knowledge base
-        local_results = search_local_knowledge(user_message, request.university_name)
+        local_matches = search_local_knowledge(user_message, request.university_name)
         print(
-            f"🔍 Local search found {len(local_results['results'])} results (confidence={local_results.get('confidence', 0.0):.2f})"
+            f"🔍 Local search found {len(local_matches['results'])} results (confidence={local_matches.get('confidence', 0.0):.2f})"
         )
 
-        all_sources: List[Dict[str, Any]] = []
-        context_parts: List[str] = []
+        source_documents: List[Dict[str, Any]] = []
+        context_segments: List[str] = []
 
-        for result in local_results.get("results", []):
-            all_sources.append(
+        for search_result in local_matches.get("results", []):
+            source_documents.append(
                 {
-                    "source": result.get("source"),
+                    "source": search_result.get("source"),
                     "type": "local_knowledge",
-                    "confidence": result.get("relevance", 0.0),
+                    "confidence": search_result.get("relevance", 0.0),
                 }
             )
-            context_parts.append(
+            context_segments.append(
                 build_university_context(
-                    result.get("source", ""), result.get("data", {})
+                    search_result.get("source", ""), search_result.get("data", {})
                 )
             )
 
-        # Step B: Fast Path — only skip web search on exact university name match
-        if local_results.get("confidence", 0.0) > 0.95:
+        if local_matches.get("confidence", 0.0) > 0.95:
             print("⚡ Fast Path: Skipping web search due to exact university match")
-            combined_context = "\n\n".join(context_parts)
+            combined_context = "\n\n".join(context_segments)
             combined_context = combined_context[:6000]
-            final_confidence = local_results.get("confidence", 0.8)
+            final_confidence = local_matches.get("confidence", 0.8)
             if groq_client and (final_confidence > 0.3 or combined_context):
                 response_text = await generate_response_with_groq(
-                    user_message, combined_context, all_sources, user_profile, request.chat_history
+                    user_message, combined_context, source_documents, user_profile, request.chat_history
                 )
             else:
                 response_text = generate_smart_fallback_response(
-                    user_message, combined_context, all_sources, user_profile
+                    user_message, combined_context, source_documents, user_profile
                 )
         else:
-            # Step C: Fallback – perform real web search and combine contexts
             print("🌐 Fallback path: Running real-time web search via DDG/SerpAPI...")
-            web_results = await search_web_realtime(user_message)
+            web_matches = await search_web_realtime(user_message)
             print(
-                f"🌐 Real-time search found {len(web_results.get('results', []))} results"
+                f"🌐 Real-time search found {len(web_matches.get('results', []))} results"
             )
 
-            for result in web_results.get("results", []):
-                all_sources.append(
+            for web_match in web_matches.get("results", []):
+                source_documents.append(
                     {
-                        "source": result.get("title", "Web Result"),
-                        "url": result.get("url", ""),
-                        "type": result.get("source", "web_search"),
+                        "source": web_match.get("title", "Web Result"),
+                        "url": web_match.get("url", ""),
+                        "type": web_match.get("source", "web_search"),
                         "confidence": 0.7,
                     }
                 )
-                snippet = result.get("snippet") or result.get("body") or ""
-                context_parts.append(f"Web Result: {snippet}")
+                snippet = web_match.get("snippet") or web_match.get("body") or ""
+                context_segments.append(f"Web Result: {snippet}")
 
-            combined_context = "\n\n".join(context_parts)
+            combined_context = "\n\n".join(context_segments)
             combined_context = combined_context[:6000]
             final_confidence = max(
-                local_results.get("confidence", 0.0), web_results.get("confidence", 0.0)
+                local_matches.get("confidence", 0.0), web_matches.get("confidence", 0.0)
             )
 
             if groq_client and (final_confidence > 0.3 or combined_context):
                 response_text = await generate_response_with_groq(
-                    user_message, combined_context, all_sources, user_profile, request.chat_history
+                    user_message, combined_context, source_documents, user_profile, request.chat_history
                 )
             else:
                 response_text = generate_smart_fallback_response(
-                    user_message, combined_context, all_sources, user_profile
+                    user_message, combined_context, source_documents, user_profile
                 )
 
         processing_time = (datetime.now() - start_time).total_seconds()
@@ -1805,7 +1735,6 @@ async def respond_to_query(request: ChatRequest):
             f"✅ Response generated in {processing_time:.2f}s with confidence {final_confidence:.2f}"
         )
 
-        # Save to MongoDB if available
         if db_client:
             try:
                 db = db_client[os.getenv("DB_NAME", "glinax_chatbot_db")]
@@ -1814,7 +1743,7 @@ async def respond_to_query(request: ChatRequest):
                         "query": request.message,
                         "response": response_text,
                         "confidence": final_confidence,
-                        "sources": all_sources,
+                        "sources": source_documents,
                         "processing_time": processing_time,
                         "timestamp": datetime.now(),
                         "conversation_id": request.conversation_id,
@@ -1827,7 +1756,7 @@ async def respond_to_query(request: ChatRequest):
         return ChatResponse(
             success=True,
             reply=response_text,
-            sources=all_sources,
+            sources=source_documents,
             confidence=final_confidence,
             timestamp=datetime.now().isoformat(),
             processing_time=processing_time,
@@ -1837,7 +1766,6 @@ async def respond_to_query(request: ChatRequest):
     except Exception as e:
         print(f" RAG processing error: {e}")
 
-        # Even on error, try to provide a helpful fallback response
         try:
             fallback_response = generate_smart_fallback_response(
                 request.message, "", [], user_profile if "user_profile" in dir() else {}
@@ -1913,10 +1841,8 @@ async def respond_with_files(
                             f"📄 Processing file: {file.filename} ({file.content_type})"
                         )
 
-                        # Read file content based on type
                         content = await file.read()
 
-                        # Actual content extraction per type
                         if file.content_type == "text/plain":
                             try:
                                 text_content = content.decode("utf-8", errors="ignore")
@@ -1931,7 +1857,6 @@ async def respond_with_files(
                                     f"📄 TEXT extraction failed for {file.filename}: {e}"
                                 )
 
-                        # For PDFs - Enhanced analysis for university documents
                         elif file.content_type == "application/pdf":
                             try:
                                 import io
@@ -1947,18 +1872,15 @@ async def respond_with_files(
                                             page_text = ""
                                         if page_text:
                                             extracted_pages.append(page_text)
-                                        # Cap overall extracted text to ~15k chars to protect downstream model
                                         if sum(len(p) for p in extracted_pages) > 15000:
                                             break
 
-                                # Join with double newlines to preserve section breaks
                                 extracted_text = "\n\n".join(extracted_pages).strip()
                                 if not extracted_text:
                                     extracted_text = "[No selectable text extracted from PDF. This may be a scanned document or image-based PDF.]"
 
                                 extracted_content_parts.append(extracted_text)
 
-                                # Proof-of-life debugging to verify University name capture
                                 print(
                                     f"DEBUG: Extracted {len(extracted_text)} chars. Start: {extracted_text[:200]}"
                                 )
@@ -1972,10 +1894,8 @@ async def respond_with_files(
                                     f"📋 PDF extraction failed for {file.filename}: {e}"
                                 )
 
-                        # For images - Enhanced visual analysis
                         elif file.content_type.startswith("image/"):
                             try:
-                                # OCR via pytesseract on Pillow image
                                 import io
 
                                 from PIL import Image
@@ -2012,7 +1932,6 @@ async def respond_with_files(
                                     f"🖼️ Image processing failed for {file.filename}: {e}"
                                 )
 
-                        # For Word documents - Enhanced document analysis
                         elif file.content_type in [
                             "application/msword",
                             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -2050,7 +1969,6 @@ async def respond_with_files(
                                     f"📝 DOCX extraction failed for {file.filename}: {e}"
                                 )
 
-                        # For Excel/CSV files - Enhanced data analysis
                         elif file.content_type in [
                             "text/csv",
                             "application/vnd.ms-excel",
@@ -2075,7 +1993,6 @@ I can interpret your data and provide personalized university recommendations ba
                                     f"📊 **SPREADSHEET:** {file.filename} (processing error)"
                                 )
 
-                        # For other documents - Professional handling
                         else:
                             try:
                                 file_size_kb = len(content) / 1024
@@ -2106,7 +2023,6 @@ Please let me know what specific aspect of this document you'd like me to help y
                             f"File: {file.filename} - processing error"
                         )
 
-        # Enhance message with file information
         enhanced_message = message
         if file_contents:
             enhanced_message += (
@@ -2114,11 +2030,9 @@ Please let me know what specific aspect of this document you'd like me to help y
                 + "\n\n".join(file_contents)
             )
 
-        # Also append full extracted document text for LLM prioritization
         extracted_content = "\n\n".join(extracted_content_parts).strip()
         if extracted_content:
             enhanced_message += f"\n\n[Document Text]\n{extracted_content}"
-            # Proof-of-life log for entire extracted content
             print(
                 f"DEBUG: Extracted {len(extracted_content)} chars. Start: {extracted_content[:200]}"
             )
@@ -2150,11 +2064,9 @@ Please let me know what specific aspect of this document you'd like me to help y
 
         print(f" Local search found {len(local_results['results'])} results")
 
-        # Search web for real-time information
         web_results = await search_web_realtime(enhanced_message)
         print(f"🌐 Real-time search found {len(web_results['results'])} results")
 
-        # Combine and prepare context
         all_sources = []
         context_parts = []
 
@@ -2210,34 +2122,27 @@ Please let me know what specific aspect of this document you'd like me to help y
                 enhanced_message, combined_context, all_sources, file_user_profile
             )
 
-        # ENHANCED PROFESSIONAL FILE ANALYSIS
         if file_info:
             file_list = ", ".join([f["name"] for f in file_info])
             file_types = set([f["type"].split("/")[0] for f in file_info])
             total_files = len(file_info)
 
-            # Smart file type detection and contextual response
             if "image" in file_types and any(
                 f["name"].lower().endswith((".jpg", ".jpeg", ".png")) for f in file_info
             ):
-                # Likely certificates, transcripts, or ID documents
                 analysis_intro = f"**📄 Academic Document Analysis**\n\nI have analyzed your uploaded image(s): {file_list}. These appear to be academic documents such as certificates, transcripts, or identification materials. I can provide specific guidance based on the visible information."
             elif any("pdf" in f["name"].lower() for f in file_info):
-                # PDF documents - likely official university materials
                 analysis_intro = f"**📋 Official Document Review**\n\nI have processed the PDF document(s) you uploaded: {file_list}. This appears to contain official university or academic information that I can analyze for admission guidance."
             elif any(
                 word in " ".join([f["name"] for f in file_info]).lower()
                 for word in ["transcript", "certificate", "diploma", "result", "grade"]
             ):
-                # Academic records
                 analysis_intro = f"**🎓 Academic Record Analysis**\n\nI have reviewed your academic document(s): {file_list}. I can analyze your grades, subjects, and performance to recommend suitable university programs and provide admission guidance."
             elif "text" in file_types or any(
                 f["name"].lower().endswith(".txt") for f in file_info
             ):
-                # Text files - could be essays, notes, or information
                 analysis_intro = f"**📝 Document Analysis**\n\nI have processed your text document(s): {file_list}. I can provide guidance based on the content and help with university admission questions."
             else:
-                # Generic file handling
                 analysis_intro = f"**📎File Analysis Complete**\n\nI have successfully processed {total_files} file(s): {file_list}. I can now provide targeted university admission assistance based on the content."
 
             enhanced_response = f"{analysis_intro}\n\n---\n\n{response_text}\n\n---\n\n**🎯 Specific Recommendations Based on Your Documents:**\n\n"

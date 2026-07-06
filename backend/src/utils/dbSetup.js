@@ -1,5 +1,5 @@
-/**
- * Ensures all collections are created and receiving data properly
+/*
+ Ensures all collections are created and receiving data properly
  */
 
 import { getDatabase, getCollection } from '../config/db.js';
@@ -27,7 +27,7 @@ async function createCollectionsAndVerifyData() {
         const existingNames = existingCollections.map(col => col.name);
         console.log(' Existing collections:', existingNames);
         
-        console.log('\n🛠️ Creating/Verifying Required Collections:');
+        console.log('\nCreating/Verifying Required Collections:');
         for (const [collectionName, purpose] of Object.entries(REQUIRED_COLLECTIONS)) {
             try {
                 if (!existingNames.includes(collectionName)) {
@@ -41,19 +41,19 @@ async function createCollectionsAndVerifyData() {
             }
         }
         
-        console.log('\n📈 Creating Performance Indexes...');
+        console.log('\n Creating Performance Indexes...');
         await createIndexes(db);
         
-        console.log('\n🧪 Testing Data Insertion...');
+        console.log('\n Testing Data Insertion...');
         await testDataInsertion(db);
         
         console.log('\nVerifying Collection Data Capability...');
         await verifyCollections(db);
         
-        console.log('\n🧹 Cleaning up test data...');
+        console.log('\n Cleaning up test data...');
         await cleanupTestData(db);
         
-        console.log('\n🎉 Database setup completed successfully!');
+        console.log('\n Database setup completed successfully!');
         
     } catch (error) {
         console.error(' Database setup error:', error);
@@ -63,13 +63,13 @@ async function createCollectionsAndVerifyData() {
 
 async function createIndexes(db) {
     try {
-        // Chats collection - optimize for user queries and conversation retrieval
+        // Chats collection 
         await db.collection('chats').createIndex({ "user_id": 1, "conversation_id": 1 });
         await db.collection('chats').createIndex({ "created_at": -1 });
         await db.collection('chats').createIndex({ "is_bot": 1 });
         console.log(' Chats indexes created');
         
-        // Users collection - optimize for authentication and user management
+        // Users collection 
         try {
             await db.collection('users').createIndex({ "email": 1 }, { unique: true });
         } catch (e) {
@@ -79,19 +79,19 @@ async function createIndexes(db) {
         await db.collection('users').createIndex({ "created_at": -1 });
         console.log(' Users indexes created');
         
-        // Conversations collection - optimize for user conversation history
+        // Conversations collection 
         await db.collection('conversations').createIndex({ "user_id": 1 });
         await db.collection('conversations').createIndex({ "updated_at": -1 });
         await db.collection('conversations').createIndex({ "is_active": 1 });
         console.log(' Conversations indexes created');
         
-        // RAG logs collection - optimize for analytics and monitoring
+        // RAG logs collection 
         await db.collection('rag_logs').createIndex({ "timestamp": -1 });
         await db.collection('rag_logs').createIndex({ "confidence": -1 });
         await db.collection('rag_logs').createIndex({ "conversation_id": 1 });
         console.log(' RAG logs indexes created');
         
-        // Payments collection - optimize for transaction tracking
+        // Payments collection 
         await db.collection('payments').createIndex({ "user_id": 1 });
         await db.collection('payments').createIndex({ "status": 1 });
         try {
@@ -101,7 +101,7 @@ async function createIndexes(db) {
         }
         console.log(' Payments indexes created');
         
-        // Sessions collection - optimize for authentication
+        // Sessions collection 
         await db.collection('sessions').createIndex({ "user_id": 1 });
         await db.collection('sessions').createIndex({ "expires_at": 1 }, { expireAfterSeconds: 0 });
         console.log(' Sessions indexes created');
@@ -179,7 +179,7 @@ async function testDataInsertion(db) {
 }
 
 async function verifyCollections(db) {
-    console.log('📊 Collection Status Report:');
+    console.log('Collection Status Report:');
     
     for (const collectionName of Object.keys(REQUIRED_COLLECTIONS)) {
         try {
@@ -206,7 +206,7 @@ async function cleanupTestData(db) {
 }
 
 async function ensureDataFlow() {
-    console.log('\n🔄 Ensuring Real Data Flow...');
+    console.log('\nEnsuring Real Data Flow...');
     
     try {
         const db = await getDatabase();

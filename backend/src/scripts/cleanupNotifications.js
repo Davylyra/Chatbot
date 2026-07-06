@@ -1,7 +1,6 @@
 /**
  * NOTIFICATION CLEANUP JOB
  * Periodically deletes notifications that have been read for 30+ minutes
- * Run this as a cron job or scheduled task
  */
 
 import { getCollection } from '../config/db.js';
@@ -47,16 +46,4 @@ export const startCleanupSchedule = () => {
   }, 2 * 1000); // 2 seconds
 };
 
-/*
-if (import.meta.url === `file://${process.argv[1]}`) {
-  cleanupReadNotifications()
-    .then(result => {
-      console.log('Cleanup result:', result);
-      process.exit(0);
-    })
-    .catch(err => {
-      console.error('Cleanup failed:', err);
-      process.exit(1);
-    });
-}
-*/
+

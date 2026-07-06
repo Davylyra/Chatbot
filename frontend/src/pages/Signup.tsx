@@ -12,7 +12,7 @@ const Signup: React.FC = () => {
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -25,25 +25,29 @@ const Signup: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   // Auto-dismiss general error after 5 seconds
-  useAutoCloseError(errors.submit || null, () => {
-    setErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors.submit;
-      return newErrors;
-    });
-  }, 5000);
+  useAutoCloseError(
+    errors.submit || null,
+    () => {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.submit;
+        return newErrors;
+      });
+    },
+    5000
+  );
 
   const handleSendVerification = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const newErrors: {[key: string]: string} = {};
+
+    const newErrors: { [key: string]: string } = {};
 
     if (!formData.name.trim() || formData.name.trim().length < 2) {
       newErrors.name = 'Name must be at least 2 characters';
@@ -55,7 +59,7 @@ const Signup: React.FC = () => {
     } else if (!formData.email.toLowerCase().endsWith('@gmail.com')) {
       newErrors.email = 'Email must be a Gmail address (@gmail.com)';
     }
-    
+
     const passwordErrors: string[] = [];
     if (formData.password.length < 8) {
       passwordErrors.push('at least 8 characters');
@@ -72,7 +76,7 @@ const Signup: React.FC = () => {
     if (!/[!@#$%^&*]/.test(formData.password)) {
       passwordErrors.push('special character (!@#$%^&*)');
     }
-    
+
     if (passwordErrors.length > 0) {
       newErrors.password = `Password must have: ${passwordErrors.join(', ')}`;
     }
@@ -80,7 +84,7 @@ const Signup: React.FC = () => {
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
-    
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -91,11 +95,10 @@ const Signup: React.FC = () => {
 
       const result = await sendSignupVerification(formData.email);
       if (result.success) {
-
         setIsVerificationModalOpen(true);
       } else {
         if (result.errors && Array.isArray(result.errors)) {
-          const backendErrors: {[key: string]: string} = {};
+          const backendErrors: { [key: string]: string } = {};
           for (const error of result.errors) {
             if (error.includes('Email') || error.includes('@gmail')) backendErrors.email = error;
             else backendErrors.submit = error;
@@ -122,18 +125,20 @@ const Signup: React.FC = () => {
         formData.name,
         formData.password
       );
-      
+
       if (result.success) {
         // Clear form
         setFormData({
           name: '',
           email: '',
           password: '',
-          confirmPassword: ''
+          confirmPassword: '',
         });
 
         setTimeout(() => {
-          navigate('/login', { state: { signupSuccess: true, message: 'Account created successfully! Please log in.' } });
+          navigate('/login', {
+            state: { signupSuccess: true, message: 'Account created successfully! Please log in.' },
+          });
         }, 2000);
       } else {
         throw new Error(result.message || 'Verification failed');
@@ -173,7 +178,6 @@ const Signup: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-sm mx-auto px-4 py-4 overflow-hidden md:max-w-xl md:px-6 md:py-6 lg:max-w-2xl xl:max-w-3xl"
         >
-
           {/* Logo and Title */}
           <div className="text-center mb-12">
             <motion.div
@@ -182,9 +186,9 @@ const Signup: React.FC = () => {
               transition={{ delay: 0.2 }}
               className="w-20 h-20 mx-auto mb-6 rounded-3xl flex items-center justify-center"
             >
-              <img 
-                src="/cerkyl-logo.jpeg" 
-                  alt="Cerkyl Logo" 
+              <img
+                src="/cerkyl-logo.jpeg"
+                alt="Cerkyl Logo"
                 className="w-16 h-16 rounded-2xl object-cover"
               />
             </motion.div>
@@ -193,8 +197,8 @@ const Signup: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
               className={`text-4xl font-bold mb-3 bg-gradient-to-r ${
-                theme === 'dark' 
-                  ? 'from-white to-gray-300 bg-clip-text text-transparent' 
+                theme === 'dark'
+                  ? 'from-white to-gray-300 bg-clip-text text-transparent'
                   : 'from-gray-900 to-gray-600 bg-clip-text text-transparent'
               }`}
             >
@@ -218,23 +222,25 @@ const Signup: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
             className={`rounded-3xl p-8 shadow-2xl transition-all duration-200 ${
-              theme === 'dark' 
-                ? 'glass-card-unified-dark' 
-                : 'glass-card-unified'
+              theme === 'dark' ? 'glass-card-unified-dark' : 'glass-card-unified'
             }`}
           >
             <form onSubmit={handleSendVerification} className="space-y-6">
               {/* Name Field */}
               <div className="space-y-2">
-                <label className={`text-sm font-semibold transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
+                <label
+                  className={`text-sm font-semibold transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}
+                >
                   Full name
                 </label>
                 <div className="relative">
-                  <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${
-                    theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-                  }`}>
+                  <div
+                    className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${
+                      theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                    }`}
+                  >
                     <FiUser className="w-5 h-5" />
                   </div>
                   <input
@@ -247,8 +253,8 @@ const Signup: React.FC = () => {
                       errors.name
                         ? 'border-red-500 focus:border-red-500 focus:ring-red-500/50'
                         : theme === 'dark'
-                        ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400'
-                        : 'bg-gray-50/50 border-gray-200 text-gray-900 placeholder-gray-500'
+                          ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400'
+                          : 'bg-gray-50/50 border-gray-200 text-gray-900 placeholder-gray-500'
                     }`}
                     required
                   />
@@ -262,15 +268,19 @@ const Signup: React.FC = () => {
 
               {/* Email Field */}
               <div className="space-y-2">
-                <label className={`text-sm font-semibold transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
+                <label
+                  className={`text-sm font-semibold transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}
+                >
                   Email address <span className="text-xs text-gray-500">(@gmail.com only)</span>
                 </label>
                 <div className="relative">
-                  <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${
-                    theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-                  }`}>
+                  <div
+                    className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${
+                      theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                    }`}
+                  >
                     <FiMail className="w-5 h-5" />
                   </div>
                   <input
@@ -283,8 +293,8 @@ const Signup: React.FC = () => {
                       errors.email
                         ? 'border-red-500 focus:border-red-500 focus:ring-red-500/50'
                         : theme === 'dark'
-                        ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400'
-                        : 'bg-gray-50/50 border-gray-200 text-gray-900 placeholder-gray-500'
+                          ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400'
+                          : 'bg-gray-50/50 border-gray-200 text-gray-900 placeholder-gray-500'
                     }`}
                     required
                   />
@@ -298,20 +308,26 @@ const Signup: React.FC = () => {
 
               {/* Password Field */}
               <div className="space-y-2">
-                <label className={`text-sm font-semibold transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
+                <label
+                  className={`text-sm font-semibold transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}
+                >
                   Password <span className="text-xs text-gray-500">(min 8 chars)</span>
                 </label>
-                <p className={`text-xs transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>
+                <p
+                  className={`text-xs transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                  }`}
+                >
                   Must include: uppercase, lowercase, number, special char (!@#$%^&*)
                 </p>
                 <div className="relative">
-                  <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${
-                    theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-                  }`}>
+                  <div
+                    className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${
+                      theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                    }`}
+                  >
                     <FiLock className="w-5 h-5" />
                   </div>
                   <input
@@ -327,8 +343,8 @@ const Signup: React.FC = () => {
                       errors.password
                         ? 'border-red-500 focus:border-red-500 focus:ring-red-500/50'
                         : theme === 'dark'
-                        ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400'
-                        : 'bg-gray-50/50 border-gray-200 text-gray-900 placeholder-gray-500'
+                          ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400'
+                          : 'bg-gray-50/50 border-gray-200 text-gray-900 placeholder-gray-500'
                     }`}
                     required
                   />
@@ -340,12 +356,18 @@ const Signup: React.FC = () => {
                         e.stopPropagation();
                         setShowPassword(!showPassword);
                       }}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
                       className={`flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200/20 transition-colors duration-200 bg-transparent border-0 outline-none relative z-[9999] ${
-                        theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
+                        theme === 'dark'
+                          ? 'text-gray-400 hover:text-gray-300'
+                          : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
-                      {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+                      {showPassword ? (
+                        <FiEyeOff className="w-5 h-5" />
+                      ) : (
+                        <FiEye className="w-5 h-5" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -358,15 +380,19 @@ const Signup: React.FC = () => {
 
               {/* Confirm Password Field */}
               <div className="space-y-2">
-                <label className={`text-sm font-semibold transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
+                <label
+                  className={`text-sm font-semibold transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}
+                >
                   Confirm password
                 </label>
                 <div className="relative">
-                  <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${
-                    theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-                  }`}>
+                  <div
+                    className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${
+                      theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                    }`}
+                  >
                     <FiLock className="w-5 h-5" />
                   </div>
                   <input
@@ -382,8 +408,8 @@ const Signup: React.FC = () => {
                       errors.confirmPassword
                         ? 'border-red-500 focus:border-red-500 focus:ring-red-500/50'
                         : theme === 'dark'
-                        ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400'
-                        : 'bg-gray-50/50 border-gray-200 text-gray-900 placeholder-gray-500'
+                          ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400'
+                          : 'bg-gray-50/50 border-gray-200 text-gray-900 placeholder-gray-500'
                     }`}
                     required
                   />
@@ -395,12 +421,18 @@ const Signup: React.FC = () => {
                         e.stopPropagation();
                         setShowConfirmPassword(!showConfirmPassword);
                       }}
-                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                      aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                       className={`flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200/20 transition-colors duration-200 bg-transparent border-0 outline-none relative z-[9999] ${
-                        theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
+                        theme === 'dark'
+                          ? 'text-gray-400 hover:text-gray-300'
+                          : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
-                      {showConfirmPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+                      {showConfirmPassword ? (
+                        <FiEyeOff className="w-5 h-5" />
+                      ) : (
+                        <FiEye className="w-5 h-5" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -427,32 +459,34 @@ const Signup: React.FC = () => {
                     agreedToTerms
                       ? 'bg-primary-600 border-primary-600 text-white'
                       : theme === 'dark'
-                      ? 'border-gray-600 hover:border-gray-500'
-                      : 'border-gray-300 hover:border-gray-400'
+                        ? 'border-gray-600 hover:border-gray-500'
+                        : 'border-gray-300 hover:border-gray-400'
                   }`}
                 >
                   {agreedToTerms && <FiCheck className="w-3 h-3" />}
                 </button>
-                <p className={`text-sm leading-relaxed transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>
+                <p
+                  className={`text-sm leading-relaxed transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                  }`}
+                >
                   I agree to the{' '}
                   <button
                     type="button"
                     className={`font-medium transition-colors duration-200 ${
-                      theme === 'dark' 
-                        ? 'text-primary-400 hover:text-primary-300' 
+                      theme === 'dark'
+                        ? 'text-primary-400 hover:text-primary-300'
                         : 'text-primary-600 hover:text-primary-700'
                     }`}
                   >
                     Terms of Service
-                  </button>
-                  {' '}and{' '}
+                  </button>{' '}
+                  and{' '}
                   <button
                     type="button"
                     className={`font-medium transition-colors duration-200 ${
-                      theme === 'dark' 
-                        ? 'text-primary-400 hover:text-primary-300' 
+                      theme === 'dark'
+                        ? 'text-primary-400 hover:text-primary-300'
                         : 'text-primary-600 hover:text-primary-700'
                     }`}
                   >
@@ -488,15 +522,17 @@ const Signup: React.FC = () => {
             transition={{ delay: 0.6 }}
             className="text-center mt-8"
           >
-            <p className={`transition-colors duration-200 ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-            }`}>
+            <p
+              className={`transition-colors duration-200 ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}
+            >
               Already have an account?{' '}
               <button
                 onClick={() => navigate('/login')}
                 className={`font-semibold transition-colors duration-200 ${
-                  theme === 'dark' 
-                    ? 'text-primary-400 hover:text-primary-300' 
+                  theme === 'dark'
+                    ? 'text-primary-400 hover:text-primary-300'
                     : 'text-primary-600 hover:text-primary-700'
                 }`}
               >

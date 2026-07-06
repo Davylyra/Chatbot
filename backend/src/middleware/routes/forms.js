@@ -8,7 +8,6 @@ import sendVerificationEmail from "../../utils/sendVerificationEmail.js";
 
 const router = express.Router();
 
-/* -------------------- 🟢 GET ALL AVAILABLE FORMS -------------------- */
 router.get("/", async (req, res) => {
   try {
     const formsCollection = await getCollection("forms");
@@ -134,7 +133,7 @@ router.post("/:id/purchase", authMiddleware, async (req, res) => {
   }
 });
 
-/* -------------------- 🟢 VERIFY PAYMENT AND LINK FORM -------------------- */
+/* VERIFY PAYMENT AND LINK FORM  */
 router.get("/verify/:reference", authMiddleware, async (req, res) => {
   const { reference } = req.params;
 
@@ -197,7 +196,7 @@ router.get("/verify/:reference", authMiddleware, async (req, res) => {
   }
 });
 
-/* -------------------- 🟢 GET USER'S PURCHASED FORMS -------------------- */
+/* GET USER'S PURCHASED FORMS  */
 router.get("/my", authMiddleware, async (req, res) => {
   try {
     const userFormsCollection = await getCollection("user_forms");

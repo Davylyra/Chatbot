@@ -16,7 +16,7 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
   onClose,
   onVerified,
   userEmail,
-  onResendCode
+  onResendCode,
 }) => {
   const { theme } = useTheme();
   const [verificationCode, setVerificationCode] = useState('');
@@ -57,7 +57,6 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
     setError(null);
 
     try {
-
       await onVerified(verificationCode);
       setSuccess(true);
       setTimeout(() => {
@@ -106,19 +105,17 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className={`max-w-md w-full ${
-            theme === 'dark' ? 'glass-modal-dark' : 'glass-modal'
-          }`}
+          className={`max-w-md w-full ${theme === 'dark' ? 'glass-modal-dark' : 'glass-modal'}`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-white/20">
             <div className="flex items-center space-x-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                success 
-                  ? 'bg-green-500' 
-                  : theme === 'dark' ? 'bg-blue-500' : 'bg-blue-600'
-              }`}>
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  success ? 'bg-green-500' : theme === 'dark' ? 'bg-blue-500' : 'bg-blue-600'
+                }`}
+              >
                 {success ? (
                   <FiCheck className="w-5 h-5 text-white" />
                 ) : (
@@ -126,24 +123,30 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
                 )}
               </div>
               <div>
-                <h3 className={`font-semibold transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-800'
-                }`}>
+                <h3
+                  className={`font-semibold transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-white' : 'text-gray-800'
+                  }`}
+                >
                   {success ? 'Email Verified!' : 'Verify Your Email'}
                 </h3>
-                <p className={`text-sm transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                }`}>
-                  {success ? 'You can now proceed with payment' : 'Enter the code sent to your email'}
+                <p
+                  className={`text-sm transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                  }`}
+                >
+                  {success
+                    ? 'You can now proceed with payment'
+                    : 'Enter the code sent to your email'}
                 </p>
               </div>
             </div>
-            <button 
+            <button
               onClick={onClose}
               aria-label="Close verification modal"
               className={`p-2 rounded-full transition-colors duration-200 ${
-                theme === 'dark' 
-                  ? 'hover:bg-white/10 text-gray-400 hover:text-white' 
+                theme === 'dark'
+                  ? 'hover:bg-white/10 text-gray-400 hover:text-white'
                   : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -156,28 +159,36 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
             {!success ? (
               <>
                 {/* Email Display */}
-                <div className={`p-4 rounded-xl mb-6 ${
-                  theme === 'dark' 
-                    ? 'bg-white/5 border border-white/10' 
-                    : 'bg-gray-50 border border-gray-200'
-                }`}>
-                  <p className={`text-sm transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                  }`}>
+                <div
+                  className={`p-4 rounded-xl mb-6 ${
+                    theme === 'dark'
+                      ? 'bg-white/5 border border-white/10'
+                      : 'bg-gray-50 border border-gray-200'
+                  }`}
+                >
+                  <p
+                    className={`text-sm transition-colors duration-200 ${
+                      theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                    }`}
+                  >
                     Verification code sent to:
                   </p>
-                  <p className={`font-medium transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-white' : 'text-gray-800'
-                  }`}>
+                  <p
+                    className={`font-medium transition-colors duration-200 ${
+                      theme === 'dark' ? 'text-white' : 'text-gray-800'
+                    }`}
+                  >
                     {userEmail}
                   </p>
                 </div>
 
                 {/* Code Input */}
                 <div className="mb-6">
-                  <label className={`block text-sm font-medium mb-2 transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
+                  <label
+                    className={`block text-sm font-medium mb-2 transition-colors duration-200 ${
+                      theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                    }`}
+                  >
                     Enter 6-digit verification code
                   </label>
                   <input
@@ -212,9 +223,11 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
 
                 {/* Resend Code */}
                 <div className="flex items-center justify-between mb-6">
-                  <p className={`text-sm transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                  }`}>
+                  <p
+                    className={`text-sm transition-colors duration-200 ${
+                      theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                    }`}
+                  >
                     Didn't receive the code?
                   </p>
                   <button
@@ -224,8 +237,8 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
                       isResending || timeLeft > 0
                         ? 'text-gray-400 cursor-not-allowed'
                         : theme === 'dark'
-                        ? 'text-blue-400 hover:text-blue-300'
-                        : 'text-blue-600 hover:text-blue-700'
+                          ? 'text-blue-400 hover:text-blue-300'
+                          : 'text-blue-600 hover:text-blue-700'
                     }`}
                   >
                     {isResending ? (
@@ -283,14 +296,18 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
                 <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                   <FiCheck className="w-8 h-8 text-white" />
                 </div>
-                <h4 className={`text-lg font-semibold mb-2 transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-800'
-                }`}>
+                <h4
+                  className={`text-lg font-semibold mb-2 transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-white' : 'text-gray-800'
+                  }`}
+                >
                   Email Verified Successfully!
                 </h4>
-                <p className={`text-sm transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                }`}>
+                <p
+                  className={`text-sm transition-colors duration-200 ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                  }`}
+                >
                   You can now proceed with your payment
                 </p>
               </motion.div>

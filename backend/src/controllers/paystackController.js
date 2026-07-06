@@ -5,616 +5,335 @@ import { ObjectId } from 'mongodb';
 import { createSystemNotification } from './notificationController.js';
 import { sendPurchaseEmail, sendAdminAlertEmail } from '../utils/sendPurchaseEmail.js';
 
-// Paystack configuration
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_PUBLIC_KEY = process.env.PAYSTACK_PUBLIC_KEY;
 
-const toObjectIdIfValid = (value) => {
-  if (value && ObjectId.isValid(value)) {
-    return new ObjectId(value);
-  }
-  return value;
+const toObjectIdIfValid = (identifier) => {
+  if (identifier && ObjectId.isValid(identifier)) return new ObjectId(identifier);
+  return identifier;
 };
 
-// GHANA MOBILE MONEY PROVIDERS - PRODUCTION READY
 const GHANA_MOBILE_MONEY_PROVIDERS = {
   MTN: { code: 'mtn', name: 'MTN Mobile Money', prefixes: ['024', '054', '055', '059'] },
   VODAFONE: { code: 'vod', name: 'Vodafone Cash', prefixes: ['020', '050'] },
   AIRTELTIGO: { code: 'tgo', name: 'AirtelTigo Money', prefixes: ['027', '057', '026', '056'] }
 };
 
-const validateMobileMoneyNumber = (phoneNumber, provider) => {
-  const errors = [];
+const validateMobileMoneyNumber = (phoneNumber, providerCode) => {
+  const validationFailures = [];
+  const sanitizedNumber = phoneNumber.replace(/[\s\-\(\)]/g, '');
   
-  const cleanNumber = phoneNumber.replace(/[\s\-\(\)]/g, '');
-  
-  if (!/^(0|\+233)?[0-9]{9}$/.test(cleanNumber)) {
-    errors.push('Invalid phone number format. Use format: 0XXXXXXXXX or +233XXXXXXXXX');
-    return { valid: false, errors };
+  if (!/^(0|\+233)?[0-9]{9}$/.test(sanitizedNumber)) {
+    validationFailures.push('Invalid phone number format. Use format: 0XXXXXXXXX or +233XXXXXXXXX');
+    return { valid: false, errors: validationFailures };
   }
   
-  let prefix;
-  if (cleanNumber.startsWith('+233')) {
-    prefix = cleanNumber.substring(4, 7);
-  } else if (cleanNumber.startsWith('0')) {
-    prefix = cleanNumber.substring(0, 3);
-  } else {
-    prefix = cleanNumber.substring(0, 3);
-  }
+  const networkPrefix = sanitizedNumber.startsWith('+233') ? sanitizedNumber.substring(4, 7) : sanitizedNumber.substring(0, 3);
   
-  if (provider) {
-    const providerInfo = Object.values(GHANA_MOBILE_MONEY_PROVIDERS).find(
-      p => p.code === provider.toLowerCase()
-    );
-    
-    if (!providerInfo) {
-      errors.push('Invalid mobile money provider. Use: mtn, voda, or tigo');
-      return { valid: false, errors };
+  if (providerCode) {
+    const matchedProvider = Object.values(GHANA_MOBILE_MONEY_PROVIDERS).find(p => p.code === providerCode.toLowerCase());
+    if (!matchedProvider) {
+      validationFailures.push('Invalid mobile money provider. Use: mtn, voda, or tigo');
+      return { valid: false, errors: validationFailures };
     }
-    
-    if (!providerInfo.prefixes.includes(prefix)) {
-      errors.push(`This number (${prefix}) doesn't match ${providerInfo.name}. Expected prefixes: ${providerInfo.prefixes.join(', ')}`);
-      return { valid: false, errors };
+    if (!matchedProvider.prefixes.includes(networkPrefix)) {
+      validationFailures.push(`This number (${networkPrefix}) doesn't match ${matchedProvider.name}. Expected prefixes: ${matchedProvider.prefixes.join(', ')}`);
+      return { valid: false, errors: validationFailures };
     }
   }
   
   return { 
     valid: true, 
-    cleanNumber: cleanNumber.startsWith('+233') ? cleanNumber : `+233${cleanNumber.substring(1)}`,
-    provider: Object.values(GHANA_MOBILE_MONEY_PROVIDERS).find(
-      p => p.prefixes.includes(prefix)
-    )
+    cleanNumber: sanitizedNumber.startsWith('+233') ? sanitizedNumber : `+233${sanitizedNumber.substring(1)}`,
+    provider: Object.values(GHANA_MOBILE_MONEY_PROVIDERS).find(p => p.prefixes.includes(networkPrefix))
   };
 };
 
 export const initializePayment = async (req, res) => {
   try {
-    const {
-      email,
-      amount,
-      currency = 'GHS',
-      metadata,
-      paymentMethod = 'card', // 'card' or 'mobile_money'
-      mobileMoneyProvider, // 'mtn', 'vod', 'tgo'
-      mobileMoneyNumber,
-      formId // For form purchases
-    } = req.body;
-    const userId = req.user.id;
-
-    // Validation
-    const errors = [];
+    const { email, amount, currency = 'GHS', metadata, paymentMethod = 'card', mobileMoneyProvider, mobileMoneyNumber, formId } = req.body;
+    const studentId = req.user.id;
+    const validationFailures = [];
     
-    if (!email) errors.push('Email is required');
-    if (!amount || amount <= 0) errors.push('Valid amount is required');
-    if (amount < 1) errors.push('Minimum payment amount is GHS 1.00');
-    if (amount > 10000) errors.push('Maximum payment amount is GHS 10,000.00');
+    if (!email) validationFailures.push('Email is required');
+    if (!amount || amount <= 0) validationFailures.push('Valid amount is required');
+    if (amount < 1) validationFailures.push('Minimum payment amount is GHS 1.00');
+    if (amount > 10000) validationFailures.push('Maximum payment amount is GHS 10,000.00');
     
-    // Mobile Money number/provider are optional when user completes details on Paystack checkout.
-    let mobileMoneyValidation = null;
+    let verifiedMomoDetails = null;
     if (paymentMethod === 'mobile_money' && mobileMoneyNumber && mobileMoneyProvider) {
-      const validation = validateMobileMoneyNumber(mobileMoneyNumber, mobileMoneyProvider);
-      if (!validation.valid) {
-        errors.push(...validation.errors);
-      } else {
-        mobileMoneyValidation = validation;
-      }
+      const momoValidation = validateMobileMoneyNumber(mobileMoneyNumber, mobileMoneyProvider);
+      if (!momoValidation.valid) validationFailures.push(...momoValidation.errors);
+      else verifiedMomoDetails = momoValidation;
     }
     
-    if (errors.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors
-      });
+    if (validationFailures.length) {
+      return res.status(400).json({ success: false, message: 'Validation failed', errors: validationFailures });
     }
 
     const amountInPesewas = Math.round(amount * 100);
-    
-    console.log(`💳 Initializing ${paymentMethod} payment: GHS ${amount} for user ${userId}`);
-
-    const paymentParams = {
+    const transactionParams = {
       email,
       amount: amountInPesewas,
       currency,
-      reference: `glinax_${Date.now()}_${userId}`,
+      reference: `glinax_${Date.now()}_${studentId}`,
       callback_url: `${process.env.FRONTEND_URL}/payment/callback`,
-      metadata: {
-        userId,
-        service: 'glinax_premium',
-        paymentMethod,
-        country: 'Ghana',
-        ...metadata
-      }
+      metadata: { userId: studentId, service: 'glinax_premium', paymentMethod, country: 'Ghana', ...metadata }
     };
     
     if (paymentMethod === 'mobile_money') {
-      paymentParams.channels = ['mobile_money']; // Restrict to mobile money only
-      if (mobileMoneyValidation) {
-        paymentParams.metadata.mobile_money = {
-          provider: mobileMoneyValidation.provider.name,
+      transactionParams.channels = ['mobile_money'];
+      if (verifiedMomoDetails) {
+        transactionParams.metadata.mobile_money = {
+          provider: verifiedMomoDetails.provider.name,
           providerCode: mobileMoneyProvider,
-          number: mobileMoneyValidation.cleanNumber
+          number: verifiedMomoDetails.cleanNumber
         };
       }
     }
     
-    const params = JSON.stringify(paymentParams);
-
-    const options = {
+    const requestPayload = JSON.stringify(transactionParams);
+    const requestOptions = {
       hostname: 'api.paystack.co',
       port: 443,
       path: '/transaction/initialize',
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-        'Content-Type': 'application/json',
-      }
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, 'Content-Type': 'application/json' }
     };
 
-    const paystackRequest = https.request(options, (paystackResponse) => {
-      let data = '';
-
-      paystackResponse.on('data', (chunk) => {
-        data += chunk;
-      });
-
+    const paystackCall = https.request(requestOptions, (paystackResponse) => {
+      let responseBody = '';
+      paystackResponse.on('data', (chunk) => { responseBody += chunk; });
       paystackResponse.on('end', async () => {
         try {
-          const response = JSON.parse(data);
-          
-          if (response.status) {
+          const parsedResponse = JSON.parse(responseBody);
+          if (parsedResponse.status) {
+            const documentBase = {
+              user_id: new ObjectId(studentId),
+              amount: formId ? amountInPesewas : amount,
+              currency: formId ? undefined : currency,
+              reference: parsedResponse.data.reference,
+              status: 'pending',
+              payment_method: paymentMethod,
+              mobile_money_provider: mobileMoneyProvider || null,
+              mobile_money_number: verifiedMomoDetails ? verifiedMomoDetails.cleanNumber : null,
+              paystack_data: parsedResponse.data,
+              created_at: new Date(),
+              updated_at: new Date(),
+              metadata: { ...metadata, country: 'Ghana', ip_address: req.ip || req.connection.remoteAddress }
+            };
+
             if (formId) {
-              // Form purchase - save to payments collection
-              const paymentsCollection = await getCollection('payments');
-              await paymentsCollection.insertOne({
-                user_id: new ObjectId(userId),
-                form_id: toObjectIdIfValid(formId),
-                amount: amountInPesewas,
-                reference: response.data.reference,
-                status: 'pending',
-                payment_method: paymentMethod,
-                mobile_money_provider: mobileMoneyProvider || null,
-                mobile_money_number: mobileMoneyValidation ? mobileMoneyValidation.cleanNumber : null,
-                paystack_data: response.data,
-                created_at: new Date(),
-                updated_at: new Date(),
-                metadata: {
-                  ...metadata,
-                  country: 'Ghana',
-                  ip_address: req.ip || req.connection.remoteAddress
-                }
-              });
+              const paymentArchive = await getCollection('payments');
+              await paymentArchive.insertOne({ ...documentBase, form_id: toObjectIdIfValid(formId) });
             } else {
-              // General payment - save to transactions collection
-              const transactionsCollection = await getCollection('transactions');
-              await transactionsCollection.insertOne({
-                user_id: new ObjectId(userId),
-                reference: response.data.reference,
-                amount: amount,
-                currency,
-                status: 'pending',
-                payment_method: paymentMethod,
-                mobile_money_provider: mobileMoneyProvider || null,
-                mobile_money_number: mobileMoneyValidation ? mobileMoneyValidation.cleanNumber : null,
-                paystack_data: response.data,
-                created_at: new Date(),
-                updated_at: new Date(),
-                metadata: {
-                  ...metadata,
-                  country: 'Ghana',
-                  ip_address: req.ip || req.connection.remoteAddress
-                }
-              });
+              const transactionArchive = await getCollection('transactions');
+              await transactionArchive.insertOne(documentBase);
             }
             
-            console.log(` Payment initialized: ${response.data.reference}`);
-
-            res.json({
-              success: true,
-              data: {
-                authorization_url: response.data.authorization_url,
-                access_code: response.data.access_code,
-                reference: response.data.reference
-              }
-            });
+            res.json({ success: true, data: { authorization_url: parsedResponse.data.authorization_url, access_code: parsedResponse.data.access_code, reference: parsedResponse.data.reference } });
           } else {
-            res.status(400).json({
-              success: false,
-              message: response.message || 'Payment initialization failed'
-            });
+            res.status(400).json({ success: false, message: parsedResponse.message || 'Payment initialization failed' });
           }
-        } catch (error) {
-          console.error('Paystack response parsing error:', error);
-          res.status(500).json({
-            success: false,
-            message: 'Payment service error'
-          });
+        } catch {
+          res.status(500).json({ success: false, message: 'Payment service error' });
         }
       });
     });
 
-    paystackRequest.on('error', (error) => {
-      console.error('Paystack request error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Payment service unavailable'
-      });
-    });
-
-    paystackRequest.write(params);
-    paystackRequest.end();
-
-  } catch (error) {
-    console.error('Initialize payment error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Payment initialization failed'
-    });
+    paystackCall.on('error', () => res.status(500).json({ success: false, message: 'Payment service unavailable' }));
+    paystackCall.write(requestPayload);
+    paystackCall.end();
+  } catch {
+    res.status(500).json({ success: false, message: 'Payment initialization failed' });
   }
 };
 
-const fulfillFormPurchase = async (paymentRecord, metadata) => {
-  const client = await getClient();
-  if (!client) {
-    console.error(' Could not get MongoDB client for transaction');
-    return;
-  }
+const fulfillFormPurchase = async (transactionRecord, payloadMetadata) => {
+  const mongoClient = await getClient();
+  if (!mongoClient) return;
 
-  const session = client.startSession();
-
+  const dbSession = mongoClient.startSession();
   try {
-    await session.withTransaction(async () => {
-      const userFormsCollection = await getCollection('user_forms');
-      const formInventoryCollection = await getCollection('form_inventory');
-      const usersCollection = await getCollection('users');
+    await dbSession.withTransaction(async () => {
+      const formOwnershipCollection = await getCollection('user_forms');
+      const inventoryCollection = await getCollection('form_inventory');
+      const registeredUsersCollection = await getCollection('users');
       
-      const formCheck = await userFormsCollection.findOne({ payment_id: paymentRecord._id }, { session });
-      if (formCheck) return; // Already processed
+      const existingAssignment = await formOwnershipCollection.findOne({ payment_id: transactionRecord._id }, { session: dbSession });
+      if (existingAssignment) return;
       
-      const universityName = metadata?.universityName || 'University';
-      
-      // 1. Try to pop an authentic PIN from the inventory
-      const inventoryItem = await formInventoryCollection.findOneAndUpdate(
-        { university_name: universityName, is_used: false },
-        { $set: { is_used: true, assigned_to: paymentRecord.user_id, payment_id: paymentRecord._id } },
-        { returnDocument: 'after', session }
+      const targetUniversity = payloadMetadata?.universityName || 'University';
+      const fetchedPin = await inventoryCollection.findOneAndUpdate(
+        { university_name: targetUniversity, is_used: false },
+        { $set: { is_used: true, assigned_to: transactionRecord.user_id, payment_id: transactionRecord._id } },
+        { returnDocument: 'after', session: dbSession }
       );
       
-      // Use .value for mongodb ^6.0 findOneAndUpdate
-      const assignedPin = inventoryItem?.value || inventoryItem; 
+      const assignedCredentials = fetchedPin?.value || fetchedPin;
       
-      // 2. Link form to user
-      await userFormsCollection.insertOne({
-        user_id: paymentRecord.user_id,
-        form_id: paymentRecord.form_id,
-        payment_id: paymentRecord._id,
+      await formOwnershipCollection.insertOne({
+        user_id: transactionRecord.user_id,
+        form_id: transactionRecord.form_id,
+        payment_id: transactionRecord._id,
         purchase_date: new Date(),
-        university_name: universityName,
-        serial_key: assignedPin && assignedPin.serial_key ? assignedPin.serial_key : null,
-        pin: assignedPin && assignedPin.pin ? assignedPin.pin : null,
-        status: assignedPin && assignedPin.serial_key ? 'fulfilled' : 'pending_pin'
-      }, { session });
-      console.log(` Form ${paymentRecord.form_id} linked to user ${String(paymentRecord.user_id)}`);
+        university_name: targetUniversity,
+        serial_key: assignedCredentials?.serial_key || null,
+        pin: assignedCredentials?.pin || null,
+        status: assignedCredentials?.serial_key ? 'fulfilled' : 'pending_pin'
+      }, { session: dbSession });
       
-      // 3. Send Email
-      const user = await usersCollection.findOne({ _id: paymentRecord.user_id }, { session });
-      if (user && user.email) {
-        await sendPurchaseEmail(
-          user.email, 
-          universityName, 
-          assignedPin && assignedPin.serial_key ? assignedPin.serial_key : null, 
-          assignedPin && assignedPin.pin ? assignedPin.pin : null
-        );
+      const matchedStudent = await registeredUsersCollection.findOne({ _id: transactionRecord.user_id }, { session: dbSession });
+      if (matchedStudent?.email) {
+        await sendPurchaseEmail(matchedStudent.email, targetUniversity, assignedCredentials?.serial_key || null, assignedCredentials?.pin || null);
       }
 
-      if (!assignedPin || !assignedPin.serial_key) {
-        await sendAdminAlertEmail(universityName);
+      if (!assignedCredentials?.serial_key) {
+        await sendAdminAlertEmail(targetUniversity);
       }
     });
-  } catch (error) {
-    console.error(' Error fulfilling form purchase:', error);
   } finally {
-    await session.endSession();
+    await dbSession.endSession();
   }
 };
 
-// Verify payment
 export const verifyPayment = async (req, res) => {
   try {
-    const { reference } = req.params;
-    
-    if (!reference) {
-      return res.status(400).json({
-        success: false,
-        message: 'Payment reference is required'
-      });
-    }
+    const { reference: paymentRef } = req.params;
+    if (!paymentRef) return res.status(400).json({ success: false, message: 'Payment reference is required' });
 
-    const options = {
+    const verificationOptions = {
       hostname: 'api.paystack.co',
       port: 443,
-      path: `/transaction/verify/${reference}`,
+      path: `/transaction/verify/${paymentRef}`,
       method: 'GET',
-      headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-      }
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` }
     };
 
-    const paystackRequest = https.request(options, (paystackResponse) => {
-      let data = '';
-
-      paystackResponse.on('data', (chunk) => {
-        data += chunk;
-      });
-
+    const verificationCall = https.request(verificationOptions, (paystackResponse) => {
+      let responseBody = '';
+      paystackResponse.on('data', chunk => responseBody += chunk);
       paystackResponse.on('end', async () => {
         try {
-          const response = JSON.parse(data);
-          
-          if (response.status && response.data.status === 'success') {
-            const reference = req.params.reference;
-            const metadata = response.data.metadata || {};
+          const parsedData = JSON.parse(responseBody);
+          if (parsedData.status && parsedData.data.status === 'success') {
+            const verificationMetadata = parsedData.data.metadata || {};
+            const paymentArchive = await getCollection('payments');
+            const transactionArchive = await getCollection('transactions');
+            const registeredUsersCollection = await getCollection('users');
 
-            const paymentsCollection = await getCollection('payments');
-            const transactionsCollection = await getCollection('transactions');
-            const userFormsCollection = await getCollection('user_forms');
+            const matchedPayment = await paymentArchive.findOne({ reference: paymentRef });
 
-            const paymentRecord = await paymentsCollection.findOne({ reference });
-
-            if (paymentRecord) {
-              await paymentsCollection.updateOne(
-                { reference },
-                {
-                  $set: {
-                    status: 'success',
-                    verified_at: new Date(),
-                    paystack_verification: response.data
-                  }
-                }
+            if (matchedPayment) {
+              await paymentArchive.updateOne(
+                { reference: paymentRef },
+                { $set: { status: 'success', verified_at: new Date(), paystack_verification: parsedData.data } }
               );
-
-              if (paymentRecord.form_id) {
-                await fulfillFormPurchase(paymentRecord, metadata);
-              }
+              if (matchedPayment.form_id) await fulfillFormPurchase(matchedPayment, verificationMetadata);
             } else {
-              const usersCollection = await getCollection('users');
-
-              await transactionsCollection.updateOne(
-                { reference },
-                {
-                  $set: {
-                    status: 'success',
-                    verified_at: new Date(),
-                    paystack_verification: response.data
-                  }
-                }
+              await transactionArchive.updateOne(
+                { reference: paymentRef },
+                { $set: { status: 'success', verified_at: new Date(), paystack_verification: parsedData.data } }
               );
-
-              const userId = response.data.metadata?.userId;
-              if (userId) {
-                await usersCollection.updateOne(
-                  { _id: new ObjectId(userId) },
-                  {
-                    $set: {
-                      is_premium: true,
-                      premium_activated_at: new Date(),
-                      premium_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
-                    }
-                  }
+              const targetUserId = parsedData.data.metadata?.userId;
+              if (targetUserId) {
+                await registeredUsersCollection.updateOne(
+                  { _id: new ObjectId(targetUserId) },
+                  { $set: { is_premium: true, premium_activated_at: new Date(), premium_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) } }
                 );
               }
             }
-
-            res.json({
-              success: true,
-              message: 'Payment verified successfully',
-              data: {
-                status: response.data.status,
-                amount: response.data.amount / 100, // Convert back from pesewas
-                currency: response.data.currency,
-                paid_at: response.data.paid_at
-              }
-            });
+            res.json({ success: true, message: 'Payment verified successfully', data: { status: parsedData.data.status, amount: parsedData.data.amount / 100, currency: parsedData.data.currency, paid_at: parsedData.data.paid_at } });
           } else {
-            const currentStatus = response?.data?.status;
+            const currentStatus = parsedData?.data?.status;
             const isFailed = currentStatus === 'failed';
-
-            res.status(200).json({
-              success: !isFailed,
-              message: isFailed ? 'Payment failed' : 'Payment still pending',
-              data: {
-                status: currentStatus || 'pending',
-                amount: response?.data?.amount ? response.data.amount / 100 : undefined,
-                currency: response?.data?.currency,
-                paid_at: response?.data?.paid_at
-              }
-            });
+            res.status(200).json({ success: !isFailed, message: isFailed ? 'Payment failed' : 'Payment still pending', data: { status: currentStatus || 'pending', amount: parsedData?.data?.amount ? parsedData.data.amount / 100 : undefined, currency: parsedData?.data?.currency, paid_at: parsedData?.data?.paid_at } });
           }
-        } catch (error) {
-          console.error('Payment verification parsing error:', error);
-          res.status(500).json({
-            success: false,
-            message: 'Payment verification error'
-          });
+        } catch {
+          res.status(500).json({ success: false, message: 'Payment verification error' });
         }
       });
     });
 
-    paystackRequest.on('error', (error) => {
-      console.error('Payment verification request error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Payment verification service unavailable'
-      });
-    });
-
-    paystackRequest.end();
-
-  } catch (error) {
-    console.error('Verify payment error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Payment verification failed'
-    });
+    verificationCall.on('error', () => res.status(500).json({ success: false, message: 'Payment verification service unavailable' }));
+    verificationCall.end();
+  } catch {
+    res.status(500).json({ success: false, message: 'Payment verification failed' });
   }
 };
 
 export const handleWebhook = async (req, res) => {
   try {
-    const rawBody = req.body;
-    const signatureHeader = req.headers['x-paystack-signature'];
+    const rawPayload = req.body;
+    const webhookSignature = req.headers['x-paystack-signature'];
+    if (!webhookSignature) return res.status(400).json({ success: false, message: 'Missing signature header' });
 
-    if (!signatureHeader) {
-      console.warn(' Paystack webhook missing signature header');
-      return res.status(400).json({ success: false, message: 'Missing signature header' });
-    }
-
-    const computedHash = crypto.createHmac('sha512', PAYSTACK_SECRET_KEY)
-      .update(Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(JSON.stringify(rawBody)))
-      .digest('hex');
-
-    // Use timing-safe comparison
-    const signatureBuffer = Buffer.from(String(signatureHeader));
-    const computedBuffer = Buffer.from(computedHash);
-    if (signatureBuffer.length !== computedBuffer.length || !crypto.timingSafeEqual(signatureBuffer, computedBuffer)) {
-      console.warn(' Paystack webhook signature mismatch');
+    const generatedHash = crypto.createHmac('sha512', PAYSTACK_SECRET_KEY).update(Buffer.isBuffer(rawPayload) ? rawPayload : Buffer.from(JSON.stringify(rawPayload))).digest('hex');
+    const incomingSigBuffer = Buffer.from(String(webhookSignature));
+    const generatedHashBuffer = Buffer.from(generatedHash);
+    
+    if (incomingSigBuffer.length !== generatedHashBuffer.length || !crypto.timingSafeEqual(incomingSigBuffer, generatedHashBuffer)) {
       return res.status(400).json({ success: false, message: 'Invalid signature' });
     }
 
-    const event = req.body;
-    
-    if (event.event === 'charge.success') {
-      const { reference, status, amount, currency, metadata } = event.data;
+    const payloadEvent = req.body;
+    if (payloadEvent.event === 'charge.success') {
+      const { reference, amount, metadata } = payloadEvent.data;
+      const paymentArchive = await getCollection('payments');
+      const transactionArchive = await getCollection('transactions');
+      const formOwnershipCollection = await getCollection('user_forms');
+      const registeredUsersCollection = await getCollection('users');
 
-      const paymentsCollection = await getCollection('payments');
-      const transactionsCollection = await getCollection('transactions');
-      const userFormsCollection = await getCollection('user_forms');
-      const usersCollection = await getCollection('users');
-
-      const paymentRecord = await paymentsCollection.findOne({ reference });
-
-      if (paymentRecord) {
-        await paymentsCollection.updateOne(
-          { reference },
-          {
-            $set: {
-              status: 'success',
-              webhook_received_at: new Date(),
-              webhook_data: event.data
-            }
-          }
-        );
-
-        if (paymentRecord.form_id) {
-          const formCheck = await userFormsCollection.findOne({
-            user_id: paymentRecord.user_id,
-            form_id: paymentRecord.form_id
-          });
-
-          if (!formCheck) {
-            await fulfillFormPurchase(paymentRecord, metadata);
-            
-            await createSystemNotification(paymentRecord.user_id.toString(), 'payment_success', {
-              amount: (amount / 100).toFixed(2), // Convert from pesewas
-              transactionId: reference
-            });
-          }
+      const matchedPayment = await paymentArchive.findOne({ reference });
+      if (matchedPayment) {
+        await paymentArchive.updateOne({ reference }, { $set: { status: 'success', webhook_received_at: new Date(), webhook_data: payloadEvent.data } });
+        if (matchedPayment.form_id && !(await formOwnershipCollection.findOne({ user_id: matchedPayment.user_id, form_id: matchedPayment.form_id }))) {
+          await fulfillFormPurchase(matchedPayment, metadata);
+          await createSystemNotification(matchedPayment.user_id.toString(), 'payment_success', { amount: (amount / 100).toFixed(2), transactionId: reference });
         }
       } else {
-        await transactionsCollection.updateOne(
-          { reference },
-          {
-            $set: {
-              status: 'successful',
-              webhook_received_at: new Date(),
-              webhook_data: event.data
-            }
-          }
-        );
-
-        if (metadata && metadata.userId) {
-          await usersCollection.updateOne(
+        await transactionArchive.updateOne({ reference }, { $set: { status: 'successful', webhook_received_at: new Date(), webhook_data: payloadEvent.data } });
+        if (metadata?.userId) {
+          await registeredUsersCollection.updateOne(
             { _id: new ObjectId(metadata.userId) },
-            {
-              $set: {
-                is_premium: true,
-                premium_activated_at: new Date(),
-                premium_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-              }
-            }
+            { $set: { is_premium: true, premium_activated_at: new Date(), premium_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) } }
           );
         }
       }
-
-      console.log(` Payment confirmed via webhook: ${reference}`);
     }
-
     res.status(200).json({ success: true });
-
-  } catch (error) {
-    console.error('Webhook processing error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Webhook processing failed'
-    });
+  } catch {
+    res.status(500).json({ success: false, message: 'Webhook processing failed' });
   }
 };
 
 export const getUserTransactions = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const userObjectId = new ObjectId(userId);
-    const transactionsCollection = await getCollection('transactions');
-    const paymentsCollection = await getCollection('payments');
-
-    const [transactions, payments] = await Promise.all([
-      transactionsCollection
-        .find({ user_id: userObjectId })
-        .sort({ created_at: -1 })
-        .limit(50)
-        .toArray(),
-      paymentsCollection
-        .find({ user_id: userObjectId })
-        .sort({ created_at: -1 })
-        .limit(50)
-        .toArray()
+    const studentObjectId = new ObjectId(req.user.id);
+    const [standardTransactions, formPayments] = await Promise.all([
+      (await getCollection('transactions')).find({ user_id: studentObjectId }).sort({ created_at: -1 }).limit(50).toArray(),
+      (await getCollection('payments')).find({ user_id: studentObjectId }).sort({ created_at: -1 }).limit(50).toArray()
     ]);
 
-    const normalizeStatus = (status) => {
-      if (status === 'success' || status === 'successful') return 'success';
-      if (status === 'failed') return 'failed';
-      return 'pending';
-    };
+    const standardizeStatus = (statusIndicator) => ['success', 'successful'].includes(statusIndicator) ? 'success' : (statusIndicator === 'failed' ? 'failed' : 'pending');
 
-    const normalizedTransactions = transactions.map((tx) => ({
-      ...tx,
-      status: normalizeStatus(tx.status)
-    }));
-
-    const normalizedPayments = payments.map((payment) => ({
-      ...payment,
+    const mappedTransactions = standardTransactions.map(tx => ({ ...tx, status: standardizeStatus(tx.status) }));
+    const mappedPayments = formPayments.map(pay => ({
+      ...pay,
       type: 'Form Purchase',
-      amount_paid: payment.amount_paid ?? (typeof payment.amount === 'number' ? payment.amount / 100 : payment.amount),
-      status: normalizeStatus(payment.status),
-      university_name: payment.metadata?.universityName || payment.university_name,
-      form_name: payment.metadata?.formName || payment.form_name,
-      paid_at: payment.paid_at || payment.verified_at || payment.updated_at
+      amount_paid: pay.amount_paid ?? (typeof pay.amount === 'number' ? pay.amount / 100 : pay.amount),
+      status: standardizeStatus(pay.status),
+      university_name: pay.metadata?.universityName || pay.university_name,
+      form_name: pay.metadata?.formName || pay.form_name,
+      paid_at: pay.paid_at || pay.verified_at || pay.updated_at
     }));
 
-    const merged = [...normalizedTransactions, ...normalizedPayments]
+    const consolidatedHistory = [...mappedTransactions, ...mappedPayments]
       .sort((a, b) => new Date(b.created_at || b.paid_at || b.updated_at || 0) - new Date(a.created_at || a.paid_at || a.updated_at || 0))
       .slice(0, 100);
 
-    res.json({
-      success: true,
-      data: merged
-    });
-
-  } catch (error) {
-    console.error('Get transactions error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch transactions'
-    });
+    res.json({ success: true, data: consolidatedHistory });
+  } catch {
+    res.status(500).json({ success: false, message: 'Failed to fetch transactions' });
   }
 };

@@ -1,8 +1,3 @@
-/**
- * ASSESSMENT ROUTES - Enhanced for tracking user evaluations
- * Handles university recommendation assessments with AI integration
- */
-
 import express from "express";
 import { getCollection } from "../../config/db.js";
 import { ObjectId } from "mongodb";
@@ -16,11 +11,7 @@ import { ghanaUniversitiesDatabase, getAllUniversities } from "../../data/ghanaU
 dotenv.config();
 
 const router = express.Router();
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:8000/respond";
 
-/**
- * Submit user assessment and get AI recommendations
- */
 router.post("/submit", async (req, res) => {
   try {
     const {
@@ -30,16 +21,10 @@ router.post("/submit", async (req, res) => {
       assessmentType = "university_preference"
     } = req.body;
 
-    console.log(` Processing assessment for user: ${userId || 'anonymous'}`);
-
     if (!assessmentData) {
-      return res.status(400).json({
-        success: false,
-        message: "Assessment data is required"
-      });
+      return res.status(400).json({ success: false, message: "Assessment data is required" });
     }
 
-    console.log(' Generating AI recommendations...');
     const aiRecommendations = await generateAIRecommendations(assessmentData);
 
     const assessmentRecord = {
@@ -74,34 +59,22 @@ router.post("/submit", async (req, res) => {
       await updateUserProfile(userId, assessmentRecord);
     }
 
-    const personalizedMessage = generateAssessmentMessage(assessmentRecord);
-
-    console.log(` Assessment processed with ID: ${assessmentId}`);
-
     res.json({
       success: true,
       assessment_id: assessmentId,
       recommendations: aiRecommendations.recommendations,
       university_matches: aiRecommendations.universityMatches,
       confidence: aiRecommendations.confidence,
-      personalized_message: personalizedMessage,
+      personalized_message: generateAssessmentMessage(assessmentRecord),
       followup_actions: aiRecommendations.followupActions,
       timestamp: new Date().toISOString()
     });
 
-  } catch (error) {
-    console.error(" Assessment submission error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to process assessment",
-      error: error.message
-    });
+  } catch (submissionError) {
+    res.status(500).json({ success: false, message: "Failed to process assessment", error: submissionError.message });
   }
 });
 
-/**
- * Get user's assessment history
- */
 router.get("/history/:userId", authMiddleware, async (req, res) => {
   try {
     const { userId } = req.params;
@@ -111,7 +84,7 @@ router.get("/history/:userId", authMiddleware, async (req, res) => {
 
     const assessmentsCollection = await getCollection("user_assessments");
     
-    const [assessments, total] = await Promise.all([
+    const [evaluations, totalCount] = await Promise.all([
       assessmentsCollection
         .find({ user_id: userId })
         .sort({ created_at: -1 })
@@ -121,85 +94,58 @@ router.get("/history/:userId", authMiddleware, async (req, res) => {
       assessmentsCollection.countDocuments({ user_id: userId })
     ]);
 
-    const formattedAssessments = assessments.map(assessment => ({
-      id: assessment._id.toString(),
-      assessment_type: assessment.assessment_type,
-      completed: assessment.completed,
-      recommendations_count: assessment.ai_recommendations?.length || 0,
-      university_matches_count: assessment.university_matches?.length || 0,
-      confidence: assessment.recommendation_confidence,
-      created_at: assessment.created_at,
-      summary: generateAssessmentSummary(assessment)
-    }));
-
     res.json({
       success: true,
-      assessments: formattedAssessments,
+      assessments: evaluations.map(evaluation => ({
+        id: evaluation._id.toString(),
+        assessment_type: evaluation.assessment_type,
+        completed: evaluation.completed,
+        recommendations_count: evaluation.ai_recommendations?.length || 0,
+        university_matches_count: evaluation.university_matches?.length || 0,
+        confidence: evaluation.recommendation_confidence,
+        created_at: evaluation.created_at,
+        summary: generateAssessmentSummary(evaluation)
+      })),
       pagination: {
         page,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit)
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit)
       }
     });
 
   } catch (error) {
-    console.error(" Assessment history error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch assessment history"
-    });
+    res.status(500).json({ success: false, message: "Failed to fetch assessment history" });
   }
 });
 
-/**
- * Get specific assessment details
- */
 router.get("/:assessmentId", authMiddleware, async (req, res) => {
   try {
     const { assessmentId } = req.params;
     const userId = req.user.id;
 
     const assessmentsCollection = await getCollection("user_assessments");
-    const assessment = await assessmentsCollection.findOne({
+    const evaluation = await assessmentsCollection.findOne({
       _id: new ObjectId(assessmentId),
       user_id: new ObjectId(userId)
     });
 
-    if (!assessment) {
-      return res.status(404).json({
-        success: false,
-        message: "Assessment not found"
-      });
+    if (!evaluation) {
+      return res.status(404).json({ success: false, message: "Assessment not found" });
     }
+
+    const { _id, ...rest } = evaluation;
 
     res.json({
       success: true,
-      assessment: {
-        id: assessment._id.toString(),
-        assessment_type: assessment.assessment_type,
-        assessment_data: assessment.assessment_data,
-        ai_recommendations: assessment.ai_recommendations,
-        university_matches: assessment.university_matches,
-        confidence: assessment.recommendation_confidence,
-        followup_actions: assessment.followup_actions,
-        created_at: assessment.created_at,
-        metadata: assessment.metadata
-      }
+      assessment: { id: _id.toString(), ...rest }
     });
 
   } catch (error) {
-    console.error(" Assessment fetch error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch assessment details"
-    });
+    res.status(500).json({ success: false, message: "Failed to fetch assessment details" });
   }
 });
 
-/**
- * Update assessment with user feedback
- */
 router.put("/:assessmentId/feedback", authMiddleware, async (req, res) => {
   try {
     const { assessmentId } = req.params;
@@ -208,68 +154,44 @@ router.put("/:assessmentId/feedback", authMiddleware, async (req, res) => {
 
     const assessmentsCollection = await getCollection("user_assessments");
     
-    const updateData = {
-      user_feedback: {
-        helpful: helpful,
-        rating: rating, // 1-5 rating
-        comments: comments,
-        selected_universities: selected_universities || [],
-        feedback_date: new Date()
-      },
-      updated_at: new Date()
-    };
-
     const result = await assessmentsCollection.updateOne(
-      {
-        _id: new ObjectId(assessmentId),
-        user_id: new ObjectId(userId)
-      },
-      { $set: updateData }
+      { _id: new ObjectId(assessmentId), user_id: new ObjectId(userId) },
+      { 
+        $set: {
+          user_feedback: {
+            helpful,
+            rating,
+            comments,
+            selected_universities: selected_universities || [],
+            feedback_date: new Date()
+          },
+          updated_at: new Date()
+        } 
+      }
     );
 
     if (result.matchedCount === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Assessment not found"
-      });
+      return res.status(404).json({ success: false, message: "Assessment not found" });
     }
-
-    console.log(` Assessment feedback updated: ${assessmentId}`);
     
-    res.json({
-      success: true,
-      message: "Feedback saved successfully",
-      assessment_id: assessmentId
-    });
+    res.json({ success: true, message: "Feedback saved successfully", assessment_id: assessmentId });
 
   } catch (error) {
-    console.error(" Assessment feedback error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to save feedback"
-    });
+    res.status(500).json({ success: false, message: "Failed to save feedback" });
   }
 });
 
-/**
- * Generate AI recommendations based on assessment data
- */
-async function generateAIRecommendations(assessmentData) {
+async function generateAIRecommendations(studentProfile) {
   try {
-    // IMPORTANT: For assessment requests, we use the unbiased assessment-driven matcher
-    // NOT the AI service. This ensures fair, data-driven recommendations.
-    
-    console.log(' Using assessment-driven matcher (NOT AI service - ensures fairness)');
-    
-    const universityMatches = getTopUniversityMatches(assessmentData, 5);
+    const universityMatches = getTopUniversityMatches(studentProfile, 5);
     
     const recommendations = universityMatches.slice(0, 3).map((match, index) => ({
       university_name: match.universityName,
       program_name: match.recommendedPrograms[0]?.name || 'Multiple Programs Available',
       confidence_score: match.matchScore / 100,
       reasoning: match.reasoning,
-      requirements_met: assessRequirementsMet(assessmentData, match.universityName),
-      scholarship_eligible: assessScholarshipEligibility(assessmentData),
+      requirements_met: assessRequirementsMet(studentProfile, match.universityName),
+      scholarship_eligible: assessScholarshipEligibility(studentProfile),
       career_alignment: Math.round((match.matchBreakdown.careerAlignment / 25) * 10),
       priority: index + 1,
       match_breakdown: match.matchBreakdown,
@@ -283,57 +205,44 @@ async function generateAIRecommendations(assessmentData) {
       strengths: match.strengths,
       location: match.location,
       type: match.type,
-      concerns: generateConcerns(assessmentData, match.universityName),
+      concerns: generateConcerns(studentProfile, match.universityName),
       next_steps: generateNextSteps(match.universityName),
       reasoning: match.reasoning
     }));
 
-    console.log(` Top recommendation: ${universityMatches[0]?.universityName} (score: ${universityMatches[0]?.matchScore})`);
-
     return {
-      recommendations: recommendations,
+      recommendations,
       universityMatches: formattedMatches,
-      confidence: 0.95, // High confidence using assessment-driven matcher
-      followupActions: generateFollowupActions(assessmentData),
+      confidence: 0.95,
+      followupActions: generateFollowupActions(studentProfile),
       modelUsed: 'assessment-driven-matcher'
     };
 
   } catch (error) {
-    console.error(' Assessment matching error:', error);
-    
-    return generateFallbackRecommendations(assessmentData);
+    return generateFallbackRecommendations(studentProfile);
   }
 }
 
-
-
-/**
- * Generate fallback recommendations when matcher fails
- */
-function generateFallbackRecommendations(assessmentData) {
-  console.log('🔄 Generating fallback recommendations using assessment-driven matching...');
+function generateFallbackRecommendations(studentProfile) {
+  const matches = getTopUniversityMatches(studentProfile, 3);
   
-  const matches = getTopUniversityMatches(assessmentData, 3);
-  
-  const fallbackRecommendations = matches.map((match, index) => ({
-    university_name: match.universityName,
-    program_name: match.recommendedPrograms[0]?.name || 'Multiple Programs Available',
-    confidence_score: match.matchScore / 100,
-    reasoning: match.reasoning,
-    requirements_met: true,
-    scholarship_eligible: assessScholarshipEligibility(assessmentData),
-    career_alignment: Math.round((match.matchBreakdown.careerAlignment / 25) * 10),
-    priority: index + 1
-  }));
-
   return {
-    recommendations: fallbackRecommendations,
-    universityMatches: matches.map(m => ({
-      university_name: m.universityName,
-      match_score: m.matchScore,
-      programs_eligible: m.recommendedPrograms.map(p => p.name),
-      strengths: m.strengths,
-      location: m.location
+    recommendations: matches.map((match, index) => ({
+      university_name: match.universityName,
+      program_name: match.recommendedPrograms[0]?.name || 'Multiple Programs Available',
+      confidence_score: match.matchScore / 100,
+      reasoning: match.reasoning,
+      requirements_met: true,
+      scholarship_eligible: assessScholarshipEligibility(studentProfile),
+      career_alignment: Math.round((match.matchBreakdown.careerAlignment / 25) * 10),
+      priority: index + 1
+    })),
+    universityMatches: matches.map(({ universityName, matchScore, recommendedPrograms, strengths, location }) => ({
+      university_name: universityName,
+      match_score: matchScore,
+      programs_eligible: recommendedPrograms.map(p => p.name),
+      strengths,
+      location
     })),
     confidence: 0.7,
     followupActions: [
@@ -345,49 +254,47 @@ function generateFallbackRecommendations(assessmentData) {
   };
 }
 
-/**
- * Helper functions for recommendation processing
- */
-function assessRequirementsMet(assessmentData, universityName) {
-  // Simplified - check if user has basic qualifications
-  return assessmentData.grades && assessmentData.grades.length > 0;
+function assessRequirementsMet(studentProfile, universityName) {
+  return Array.isArray(studentProfile.grades) && studentProfile.grades.length > 0;
 }
 
-function assessScholarshipEligibility(assessmentData) {
-  return assessmentData.financialSituation === 'need_scholarship' || 
-         assessmentData.grades?.some(grade => grade.match(/^[A-C]/i));
+function assessScholarshipEligibility(studentProfile) {
+  return studentProfile.financialSituation === 'need_scholarship' || 
+         studentProfile.grades?.some(grade => /^[A-C]/i.test(grade));
 }
 
-function generateConcerns(assessmentData, universityName) {
+function generateConcerns(studentProfile, universityName) {
   const concerns = [];
+  const { financialSituation, preferredLocation } = studentProfile;
   
-  if (assessmentData.financialSituation === 'need_scholarship' || assessmentData.financialSituation === 'financial_constraints') {
+  if (['need_scholarship', 'financial_constraints'].includes(financialSituation)) {
     concerns.push('Explore scholarship opportunities and financial aid options');
   }
   
   const university = ghanaUniversitiesDatabase[universityName];
-  if (university && assessmentData.preferredLocation) {
-    const locationMatch = university.region.toLowerCase().includes(assessmentData.preferredLocation.toLowerCase());
-    if (!locationMatch && assessmentData.preferredLocation !== 'any' && assessmentData.preferredLocation !== 'flexible') {
+  if (university && preferredLocation) {
+    const isFlexible = ['any', 'flexible'].includes(preferredLocation.toLowerCase());
+    if (!isFlexible && !university.region.toLowerCase().includes(preferredLocation.toLowerCase())) {
       concerns.push(`Located in ${university.region} Region - consider accommodation arrangements`);
     }
   }
   
-  return concerns.length > 0 ? concerns : ['Review program requirements carefully before applying'];
+  return concerns.length ? concerns : ['Review program requirements carefully before applying'];
 }
 
 function generateNextSteps(universityName) {
   const university = ghanaUniversitiesDatabase[universityName];
-  return [
+  const steps = [
     `Visit ${universityName} official website for current admission information`,
     'Check specific program requirements and application deadlines',
     'Prepare required documents (WASSCE results, personal statement, etc.)',
-    'Contact admissions office for any clarifications',
-    ...(university && university.type === 'public' ? ['Explore government scholarship schemes'] : [])
+    'Contact admissions office for any clarifications'
   ];
+  if (university?.type === 'public') steps.push('Explore government scholarship schemes');
+  return steps;
 }
 
-function generateFollowupActions(assessmentData) {
+function generateFollowupActions(studentProfile) {
   const actions = [
     'Research detailed program requirements for recommended universities',
     'Prepare your WASSCE documentation and academic transcripts',
@@ -395,75 +302,54 @@ function generateFollowupActions(assessmentData) {
     'Visit university campuses if possible to get firsthand experience'
   ];
   
-  if (assessmentData.financialSituation === 'need_scholarship' || assessmentData.financialSituation === 'financial_constraints') {
+  const { financialSituation, careerGoals } = studentProfile;
+  if (['need_scholarship', 'financial_constraints'].includes(financialSituation)) {
     actions.push('Apply for scholarships - many opportunities available for qualified students');
   }
   
-  if (assessmentData.careerGoals) {
-    actions.push(`Connect with professionals in ${assessmentData.careerGoals} field for career insights`);
+  if (careerGoals) {
+    actions.push(`Connect with professionals in ${careerGoals} field for career insights`);
   }
   
   return actions;
 }
 
-/**
- * Update user profile with assessment results
- */
 async function updateUserProfile(userId, assessmentRecord) {
   try {
     const userProfilesCollection = await getCollection("user_profiles");
+    const { assessment_data, ai_recommendations, university_matches } = assessmentRecord;
     
-    const profileUpdate = {
-      user_id: new ObjectId(userId),
-      last_assessment: assessmentRecord._id || new ObjectId(),
-      preferences: {
-        subjects: assessmentRecord.assessment_data.subjects,
-        shs_program: assessmentRecord.assessment_data.shs_program,
-        wassce_grade: assessmentRecord.assessment_data.wassce_grade,
-        career_goals: assessmentRecord.assessment_data.career_goals,
-        preferred_location: assessmentRecord.assessment_data.preferred_location,
-        interests: assessmentRecord.assessment_data.interests
-      },
-      ai_recommendations: assessmentRecord.ai_recommendations,
-      university_matches: assessmentRecord.university_matches,
-      updated_at: new Date()
-    };
-
     await userProfilesCollection.updateOne(
       { user_id: new ObjectId(userId) },
       { 
-        $set: profileUpdate,
+        $set: {
+          user_id: new ObjectId(userId),
+          last_assessment: assessmentRecord._id || new ObjectId(),
+          preferences: assessment_data,
+          ai_recommendations,
+          university_matches,
+          updated_at: new Date()
+        },
         $inc: { assessment_count: 1 }
       },
       { upsert: true }
     );
-
-    console.log(` User profile updated: ${userId}`);
   } catch (error) {
-    console.error(' User profile update error:', error);
   }
 }
 
-/**
- * Generate personalized message for chat interface
- */
 function generateAssessmentMessage(assessmentRecord) {
-  const recommendations = assessmentRecord.ai_recommendations;
-  const topUniversity = recommendations[0]?.university_name || 'Ghanaian universities';
-  const topProgram = recommendations[0]?.program_name || 'your preferred program';
-  
-  return `Based on your assessment, I recommend exploring ${topProgram} at ${topUniversity}. Your academic profile shows strong potential for this program. Would you like detailed information about admission requirements and application procedures?`;
+  const topRecommendation = assessmentRecord.ai_recommendations?.[0];
+  const university = topRecommendation?.university_name || 'Ghanaian universities';
+  const program = topRecommendation?.program_name || 'your preferred program';
+  return `Based on your assessment, I recommend exploring ${program} at ${university}. Your academic profile shows strong potential for this program. Would you like detailed information about admission requirements and application procedures?`;
 }
 
-/**
- * Generate assessment summary for history
- */
-function generateAssessmentSummary(assessment) {
-  const topRecommendation = assessment.ai_recommendations?.[0];
-  if (topRecommendation) {
-    return `Top recommendation: ${topRecommendation.program_name} at ${topRecommendation.university_name}`;
-  }
-  return 'Assessment completed';
+function generateAssessmentSummary(evaluation) {
+  const recommendation = evaluation.ai_recommendations?.[0];
+  return recommendation 
+    ? `Top recommendation: ${recommendation.program_name} at ${recommendation.university_name}` 
+    : 'Assessment completed';
 }
 
 export default router;

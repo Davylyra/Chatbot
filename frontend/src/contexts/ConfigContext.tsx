@@ -26,9 +26,9 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const response = await SmartApiService.getAppConfig();
-      
+
       if (response.success && response.data) {
         setConfig(response.data);
       } else {
@@ -53,7 +53,7 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
       setError(null);
       const updatedConfig = { ...config, ...updates };
       setConfig(updatedConfig);
-      
+
       // await SmartApiService.updateAppConfig(updates);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update configuration';
@@ -73,11 +73,7 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
     updateConfig,
   };
 
-  return (
-    <ConfigContext.Provider value={value}>
-      {children}
-    </ConfigContext.Provider>
-  );
+  return <ConfigContext.Provider value={value}>{children}</ConfigContext.Provider>;
 };
 
 export const useConfig = (): ConfigContextType => {

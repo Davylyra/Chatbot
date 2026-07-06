@@ -1,7 +1,5 @@
 /**
- * ADMISSION CYCLE MANAGER
  * Manages dynamic academic years and admission cycles
- * Updated: December 15, 2025
  * 
  * Handles:
  * - Current academic year calculation (auto-updates based on date)

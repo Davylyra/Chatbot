@@ -32,7 +32,7 @@ export async function apiCall<T = any>(options: ApiCallOptions): Promise<ApiResp
     body,
     headers = {},
     timeout = DEFAULT_TIMEOUT,
-    requiresAuth = true
+    requiresAuth = true,
   } = options;
 
   const controller = new AbortController();
@@ -41,8 +41,8 @@ export async function apiCall<T = any>(options: ApiCallOptions): Promise<ApiResp
   try {
     const requestHeaders: HeadersInit = {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      ...headers
+      Accept: 'application/json',
+      ...headers,
     };
 
     if (requiresAuth) {
@@ -53,12 +53,12 @@ export async function apiCall<T = any>(options: ApiCallOptions): Promise<ApiResp
     }
 
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-    
+
     const response = await fetch(url, {
       method,
       headers: requestHeaders,
       body: body ? JSON.stringify(body) : undefined,
-      signal: controller.signal
+      signal: controller.signal,
     });
 
     clearTimeout(timeoutId);
@@ -67,7 +67,7 @@ export async function apiCall<T = any>(options: ApiCallOptions): Promise<ApiResp
       const errorData = await response.json().catch(() => ({}));
       return {
         success: false,
-        error: errorData.message || errorData.error || `HTTP ${response.status}`
+        error: errorData.message || errorData.error || `HTTP ${response.status}`,
       };
     }
 
@@ -75,18 +75,18 @@ export async function apiCall<T = any>(options: ApiCallOptions): Promise<ApiResp
     return {
       success: true,
       data: data.data || data,
-      message: data.message
+      message: data.message,
     };
   } catch (error) {
     clearTimeout(timeoutId);
-    
+
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
         return { success: false, error: 'Request timeout' };
       }
       return { success: false, error: error.message };
     }
-    
+
     return { success: false, error: 'Unknown error occurred' };
   }
 }
@@ -107,7 +107,8 @@ export class CacheManager<T> {
   private key: string;
   private ttl: number;
 
-  constructor(key: string, ttl: number = 5 * 60 * 1000) { // 5 minutes default
+  constructor(key: string, ttl: number = 5 * 60 * 1000) {
+    // 5 minutes default
     this.key = key;
     this.ttl = ttl;
   }
@@ -121,7 +122,7 @@ export class CacheManager<T> {
       if (Date.now() - timestamp < this.ttl) {
         return data;
       }
-      
+
       this.clear();
       return null;
     } catch {
@@ -131,10 +132,13 @@ export class CacheManager<T> {
 
   set(data: T): void {
     try {
-      localStorage.setItem(this.key, JSON.stringify({
-        data,
-        timestamp: Date.now()
-      }));
+      localStorage.setItem(
+        this.key,
+        JSON.stringify({
+          data,
+          timestamp: Date.now(),
+        })
+      );
     } catch (error) {
       console.warn('Failed to cache data:', error);
     }
@@ -158,24 +162,24 @@ export async function retryApiCall<T>(
   delay = 1000
 ): Promise<ApiResponse<T>> {
   let lastError: ApiResponse<T> = { success: false, error: 'Max retries exceeded' };
-  
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const result = await fn();
       if (result.success) return result;
-      
+
       lastError = result;
       if (attempt < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, delay * (attempt + 1)));
+        await new Promise((resolve) => setTimeout(resolve, delay * (attempt + 1)));
       }
     } catch (error) {
       lastError = { success: false, error: handleApiError(error) };
       if (attempt < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, delay * (attempt + 1)));
+        await new Promise((resolve) => setTimeout(resolve, delay * (attempt + 1)));
       }
     }
   }
-  
+
   return lastError;
 }
 
@@ -183,5 +187,5 @@ export default {
   apiCall,
   handleApiError,
   CacheManager,
-  retryApiCall
+  retryApiCall,
 };

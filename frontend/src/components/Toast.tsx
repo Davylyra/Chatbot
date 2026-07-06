@@ -17,14 +17,7 @@ export interface ToastProps {
   onClose: (id: string) => void;
 }
 
-const Toast: React.FC<ToastProps> = ({
-  id,
-  type,
-  title,
-  message,
-  duration = 5000,
-  onClose
-}) => {
+const Toast: React.FC<ToastProps> = ({ id, type, title, message, duration = 5000, onClose }) => {
   useEffect(() => {
     if (duration > 0) {
       const timer = setTimeout(() => {
@@ -58,7 +51,7 @@ const Toast: React.FC<ToastProps> = ({
           border: 'border-green-200 dark:border-green-700/50',
           icon: 'text-green-600 dark:text-green-400',
           title: 'text-green-800 dark:text-green-200',
-          message: 'text-green-700 dark:text-green-300'
+          message: 'text-green-700 dark:text-green-300',
         };
       case 'error':
         return {
@@ -66,7 +59,7 @@ const Toast: React.FC<ToastProps> = ({
           border: 'border-red-200 dark:border-red-700/50',
           icon: 'text-red-600 dark:text-red-400',
           title: 'text-red-800 dark:text-red-200',
-          message: 'text-red-700 dark:text-red-300'
+          message: 'text-red-700 dark:text-red-300',
         };
       case 'warning':
         return {
@@ -74,7 +67,7 @@ const Toast: React.FC<ToastProps> = ({
           border: 'border-yellow-200 dark:border-yellow-700/50',
           icon: 'text-yellow-600 dark:text-yellow-400',
           title: 'text-yellow-800 dark:text-yellow-200',
-          message: 'text-yellow-700 dark:text-yellow-300'
+          message: 'text-yellow-700 dark:text-yellow-300',
         };
       case 'info':
         return {
@@ -82,7 +75,7 @@ const Toast: React.FC<ToastProps> = ({
           border: 'border-blue-200 dark:border-blue-700/50',
           icon: 'text-blue-600 dark:text-blue-400',
           title: 'text-blue-800 dark:text-blue-200',
-          message: 'text-blue-700 dark:text-blue-300'
+          message: 'text-blue-700 dark:text-blue-300',
         };
       default:
         return {
@@ -90,7 +83,7 @@ const Toast: React.FC<ToastProps> = ({
           border: 'border-gray-200 dark:border-gray-700/50',
           icon: 'text-gray-600 dark:text-gray-400',
           title: 'text-gray-800 dark:text-gray-200',
-          message: 'text-gray-700 dark:text-gray-300'
+          message: 'text-gray-700 dark:text-gray-300',
         };
     }
   };
@@ -102,23 +95,15 @@ const Toast: React.FC<ToastProps> = ({
       initial={{ opacity: 0, y: -50, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -50, scale: 0.95 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
       className={`max-w-sm w-full ${styles.bg} ${styles.border} border rounded-lg shadow-lg backdrop-blur-sm`}
     >
       <div className="p-4">
         <div className="flex items-start">
-          <div className={`flex-shrink-0 ${styles.icon}`}>
-            {getIcon()}
-          </div>
+          <div className={`flex-shrink-0 ${styles.icon}`}>{getIcon()}</div>
           <div className="ml-3 flex-1">
-            <h4 className={`text-sm font-medium ${styles.title}`}>
-              {title}
-            </h4>
-            {message && (
-              <p className={`mt-1 text-sm ${styles.message}`}>
-                {message}
-              </p>
-            )}
+            <h4 className={`text-sm font-medium ${styles.title}`}>{title}</h4>
+            {message && <p className={`mt-1 text-sm ${styles.message}`}>{message}</p>}
           </div>
           <div className="ml-4 flex-shrink-0">
             <button

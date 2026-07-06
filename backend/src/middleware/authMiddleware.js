@@ -16,8 +16,6 @@ export const verifyAuth = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // decoded should contain { id, email } from your register/login
     
     req.user = {
       ...decoded,
@@ -26,8 +24,6 @@ export const verifyAuth = (req, res, next) => {
 
     next();
   } catch (err) {
-    console.error('JWT Error:', err);
-    
     let message = 'Authentication failed. Please log in again.';
     let error = 'INVALID_TOKEN';
     

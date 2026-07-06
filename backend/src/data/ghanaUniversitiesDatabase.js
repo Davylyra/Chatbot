@@ -1,7 +1,3 @@
-/**
- * GHANA UNIVERSITIES DATABASE — 11 Partner Institutions
- * These are the only universities currently on the Glinax platform.
- */
 
 export const ghanaUniversitiesDatabase = {
 
