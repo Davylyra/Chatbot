@@ -27,10 +27,8 @@ RULES:
 Respond with ONLY the title text, nothing else.`,
 };
 
-// Generate conversation title using LLM
 export async function generateLLMTitle(firstUserMessage, firstBotReply = null, universityContext = null) {
   try {
-    // Validate input
     if (!firstUserMessage || firstUserMessage.trim().length < 5) {
       return {
         success: false,
@@ -39,7 +37,6 @@ export async function generateLLMTitle(firstUserMessage, firstBotReply = null, u
       };
     }
 
-    // Check if LLM is available
     if (!groq) {
       console.warn('GROQ_API_KEY not configured');
       return {
@@ -49,11 +46,9 @@ export async function generateLLMTitle(firstUserMessage, firstBotReply = null, u
       };
     }
 
-    // Build conversation context for the LLM
     let conversationContext = `User: ${firstUserMessage.trim()}`;
     
     if (firstBotReply) {
-      // Truncate long bot replies to keep context focused
       const truncatedReply = firstBotReply.length > 300 
         ? firstBotReply.substring(0, 300) + '...'
         : firstBotReply;
@@ -95,7 +90,6 @@ export async function generateLLMTitle(firstUserMessage, firstBotReply = null, u
       throw new Error('Empty response from LLM');
     }
 
-    // Clean up the title
     const cleanedTitle = cleanTitle(generatedTitle);
 
     console.log('LLM title generated in', duration, 'ms:', cleanedTitle);
@@ -118,20 +112,15 @@ export async function generateLLMTitle(firstUserMessage, firstBotReply = null, u
   }
 }
 
-// Clean and validate generated title
 function cleanTitle(title) {
-  // Remove quotes if LLM added them
   let cleaned = title.replace(/^["']|["']$/g, '');
   
-  // Remove trailing punctuation
   cleaned = cleaned.replace(/[.!?;:,]+$/, '');
   
-  // Ensure first letter is capitalized
   if (cleaned.length > 0) {
     cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
   }
   
-  // Truncate if too long (max 60 characters for 7 words)
   if (cleaned.length > 60) {
     cleaned = cleaned.substring(0, 60).trim() + '...';
   }
@@ -139,7 +128,6 @@ function cleanTitle(title) {
   return cleaned;
 }
 
-// Generate title with fallback
 export async function generateTitleWithFallback(
   firstUserMessage,
   firstBotReply = null,
@@ -156,7 +144,6 @@ export async function generateTitleWithFallback(
     };
   }
   
-  // Fallback to rule-based generator
   console.log('LLM title generation failed, using fallback');
   
   if (fallbackGenerator && typeof fallbackGenerator === 'function') {
@@ -180,7 +167,6 @@ export async function generateTitleWithFallback(
   };
 }
 
-// Simple fallback title generator
 export function generateSimpleTitle(firstUserMessage, universityContext = null) {
   if (!firstUserMessage || firstUserMessage.trim().length < 3) {
     return 'New Conversation';
@@ -188,21 +174,17 @@ export function generateSimpleTitle(firstUserMessage, universityContext = null) 
 
   let title = firstUserMessage.trim();
   
-  // If university context exists, try to incorporate it
   if (universityContext && !title.toLowerCase().includes(universityContext.toLowerCase())) {
-    // Check if title is a question, extract the core
     const questionMatch = title.match(/(?:what|where|when|how|which|who|why)\s+(.+?)(?:\?|$)/i);
     if (questionMatch && questionMatch[1]) {
       title = `${universityContext} - ${questionMatch[1]}`;
     } else {
-      // Just prepend university name if title is short
       if (title.length < 30) {
         title = `${universityContext} - ${title}`;
       }
     }
   }
   
-  // Take first sentence if multiple sentences exist
   const firstSentence = title.match(/^[^.!?]+/)?.[0] || title;
   
   // Limit to 60 characters for display

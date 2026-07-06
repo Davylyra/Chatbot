@@ -75,7 +75,6 @@ export const formatDate = (
     const now = new Date();
     const diffInDays = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
-    // Relative formatting for recent dates
     if (format === 'relative') {
       if (diffInDays === 0) return 'Today';
       if (diffInDays === 1) return 'Tomorrow';
@@ -228,10 +227,8 @@ export const formatFileSize = (bytes: number): string => {
  * Format phone number (Ghana format)
  */
 export const formatPhoneNumber = (phone: string): string => {
-  // Remove all non-digits
   const cleaned = phone.replace(/\D/g, '');
   
-  // Ghana phone number formatting
   if (cleaned.length === 10 && cleaned.startsWith('0')) {
     return `+233 ${cleaned.slice(1, 4)} ${cleaned.slice(4, 7)} ${cleaned.slice(7)}`;
   }

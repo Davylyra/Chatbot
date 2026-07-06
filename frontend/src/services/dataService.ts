@@ -50,7 +50,6 @@ class DataService {
           lastUpdated: new Date().toISOString()
         };
         
-        // Cache the data
         this.dataCache.set(cacheKey, dynamicData);
         return dynamicData;
       }
@@ -84,12 +83,10 @@ class DataService {
           lastUpdated: new Date().toISOString()
         };
         
-        // Cache individual items
         collection.items.forEach(item => {
           this.dataCache.set(`${type}:${item.id}`, item);
         });
         
-        // Cache the collection
         this.collectionCache.set(type, collection);
         return collection;
       }
@@ -117,10 +114,8 @@ class DataService {
           lastUpdated: new Date().toISOString()
         };
         
-        // Cache the new data
         this.dataCache.set(`${type}:${dynamicData.id}`, dynamicData);
         
-        // Invalidate collection cache
         this.collectionCache.delete(type);
         
         return dynamicData;
@@ -149,7 +144,6 @@ class DataService {
           this.dataCache.set(`${type}:${id}`, existing);
         }
         
-        // Invalidate collection cache
         this.collectionCache.delete(type);
         
         return true;
@@ -173,7 +167,6 @@ class DataService {
 
         this.dataCache.delete(`${type}:${id}`);
         
-        // Invalidate collection cache
         this.collectionCache.delete(type);
         
         return true;

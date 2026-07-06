@@ -6,8 +6,6 @@ export const parseWassceResult = async (file: File): Promise<{ bestSubject: stri
     const lines = text.split('\n').map(l => l.trim().toLowerCase());
     
     const formattedResults: string[] = [];
-    const bestSubjects: string[] = [];
-    const subjectQueue: string[] = [];
 
     const parseLineForSubject = (line: string): string | null => {
       // Core
@@ -47,13 +45,9 @@ export const parseWassceResult = async (file: File): Promise<{ bestSubject: stri
 
     lines.forEach(line => {
       const subj = parseLineForSubject(line);
-      if (subj) {
-        subjectQueue.push(subj);
-      }
-
-      // Use strict \b boundaries to avoid matching inside words, but allow extensive typo list
       const gradeMatch = line.match(/\b([a-f][1-9]|82|83|41|al|c0|c8|04|05|06|d1|e3|e8|f9|ca|cb|co)\b/i);
-      if (gradeMatch) {
+
+      if (subj && gradeMatch) {
         let grade = gradeMatch[1].toUpperCase();
         // Correct OCR typos
         if (grade === '82') grade = 'B2';
@@ -64,20 +58,7 @@ export const parseWassceResult = async (file: File): Promise<{ bestSubject: stri
         if (grade === '05') grade = 'C5';
         if (grade === 'D1') grade = 'D7';
 
-        // Pair with oldest unmatched subject
-        let pairedSubject = subjectQueue.shift();
-        
-        if (!pairedSubject) {
-          pairedSubject = line.substring(0, gradeMatch.index).replace(/[^a-z\s]/gi, '').trim();
-          pairedSubject = pairedSubject.replace(/\b\w/g, l => l.toUpperCase());
-        }
-
-        if (pairedSubject && pairedSubject.length > 2) {
-          formattedResults.push(`${pairedSubject}: ${grade}`);
-          if (['A1', 'B2', 'B3'].includes(grade)) {
-            bestSubjects.push(pairedSubject);
-          }
-        }
+        formattedResults.push(`${subj}: ${grade}`);
       }
     });
 
@@ -85,11 +66,8 @@ export const parseWassceResult = async (file: File): Promise<{ bestSubject: stri
       throw new Error('NO_GRADES_FOUND');
     }
 
-    // Deduplicate best subjects
-    const uniqueBestSubjects = Array.from(new Set(bestSubjects));
-
     return { 
-      bestSubject: uniqueBestSubjects, 
+      bestSubject: [], // Intentionally empty to prevent overwriting user's checkbox selections
       wassceGrade: formattedResults.join(', ') 
     };
   } catch (error: any) {

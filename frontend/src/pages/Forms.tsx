@@ -64,7 +64,6 @@ const Forms: React.FC = () => {
     }
   }, [loadForms]);
 
-  // Pull to refresh functionality
   const { isRefreshing, pullDistance, canRefresh } = usePullToRefresh({
     onRefresh: handleRefresh,
     threshold: 80,

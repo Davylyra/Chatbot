@@ -13,7 +13,6 @@ class ConversationLogger {
     this.BATCH_SIZE = 10;
     this.BATCH_TIMEOUT = 5000; // 5 seconds
     
-    // Start batch processing
     setInterval(() => {
       this.processBatch();
     }, this.BATCH_TIMEOUT);
@@ -48,18 +47,16 @@ class ConversationLogger {
         }
       };
 
-      // Add to batch queue for performance
       this.batchQueue.push({
         collection: 'conversation_logs',
         document: conversationLog
       });
 
-      // Also update conversation summary
       await this.updateConversationSummary(data);
 
       return conversationLog._id;
     } catch (error) {
-      console.error('❌ Error logging conversation:', error);
+      console.error(' Error logging conversation:', error);
       throw error;
     }
   }
@@ -69,27 +66,25 @@ class ConversationLogger {
    */
   async logAssessment(data) {
     try {
+      const userId = data.userId || data.user_id || 'anonymous';
       const assessmentLog = {
-        _id: new ObjectId(),
-        user_id: data.userId || 'anonymous',
-        conversation_id: data.conversationId,
-        assessment_type: data.assessmentType || 'university_preference',
-        assessment_data: {
-          grades: data.grades || [],
+        user_id: userId,
+        conversation_id: data.conversationId || data.conversation_id,
+        assessment_type: data.assessmentType || data.assessment_type || 'university_preference',
+        assessment_data: data.assessmentData || data.assessment_data || {
           interests: data.interests || [],
-          career_goals: data.careerGoals || '',
-          preferred_location: data.preferredLocation || '',
-          subjects: data.subjects || [],
-          extracurricular: data.extracurricular || []
+          career_goals: data.careerGoals || data.career_goals || '',
+          preferred_location: data.preferredLocation || data.preferred_location || '',
+          subjects: data.subjects || []
         },
-        ai_recommendations: data.aiRecommendations || [],
-        recommendation_confidence: data.recommendationConfidence || 0.0,
-        university_matches: data.universityMatches || [],
-        program_suggestions: data.programSuggestions || [],
+        ai_recommendations: data.aiRecommendations || data.ai_recommendations || [],
+        recommendation_confidence: data.recommendationConfidence || data.recommendation_confidence || 0.0,
+        university_matches: data.universityMatches || data.university_matches || [],
+        program_suggestions: data.programSuggestions || data.program_suggestions || [],
         timestamp: new Date(),
-        completed: data.completed || false,
-        followup_actions: data.followupActions || [],
-        metadata: {
+        completed: data.completed !== undefined ? data.completed : true,
+        followup_actions: data.followupActions || data.followup_actions || [],
+        metadata: data.metadata || {
           source: data.source || 'chat_assessment',
           version: '2.0.0',
           processing_model: data.processingModel || 'hybrid-rag'
@@ -97,15 +92,27 @@ class ConversationLogger {
       };
 
       const assessmentCollection = await getCollection('user_assessments');
-      const result = await assessmentCollection.insertOne(assessmentLog);
+      let resultId;
 
-      // Update user profile with assessment
-      await this.updateUserProfile(data.userId, assessmentLog);
+      if (userId !== 'anonymous') {
+        const result = await assessmentCollection.updateOne(
+          { user_id: userId },
+          { $set: assessmentLog },
+          { upsert: true }
+        );
+        resultId = result.upsertedId || 'updated';
+      } else {
+        assessmentLog._id = new ObjectId();
+        const result = await assessmentCollection.insertOne(assessmentLog);
+        resultId = result.insertedId;
+      }
 
-      console.log(`✅ Assessment logged for user ${data.userId}: ${result.insertedId}`);
-      return result.insertedId;
+      await this.updateUserProfile(userId, assessmentLog);
+
+      console.log(` Assessment logged for user ${userId}: ${resultId}`);
+      return resultId;
     } catch (error) {
-      console.error('❌ Error logging assessment:', error);
+      console.error(' Error logging assessment:', error);
       throw error;
     }
   }
@@ -124,7 +131,6 @@ class ConversationLogger {
         last_message: data.userMessage,
         last_bot_response: data.botResponse,
         university_context: data.universityContext,
-        topics_discussed: this.extractTopics(data.userMessage),
         avg_confidence: data.confidence || 0.0,
         total_processing_time: data.processingTime || 0,
         created_at: new Date(),
@@ -132,19 +138,21 @@ class ConversationLogger {
         status: 'active'
       };
 
+      const topics = this.extractTopics(data.userMessage);
+
       await summaryCollection.updateOne(
         { conversation_id: data.conversationId },
         {
           $set: summary,
           $inc: { message_count: 1 },
           $push: {
-            topics_discussed: { $each: summary.topics_discussed }
+            topics_discussed: { $each: topics }
           }
         },
         { upsert: true }
       );
     } catch (error) {
-      console.error('❌ Error updating conversation summary:', error);
+      console.error(' Error updating conversation summary:', error);
     }
   }
 
@@ -181,9 +189,9 @@ class ConversationLogger {
         { upsert: true }
       );
 
-      console.log(`✅ Updated profile for user ${userId}`);
+      console.log(` Updated profile for user ${userId}`);
     } catch (error) {
-      console.error('❌ Error updating user profile:', error);
+      console.error(' Error updating user profile:', error);
     }
   }
 
@@ -201,10 +209,10 @@ class ConversationLogger {
       if (conversationLogs.length > 0) {
         const logsCollection = await getCollection('conversation_logs');
         await logsCollection.insertMany(conversationLogs.map(item => item.document));
-        console.log(`✅ Batch saved ${conversationLogs.length} conversation logs`);
+        console.log(` Batch saved ${conversationLogs.length} conversation logs`);
       }
     } catch (error) {
-      console.error('❌ Error processing batch:', error);
+      console.error(' Error processing batch:', error);
     }
   }
 
@@ -261,14 +269,12 @@ class ConversationLogger {
       'nursing', 'law', 'education', 'agriculture'
     ];
 
-    // Extract university mentions
     for (const [keyword, university] of Object.entries(universityKeywords)) {
       if (messageLower.includes(keyword)) {
         topics.push({ type: 'university', value: university });
       }
     }
 
-    // Extract program mentions
     for (const program of programKeywords) {
       if (messageLower.includes(program)) {
         topics.push({ type: 'program', value: program });
@@ -324,7 +330,7 @@ class ConversationLogger {
         timestamp: new Date()
       };
     } catch (error) {
-      console.error('❌ Error getting analytics:', error);
+      console.error(' Error getting analytics:', error);
       return null;
     }
   }
@@ -354,18 +360,15 @@ class ConversationLogger {
   }
 }
 
-// Create singleton instance
 const conversationLogger = new ConversationLogger();
 
 /**
  * Middleware function for Express
  */
 export const logConversationMiddleware = (req, res, next) => {
-  // Store original res.json to intercept response
   const originalJson = res.json;
 
   res.json = function(data) {
-    // Log the conversation after response
     setImmediate(async () => {
       try {
         if (req.body && req.body.message && data.reply) {
@@ -385,11 +388,10 @@ export const logConversationMiddleware = (req, res, next) => {
           });
         }
       } catch (error) {
-        console.error('❌ Middleware logging error:', error);
+        console.error(' Middleware logging error:', error);
       }
     });
 
-    // Call original res.json
     return originalJson.call(this, data);
   };
 

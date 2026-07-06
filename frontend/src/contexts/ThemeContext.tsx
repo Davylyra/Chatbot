@@ -38,7 +38,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       setTheme(mediaQuery.matches ? 'dark' : 'light');
     }
 
-    // Listen for changes
     mediaQuery.addEventListener('change', handleChange);
 
     return () => {
@@ -57,7 +56,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     }
   }, [themeMode]);
 
-  // Apply theme to document
   useEffect(() => {
     const root = document.documentElement;
     

@@ -1,11 +1,9 @@
-// Winston logger setup
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const logLevel = process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info');
 
-// Custom format for better readability
 const customFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.errors({ stack: true }),
@@ -22,7 +20,6 @@ const customFormat = winston.format.combine(
   })
 );
 
-// Create logger
 const logger = winston.createLogger({
   level: logLevel,
   format: customFormat,
@@ -39,7 +36,6 @@ const logger = winston.createLogger({
       )
     }),
 
-    // Error log file (production only)
     ...(process.env.NODE_ENV === 'production' ? [
       new DailyRotateFile({
         filename: 'logs/error-%DATE%.log',
@@ -51,7 +47,6 @@ const logger = winston.createLogger({
       })
     ] : []),
 
-    // All logs file (production only)
     ...(process.env.NODE_ENV === 'production' ? [
       new DailyRotateFile({
         filename: 'logs/app-%DATE%.log',
@@ -64,7 +59,6 @@ const logger = winston.createLogger({
   ]
 });
 
-// Export logger with methods
 export default {
   info: (message, meta) => logger.info(message, meta || {}),
   error: (message, error, meta) => logger.error(message, { error: error?.message || error, stack: error?.stack, ...meta }),
@@ -72,7 +66,6 @@ export default {
   debug: (message, meta) => logger.debug(message, meta || {}),
   http: (message, meta) => logger.info(`HTTP: ${message}`, meta || {}),
   
-  // Structured logging for specific events
   payment: (action, data) => logger.info(`Payment: ${action}`, { action, ...data }),
   chat: (action, data) => logger.info(`Chat: ${action}`, { action, ...data }),
   auth: (action, data) => logger.info(`Auth: ${action}`, { action, ...data }),

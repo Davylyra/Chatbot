@@ -59,7 +59,6 @@ function cleanMessageForTitle(message: string): string {
     cleaned = firstSentenceMatch[0].trim();
   }
   
-  // Remove common prefixes that don't add value
   const prefixesToRemove = [
     'tell me about',
     'i want to know about',
@@ -78,7 +77,6 @@ function cleanMessageForTitle(message: string): string {
   for (const prefix of prefixesToRemove) {
     if (lowerCleaned.startsWith(prefix)) {
       cleaned = cleaned.substring(prefix.length).trim();
-      // Capitalize first letter after removing prefix
       if (cleaned.length > 0) {
         cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
       }

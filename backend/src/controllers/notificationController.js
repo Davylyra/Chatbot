@@ -25,7 +25,7 @@ export const createNotification = async (userId, notificationData) => {
     }
     return { success: false, error: result.error };
   } catch (error) {
-    console.error('❌ Create notification error:', error);
+    console.error(' Create notification error:', error);
     return { success: false, error: error.message };
   }
 };
@@ -46,7 +46,6 @@ export const getUserNotifications = async (req, res) => {
         // System-wide notifications
         { userId: 'system' }
       ],
-      // Only show non-expired notifications
       $and: [
         {
           $or: [
@@ -112,7 +111,7 @@ export const getUserNotifications = async (req, res) => {
       minNotifications: 8
     });
   } catch (error) {
-    console.error('❌ Get notifications error:', error);
+    console.error(' Get notifications error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch notifications'
@@ -142,7 +141,6 @@ export const markAsRead = async (req, res) => {
       });
     }
 
-    // Emit socket event for real-time UI update
     if (global.io) {
       global.io.to(`user_${userId}`).emit('notification_marked_read', {
         notificationId: notificationId,
@@ -160,7 +158,7 @@ export const markAsRead = async (req, res) => {
       willDeleteIn: result.willDeleteIn
     });
   } catch (error) {
-    console.error('❌ Mark as read error:', error);
+    console.error(' Mark as read error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update notification'
@@ -193,7 +191,6 @@ export const markAllAsRead = async (req, res) => {
       }
     );
 
-    // Emit socket event for real-time UI update
     if (global.io) {
       global.io.to(`user_${userId}`).emit('notifications_marked_read_all', {
         count: result.modifiedCount,
@@ -212,7 +209,7 @@ export const markAllAsRead = async (req, res) => {
       willDeleteIn: 2
     });
   } catch (error) {
-    console.error('❌ Mark all as read error:', error);
+    console.error(' Mark all as read error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update notifications'
@@ -251,7 +248,7 @@ export const deleteNotification = async (req, res) => {
       message: 'Notification deleted'
     });
   } catch (error) {
-    console.error('❌ Delete notification error:', error);
+    console.error(' Delete notification error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to delete notification'
@@ -276,7 +273,7 @@ export const clearReadNotifications = async (req, res) => {
       count: result.deletedCount
     });
   } catch (error) {
-    console.error('❌ Clear notifications error:', error);
+    console.error(' Clear notifications error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to clear notifications'
@@ -335,7 +332,7 @@ export const trackNotificationAccess = async (req, res) => {
       url: notification.readNowUrl || notification.link || notification.actionUrl
     });
   } catch (error) {
-    console.error('❌ Track access error:', error);
+    console.error(' Track access error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to track notification access'
@@ -401,7 +398,7 @@ export const getReadMessages = async (req, res) => {
       hasMore: (parseInt(skip) + formattedMessages.length) < totalCount
     });
   } catch (error) {
-    console.error('❌ Get read messages error:', error);
+    console.error(' Get read messages error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch read messages'

@@ -77,7 +77,6 @@ export const useSocket = () => {
       return;
     }
 
-    // Prevent multiple simultaneous connection attempts
     if (isConnectingRef.current || (socketRef.current && socketRef.current.connected)) {
       return;
     }
@@ -87,7 +86,6 @@ export const useSocket = () => {
     const apiUrl = import.meta.env.VITE_API_BASE_URL ;
     const API_BASE_URL = apiUrl.replace(/\/api$/, '');
 
-    // Cleanup existing socket if any
     if (socketRef.current) {
       socketRef.current.removeAllListeners();
       socketRef.current.disconnect();
@@ -149,7 +147,6 @@ export const useSocket = () => {
       isConnectingRef.current = false;
       reconnectAttemptsRef.current++;
 
-      // Stop trying after 10 attempts
       if (reconnectAttemptsRef.current >= 10) {
         console.error('Max reconnection attempts reached');
         if (socketRef.current) {
@@ -168,13 +165,11 @@ export const useSocket = () => {
         socket.emit('join-user-room', user.id);
       }
 
-      // Reload notifications after reconnect
       hasLoadedInitial.current = false;
       loadInitialNotifications();
     });
 
     socket.on('reconnect_attempt', (_attemptNumber: number) => {
-      // Reconnection attempt in progress
     });
 
     socket.on('reconnect_failed', () => {
@@ -233,7 +228,6 @@ export const useSocket = () => {
       }
     });
 
-    // Broadcast notification events (for system announcements)
     socket.on('broadcast-notification', (notificationData: any) => {
 
       const notification: NotificationData = {
@@ -278,7 +272,6 @@ export const useSocket = () => {
       }
     });
 
-    // Listen for notification deletion events from backend
     socket.on('notification_deleted', async (data: any) => {
       const { notificationId } = data;
 
@@ -316,7 +309,6 @@ export const useSocket = () => {
           const currentIds = new Set(prev.map(n => n.id));
           const newNotifications: NotificationData[] = [];
 
-          // Find notifications that aren't already in the list
           for (const newNotif of data.notifications) {
             if (!currentIds.has(newNotif.id)) {
               const notification: NotificationData = {
@@ -356,7 +348,6 @@ export const useSocket = () => {
     }
   }, []);
 
-  // Mark notification as read via API and schedule deletion after 2 seconds (persistent)
   const markAsRead = useCallback(async (notificationId: string) => {
     const now = new Date();
     const optimisticDeletion = new Date(now.getTime() + 2 * 1000); // 2 seconds
@@ -373,7 +364,6 @@ export const useSocket = () => {
     );
     setUnreadCount(prev => Math.max(0, prev - 1));
 
-    // Call backend to persist read + 2s deletion scheduling
     try {
       const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL;
       const token = localStorage.getItem('token');
@@ -397,13 +387,11 @@ export const useSocket = () => {
       );
     } catch (err) {
       console.error('Mark-as-read API failed:', err);
-      // Rollback optimistic changes if needed (keep as read but remove deletion schedule)
       setNotifications(prev =>
         prev.map(n => n.id === notificationId ? { ...n, scheduledDeletionAt: undefined } : n)
       );
     }
 
-    // Local removal after 2 seconds + fetch replacement
     setTimeout(async () => {
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
 
@@ -416,7 +404,6 @@ export const useSocket = () => {
     setUnreadCount(prev => Math.max(0, prev - 1));
   }, []);
 
-  // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
     try {
       const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ;
@@ -430,7 +417,6 @@ export const useSocket = () => {
 
       const unreadCount = notifications.filter(n => !n.isRead).length;
 
-      // Optimistically update all to read
       const now = new Date();
       const optimisticDeletion = new Date(now.getTime() + 2 * 1000);
       setNotifications(prev =>
@@ -452,13 +438,11 @@ export const useSocket = () => {
 
       if (!resp.ok) throw new Error(`Failed to mark all as read: ${resp.status}`);
 
-      // Schedule batch deletion after 2 seconds
       setTimeout(async () => {
         setNotifications([]);
 
         for (let i = 0; i < Math.min(unreadCount, 5); i++) {
           await fetchReplacementNotification();
-          // Small delay between fetches to prevent duplicates
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       }, 2 * 1000);
@@ -470,13 +454,11 @@ export const useSocket = () => {
     }
   }, [notifications, fetchReplacementNotification]);
 
-  // Clear all notifications
   const clearAllNotifications = useCallback(() => {
     setNotifications([]);
     setUnreadCount(0);
   }, []);
 
-  // Access full read message (24-hour window)
   const accessReadMessage = useCallback(async (notificationId: string) => {
     try {
       const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ;
@@ -541,7 +523,6 @@ export const useSocket = () => {
   // Auto-connect when authenticated
   useEffect(() => {
     if (isAuthenticated && user?.id) {
-      // Delay initial connection to allow app to fully load
       const connectTimer = setTimeout(() => {
         connect();
       }, 1000);
@@ -559,7 +540,6 @@ export const useSocket = () => {
     }
   }, [isAuthenticated, user?.id, connect]);
 
-  // Fetch read messages (24-hour window)
   const fetchReadMessages = useCallback(async () => {
     try {
       const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ;
@@ -604,7 +584,6 @@ export const useSocket = () => {
     }
   }, []);
 
-  // Periodic cleanup job - check for scheduled deletions every 10 seconds
   useEffect(() => {
     const cleanupInterval = setInterval(() => {
       const now = new Date();

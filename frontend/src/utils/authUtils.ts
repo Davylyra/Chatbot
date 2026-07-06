@@ -10,7 +10,6 @@ export const isTokenValid = (token: string | null): boolean => {
     const parts = token.split('.');
     if (parts.length !== 3) return false;
     
-    // Decode payload to check expiration
     const payload = JSON.parse(atob(parts[1]));
     const currentTime = Math.floor(Date.now() / 1000);
 
@@ -31,7 +30,6 @@ export const clearExpiredToken = (): void => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     
-    // Dispatch custom event for logout
     window.dispatchEvent(new CustomEvent('tokenExpired'));
   }
 };
@@ -42,7 +40,6 @@ export const getValidToken = (): string | null => {
     return token;
   }
   
-  // Clear invalid token
   clearExpiredToken();
   return null;
 };

@@ -133,7 +133,6 @@ class AssessmentService {
   private generateMockRecommendations(data: AssessmentData): RecommendedProgram[] {
     const recommendations: RecommendedProgram[] = [];
     
-    // Simple matching algorithm based on interests and subjects
     const interestKeywords = data.interests.join(' ').toLowerCase();
     const subjectKeywords = data.bestSubject.join(' ').toLowerCase();
     
@@ -251,7 +250,6 @@ class AssessmentService {
       });
     }
     
-    // If no specific matches, provide general recommendations
     if (recommendations.length === 0) {
       recommendations.push(
         {
@@ -279,7 +277,6 @@ class AssessmentService {
       );
     }
     
-    // Sort by match score and return top 4
     return recommendations
       .sort((a, b) => b.matchScore - a.matchScore)
       .slice(0, 4);
@@ -291,7 +288,6 @@ class AssessmentService {
    */
   async sendAssessmentToChat(data: AssessmentData): Promise<string> {
     try {
-      // Craft a personalized message based on the user's answers
       const personalizedMessage = this.craftPersonalizedMessage(data);
       return personalizedMessage;
     } catch (error) {
@@ -334,7 +330,7 @@ class AssessmentService {
     }
 
     if (location) {
-      message += `I prefer to study in ${location}. `;
+      message += `I want you to consider only universities in ${location}. `;
     }
 
     message += `Based on my assessment, could you help me understand which university programs would be the best fit for me? I'd love to hear your recommendations and learn more about the application process.`;

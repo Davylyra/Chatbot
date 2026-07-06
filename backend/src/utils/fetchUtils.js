@@ -29,7 +29,6 @@ export function deduplicateNotifications(notifications) {
   const seen = new Map();
   
   return notifications.filter(n => {
-    // Use content hash for better deduplication
     const content = `${n.university || 'unknown'}_${n.title || ''}_${n.message || ''}`;
     const hash = crypto.createHash('md5').update(content).digest('hex');
     
@@ -56,7 +55,6 @@ export function getCuratedFallbackNotifications(academicYear) {
   const month = now.getMonth();
   const notifications = [];
 
-  // Create at least 11 notifications from different universities
   const fallbackData = [
     {
       id: `ug_applications_${now.getTime()}`,
@@ -182,7 +180,6 @@ export function getCuratedFallbackNotifications(academicYear) {
     }
   ];
 
-  // Convert to proper notification format
   fallbackData.forEach(item => {
     notifications.push({
       ...item,

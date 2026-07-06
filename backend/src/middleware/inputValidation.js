@@ -83,13 +83,11 @@ export const validateMessageLength = (message, min = 1, max = 5000) => {
  */
 export const validateRequestBody = (req, res, next) => {
   try {
-    // Sanitize all string fields in request body
     const sanitizedBody = {};
     for (const [key, value] of Object.entries(req.body)) {
       if (typeof value === 'string') {
         sanitizedBody[key] = sanitizeString(value);
       } else if (typeof value === 'object' && value !== null) {
-        // Recursively sanitize nested objects (be careful with nested structures)
         sanitizedBody[key] = value;
       } else {
         sanitizedBody[key] = value;
@@ -134,8 +132,7 @@ export const validateAuthPayload = (req, res, next) => {
   }
 
   if (errors.length > 0) {
-    // Log validation failure for debugging
-    console.log('🔍 Auth validation failed:', {
+    console.log(' Auth validation failed:', {
       endpoint: req.path,
       receivedEmail: email ? '✓' : '✗',
       receivedPassword: password ? '✓' : '✗',

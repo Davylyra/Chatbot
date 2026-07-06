@@ -40,7 +40,6 @@ export interface MockAssessmentResult {
 }
 
 // Mock Users Database - Now managed by AI model
-// These are fallback values only, actual data comes from dynamic AI-generated content
 export const mockUsers: MockUser[] = [
   {
     id: '1',
@@ -264,7 +263,6 @@ export class MockApiService {
     return ChatResponseGenerator.generateResponse(message, universityContext);
   }
 
-  // User authentication simulation
   static async authenticateUser(email: string, _password: string): Promise<MockUser | null> {
     await new Promise(resolve => setTimeout(resolve, 500));
     
@@ -329,7 +327,6 @@ export class MockApiService {
     };
   }
 
-  // Purchase form simulation
   static async purchaseForm(_formId: string, _paymentData: any): Promise<{ success: boolean; transactionId: string }> {
     await new Promise(resolve => setTimeout(resolve, 1500));
     
@@ -355,5 +352,4 @@ export class MockApiService {
   }
 }
 
-// Export for backward compatibility
 export { UNIVERSITIES_DATA, ASSESSMENT_QUESTIONS };

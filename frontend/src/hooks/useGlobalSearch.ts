@@ -61,22 +61,18 @@ export const useGlobalSearch = ({
         if (fieldValue && typeof fieldValue === 'string') {
           const lowerValue = fieldValue.toLowerCase();
           
-          // Exact match gets highest score
           if (lowerValue === searchTerm) {
             matchScore += 100;
             matchedFields.push(field);
           }
-          // Starts with gets high score
           else if (lowerValue.startsWith(searchTerm)) {
             matchScore += 80;
             matchedFields.push(field);
           }
-          // Contains gets medium score
           else if (lowerValue.includes(searchTerm)) {
             matchScore += 60;
             matchedFields.push(field);
           }
-          // Word boundary match gets lower score
           else if (new RegExp(`\\b${searchTerm}`, 'i').test(lowerValue)) {
             matchScore += 40;
             matchedFields.push(field);
@@ -97,7 +93,6 @@ export const useGlobalSearch = ({
       }
     });
 
-    // Sort by match score and limit results
     const sortedResults = searchResults
       .sort((a, b) => b.matchScore - a.matchScore)
       .slice(0, resultLimit);

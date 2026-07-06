@@ -14,7 +14,6 @@ import { getAdmissionNotifications } from '../../utils/admissionNotificationsFet
 
 const router = express.Router();
 
-// Get user notifications (with pagination and filtering)
 router.get('/', authMiddleware, getUserNotifications);
 
 // Get read/marked messages (24-hour temporary storage)
@@ -39,7 +38,7 @@ router.get('/admission/feed', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('❌ Error fetching admission notifications:', error);
+    console.error(' Error fetching admission notifications:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch admission notifications'
@@ -47,19 +46,14 @@ router.get('/admission/feed', async (req, res) => {
   }
 });
 
-// Track when user clicks "Read now" button
 router.post('/:notificationId/access', authMiddleware, trackNotificationAccess);
 
-// Mark single notification as read
 router.put('/:notificationId/read', authMiddleware, markAsRead);
 
-// Mark all notifications as read
 router.put('/read-all', authMiddleware, markAllAsRead);
 
-// Delete single notification
 router.delete('/:notificationId', authMiddleware, deleteNotification);
 
-// Clear all read notifications
 router.delete('/clear-read', authMiddleware, clearReadNotifications);
 
 export default router;

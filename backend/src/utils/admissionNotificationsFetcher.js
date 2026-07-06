@@ -71,15 +71,13 @@ const checkRobotsTxt = async (domain) => {
     }
     return true;
   } catch (error) {
-    console.warn(`⚠️ Could not check robots.txt for ${domain}:`, error.message);
+    console.warn(` Could not check robots.txt for ${domain}:`, error.message);
     return true;
   }
 };
 
 // NOTE: Mock data generation permanently removed
-// All notifications must come from real sources only (web fetchers, backend events, user system)
 
-// Fetch admission notifications from all sources
 export const fetchAdmissionNotifications = async () => {
   console.log('🌐 [ADMISSION-FETCH] Starting admission notifications fetch...');
   const allNotifications = [];
@@ -90,15 +88,15 @@ export const fetchAdmissionNotifications = async () => {
     console.log('📡 [ADMISSION-FETCH] Fetching live notifications from Ghanaian universities...');
     const liveNotifications = await fetchLiveAdmissionNotifications();
     if (Array.isArray(liveNotifications) && liveNotifications.length > 0) {
-      console.log(`✅ [ADMISSION-FETCH] Fetched ${liveNotifications.length} live notifications`);
+      console.log(` [ADMISSION-FETCH] Fetched ${liveNotifications.length} live notifications`);
       allNotifications.push(...liveNotifications);
     } else {
-      console.warn('⚠️ [ADMISSION-FETCH] Live fetch returned no data');
+      console.warn(' [ADMISSION-FETCH] Live fetch returned no data');
     }
 
     // ✅ STEP 2: Only use live data - NO FALLBACKS, NO MOCK DATA
     if (allNotifications.length === 0) {
-      console.log('⚠️ [ADMISSION-FETCH] No live notifications fetched - returning empty result');
+      console.log(' [ADMISSION-FETCH] No live notifications fetched - returning empty result');
     }
 
     // STEP 3: Legacy source checking (kept for backward compatibility)
@@ -109,20 +107,19 @@ export const fetchAdmissionNotifications = async () => {
         // Rate limiting
         await sleep(CONFIG.REQUEST_DELAY);
 
-        // Check robots.txt
         const domain = new URL(source.url).origin;
         const isAllowed = await checkRobotsTxt(domain);
         
         if (!isAllowed) {
-          console.warn(`⚠️ [ADMISSION-FETCH] Skipping ${source.name} - robots.txt disallows scraping`);
+          console.warn(` [ADMISSION-FETCH] Skipping ${source.name} - robots.txt disallows scraping`);
           continue;
         }
 
-        console.log(`✅ [ADMISSION-FETCH] Legacy source ${source.name} processed`);
+        console.log(` [ADMISSION-FETCH] Legacy source ${source.name} processed`);
 
       } catch (error) {
         const errorMsg = `Failed to fetch from ${source.name}: ${error.message}`;
-        console.error(`❌ [ADMISSION-FETCH] ${errorMsg}`);
+        console.error(` [ADMISSION-FETCH] ${errorMsg}`);
         errors.push(errorMsg);
       }
     }
@@ -133,7 +130,7 @@ export const fetchAdmissionNotifications = async () => {
       const result = await storeAdmissionNotifications(allNotifications);
       console.log(`[ADMISSION-FETCH] Stored ${result.insertedCount || 0} new admission notifications`);
     } else {
-      console.warn('⚠️ [ADMISSION-FETCH] No notifications to store');
+      console.warn(' [ADMISSION-FETCH] No notifications to store');
     }
 
     return {
@@ -143,7 +140,7 @@ export const fetchAdmissionNotifications = async () => {
     };
 
   } catch (error) {
-    console.error('❌ [ADMISSION-FETCH] Admission notifications fetch failed:', error);
+    console.error(' [ADMISSION-FETCH] Admission notifications fetch failed:', error);
     return {
       success: false,
       error: error.message,
@@ -152,27 +149,22 @@ export const fetchAdmissionNotifications = async () => {
   }
 };
 
-// Store admission notifications in database
 export const storeAdmissionNotifications = async (notifications) => {
   try {
     const notificationsCollection = await getCollection('notifications');
     
-    // Enhanced duplicate detection window (7 days instead of 1 hour)
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     
     let insertedCount = 0;
     
     for (const notification of notifications) {
-      // Enhanced duplicate detection: check by title, message, and university
       const existing = await notificationsCollection.findOne({
         $or: [
-          // Exact match on title and university
           {
             title: notification.title,
             'metadata.universityName': notification.metadata?.universityName,
             createdAt: { $gte: sevenDaysAgo }
           },
-          // Similar message content (prevents duplicates with slightly different titles)
           {
             message: notification.message,
             'metadata.universityName': notification.metadata?.universityName,
@@ -194,7 +186,7 @@ export const storeAdmissionNotifications = async (notifications) => {
           });
           insertedCount++;
         } catch (insertError) {
-          console.warn(`⚠️ Failed to insert notification: ${notification.title}`, insertError.message);
+          console.warn(` Failed to insert notification: ${notification.title}`, insertError.message);
         }
       } else {
         console.log(`⏭️ Skipped duplicate notification: ${notification.title}`);
@@ -203,17 +195,15 @@ export const storeAdmissionNotifications = async (notifications) => {
 
     return { success: true, insertedCount };
   } catch (error) {
-    console.error('❌ Error storing admission notifications:', error);
+    console.error(' Error storing admission notifications:', error);
     return { success: false, error: error.message, insertedCount: 0 };
   }
 };
 
-// Clean up old admission notifications
 export const cleanupOldAdmissionNotifications = async () => {
   try {
     const notificationsCollection = await getCollection('notifications');
     
-    // Check if collection is available (DB connected)
     if (!notificationsCollection) {
       return { success: false, error: 'Database not connected', deletedCount: 0 };
     }
@@ -231,12 +221,11 @@ export const cleanupOldAdmissionNotifications = async () => {
 
     return { success: true, deletedCount: result.deletedCount };
   } catch (error) {
-    console.error('❌ Error cleaning up old notifications:', error);
+    console.error(' Error cleaning up old notifications:', error);
     return { success: false, error: error.message };
   }
 };
 
-// Get system-wide admission notifications
 export const getAdmissionNotifications = async (limit = 20, skip = 0) => {
   try {
     const notificationsCollection = await getCollection('notifications');
@@ -273,7 +262,7 @@ export const getAdmissionNotifications = async (limit = 20, skip = 0) => {
       }))
     };
   } catch (error) {
-    console.error('❌ Error fetching admission notifications:', error);
+    console.error(' Error fetching admission notifications:', error);
     return { success: false, error: error.message, notifications: [] };
   }
 };

@@ -38,10 +38,8 @@ const io = new Server(server, {
   allowEIO3: true
 });
 
-// Set io instance for unified notification service
 notificationService.setIO(io);
 
-// Make io globally available for notification system
 global.io = io;
 
 const allowedOrigins = (process.env.FRONTEND_URL )
@@ -49,7 +47,7 @@ const allowedOrigins = (process.env.FRONTEND_URL )
   .map(url => url.trim())
   .filter(Boolean);
 
-console.log('✅ Allowed CORS Origins:', allowedOrigins);
+console.log(' Allowed CORS Origins:', allowedOrigins);
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -92,6 +90,14 @@ app.get('/api/universities', (req, res) => {
   res.json({ success: true, data: [] });
 });
 
+app.get('/api/config/:key', (req, res) => {
+  res.json({ success: false, message: 'Not configured server-side' });
+});
+
+app.get('/api/config', (req, res) => {
+  res.json({ success: false, message: 'Not configured server-side' });
+});
+
 import assessmentRoutes from './src/middleware/routes/assessments.js';
 import notificationRoutes from './src/middleware/routes/notifications.js';
 import { scheduleAdmissionChecks } from './src/utils/notificationTriggers.js';
@@ -109,7 +115,6 @@ app.use('/api/payments/webhook', paystackWebhookRoutes);
 io.on('connection', (socket) => {
   console.log('Socket.io client connected:', socket.id);
 
-  // Send connection confirmation
   socket.emit('connection-success', { 
     socketId: socket.id, 
     timestamp: new Date().toISOString(),
@@ -157,7 +162,6 @@ export const sendRealTimeNotification = (userId, notification) => {
 app.use('/api/forms', formRoutes);
 app.use('/api/notifications', notificationRoutes);
 
-// Start server first, then connect to DB
 server.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Socket.io listening at ws://localhost:${PORT}/socket.io/`);
@@ -168,9 +172,7 @@ server.listen(PORT, async () => {
     isDBConnected = true;
     console.log('MongoDB connected');
     
-    // Start background jobs only after DB connection
     // NOTE: scheduleAdmissionChecks() removed - startAdmissionNotificationsScheduler() already handles fetching
-    // This prevents duplicate notifications from being sent to users
     startCleanupSchedule();
     startAdmissionNotificationsScheduler();
   } catch (error) {

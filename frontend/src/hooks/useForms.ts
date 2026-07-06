@@ -38,7 +38,6 @@ export const useForms = (): UseFormsReturn => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load forms';
       setError(errorMessage);
-      // Forms loading error - handled gracefully
     } finally {
       setIsLoading(false);
     }

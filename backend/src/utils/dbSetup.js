@@ -4,7 +4,6 @@
 
 import { getDatabase, getCollection } from '../config/db.js';
 
-// Required collections with their purposes
 const REQUIRED_COLLECTIONS = {
     'chats': 'Store individual chat messages between users and AI',
     'users': 'Store user account information and authentication data',
@@ -18,19 +17,16 @@ const REQUIRED_COLLECTIONS = {
 };
 
 async function createCollectionsAndVerifyData() {
-    console.log('🚀 Setting up CERKYL Database Collections...\n');
+    console.log(' Setting up CERKYL Database Collections...\n');
     
     try {
-        // Test database connection
         const db = await getDatabase();
         console.log('Connected to MongoDB Atlas');
         
-        // Get existing collections
         const existingCollections = await db.listCollections().toArray();
         const existingNames = existingCollections.map(col => col.name);
-        console.log('📋 Existing collections:', existingNames);
+        console.log(' Existing collections:', existingNames);
         
-        // Create required collections
         console.log('\n🛠️ Creating/Verifying Required Collections:');
         for (const [collectionName, purpose] of Object.entries(REQUIRED_COLLECTIONS)) {
             try {
@@ -41,30 +37,26 @@ async function createCollectionsAndVerifyData() {
                     console.log(`✓ Exists: ${collectionName} - ${purpose}`);
                 }
             } catch (error) {
-                console.log(`⚠️ Issue with ${collectionName}: ${error.message}`);
+                console.log(` Issue with ${collectionName}: ${error.message}`);
             }
         }
         
-        // Create performance indexes
         console.log('\n📈 Creating Performance Indexes...');
         await createIndexes(db);
         
-        // Test data insertion to verify collections are working
         console.log('\n🧪 Testing Data Insertion...');
         await testDataInsertion(db);
         
-        // Verify all collections have data capability
         console.log('\nVerifying Collection Data Capability...');
         await verifyCollections(db);
         
-        // Clean up test data
         console.log('\n🧹 Cleaning up test data...');
         await cleanupTestData(db);
         
         console.log('\n🎉 Database setup completed successfully!');
         
     } catch (error) {
-        console.error('❌ Database setup error:', error);
+        console.error(' Database setup error:', error);
         throw error;
     }
 }
@@ -75,7 +67,7 @@ async function createIndexes(db) {
         await db.collection('chats').createIndex({ "user_id": 1, "conversation_id": 1 });
         await db.collection('chats').createIndex({ "created_at": -1 });
         await db.collection('chats').createIndex({ "is_bot": 1 });
-        console.log('✅ Chats indexes created');
+        console.log(' Chats indexes created');
         
         // Users collection - optimize for authentication and user management
         try {
@@ -85,19 +77,19 @@ async function createIndexes(db) {
         }
         await db.collection('users').createIndex({ "verified": 1 });
         await db.collection('users').createIndex({ "created_at": -1 });
-        console.log('✅ Users indexes created');
+        console.log(' Users indexes created');
         
         // Conversations collection - optimize for user conversation history
         await db.collection('conversations').createIndex({ "user_id": 1 });
         await db.collection('conversations').createIndex({ "updated_at": -1 });
         await db.collection('conversations').createIndex({ "is_active": 1 });
-        console.log('✅ Conversations indexes created');
+        console.log(' Conversations indexes created');
         
         // RAG logs collection - optimize for analytics and monitoring
         await db.collection('rag_logs').createIndex({ "timestamp": -1 });
         await db.collection('rag_logs').createIndex({ "confidence": -1 });
         await db.collection('rag_logs').createIndex({ "conversation_id": 1 });
-        console.log('✅ RAG logs indexes created');
+        console.log(' RAG logs indexes created');
         
         // Payments collection - optimize for transaction tracking
         await db.collection('payments').createIndex({ "user_id": 1 });
@@ -107,30 +99,28 @@ async function createIndexes(db) {
         } catch (e) {
             console.log('  (Transaction ID index already exists)');
         }
-        console.log('✅ Payments indexes created');
+        console.log(' Payments indexes created');
         
         // Sessions collection - optimize for authentication
         await db.collection('sessions').createIndex({ "user_id": 1 });
         await db.collection('sessions').createIndex({ "expires_at": 1 }, { expireAfterSeconds: 0 });
-        console.log('✅ Sessions indexes created');
+        console.log(' Sessions indexes created');
         
-        // Signup verifications collection - optimize for email lookup and auto-expire
         try {
             await db.collection('signup_verifications').createIndex({ "email": 1 }, { unique: true });
         } catch (e) {
             console.log('  (Email index already exists)');
         }
         await db.collection('signup_verifications').createIndex({ "expires_at": 1 }, { expireAfterSeconds: 0 });
-        console.log('✅ Signup verifications indexes created');
+        console.log(' Signup verifications indexes created');
         
     } catch (error) {
-        console.error('⚠️ Index creation error:', error.message);
+        console.error(' Index creation error:', error.message);
     }
 }
 
 async function testDataInsertion(db) {
     const testData = {
-        // Test users collection
         users: {
             email: 'test@glinax.com',
             password: 'hashedpassword123',
@@ -140,7 +130,6 @@ async function testDataInsertion(db) {
             test_record: true
         },
         
-        // Test chats collection
         chats: {
             user_id: 'test_user_id',
             conversation_id: 'test_conversation',
@@ -164,7 +153,6 @@ async function testDataInsertion(db) {
             test_record: true
         },
         
-        // Test universities collection
         universities: {
             name: 'University of Ghana',
             short_name: 'UG',
@@ -180,13 +168,12 @@ async function testDataInsertion(db) {
         }
     };
     
-    // Insert test data into each collection
     for (const [collectionName, testDoc] of Object.entries(testData)) {
         try {
             const result = await db.collection(collectionName).insertOne(testDoc);
-            console.log(`✅ ${collectionName}: Test data inserted (ID: ${result.insertedId.toString().substring(0,8)}...)`);
+            console.log(` ${collectionName}: Test data inserted (ID: ${result.insertedId.toString().substring(0,8)}...)`);
         } catch (error) {
-            console.log(`❌ ${collectionName}: Failed to insert test data - ${error.message}`);
+            console.log(` ${collectionName}: Failed to insert test data - ${error.message}`);
         }
     }
 }
@@ -198,15 +185,14 @@ async function verifyCollections(db) {
         try {
             const count = await db.collection(collectionName).countDocuments();
             const indexes = await db.collection(collectionName).indexes();
-            console.log(`  ✅ ${collectionName}: ${count} documents, ${indexes.length} indexes`);
+            console.log(`   ${collectionName}: ${count} documents, ${indexes.length} indexes`);
         } catch (error) {
-            console.log(`  ❌ ${collectionName}: Error - ${error.message}`);
+            console.log(`   ${collectionName}: Error - ${error.message}`);
         }
     }
 }
 
 async function cleanupTestData(db) {
-    // Remove all test records
     for (const collectionName of Object.keys(REQUIRED_COLLECTIONS)) {
         try {
             const result = await db.collection(collectionName).deleteMany({ test_record: true });
@@ -214,19 +200,17 @@ async function cleanupTestData(db) {
                 console.log(`🧹 Cleaned ${result.deletedCount} test records from ${collectionName}`);
             }
         } catch (error) {
-            console.log(`⚠️ Cleanup error in ${collectionName}: ${error.message}`);
+            console.log(` Cleanup error in ${collectionName}: ${error.message}`);
         }
     }
 }
 
-// Function to ensure real data is flowing
 async function ensureDataFlow() {
     console.log('\n🔄 Ensuring Real Data Flow...');
     
     try {
         const db = await getDatabase();
         
-        // Insert sample operational data that should persist
         
         // 1. Add Ghana universities to the database
         const universitiesData = [
@@ -278,7 +262,6 @@ async function ensureDataFlow() {
             }
         ];
         
-        // Insert or update universities
         for (const uni of universitiesData) {
             await db.collection('universities').replaceOne(
                 { short_name: uni.short_name },
@@ -286,7 +269,7 @@ async function ensureDataFlow() {
                 { upsert: true }
             );
         }
-        console.log('✅ University data inserted/updated');
+        console.log(' University data inserted/updated');
         
         // 2. Create a sample conversation to test the flow
         const sampleConversation = {
@@ -301,12 +284,12 @@ async function ensureDataFlow() {
         };
         
         await db.collection('conversations').insertOne(sampleConversation);
-        console.log('✅ Sample conversation created');
+        console.log(' Sample conversation created');
         
-        console.log('🎯 Real data flow established successfully!');
+        console.log(' Real data flow established successfully!');
         
     } catch (error) {
-        console.error('❌ Data flow setup error:', error);
+        console.error(' Data flow setup error:', error);
     }
 }
 

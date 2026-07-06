@@ -23,20 +23,16 @@ const GHANA_MOBILE_MONEY_PROVIDERS = {
   AIRTELTIGO: { code: 'tgo', name: 'AirtelTigo Money', prefixes: ['027', '057', '026', '056'] }
 };
 
-// Validate Ghana mobile money number
 const validateMobileMoneyNumber = (phoneNumber, provider) => {
   const errors = [];
   
-  // Remove spaces and special characters
   const cleanNumber = phoneNumber.replace(/[\s\-\(\)]/g, '');
   
-  // Check if it's a valid Ghana number format
   if (!/^(0|\+233)?[0-9]{9}$/.test(cleanNumber)) {
     errors.push('Invalid phone number format. Use format: 0XXXXXXXXX or +233XXXXXXXXX');
     return { valid: false, errors };
   }
   
-  // Extract the prefix (first 3 digits after country code)
   let prefix;
   if (cleanNumber.startsWith('+233')) {
     prefix = cleanNumber.substring(4, 7);
@@ -46,7 +42,6 @@ const validateMobileMoneyNumber = (phoneNumber, provider) => {
     prefix = cleanNumber.substring(0, 3);
   }
   
-  // Validate provider prefix
   if (provider) {
     const providerInfo = Object.values(GHANA_MOBILE_MONEY_PROVIDERS).find(
       p => p.code === provider.toLowerCase()
@@ -72,7 +67,6 @@ const validateMobileMoneyNumber = (phoneNumber, provider) => {
   };
 };
 
-// Initialize payment with Paystack - ENHANCED FOR GHANA
 export const initializePayment = async (req, res) => {
   try {
     const {
@@ -114,12 +108,10 @@ export const initializePayment = async (req, res) => {
       });
     }
 
-    // Convert amount to pesewas (Paystack uses pesewas for GHS)
     const amountInPesewas = Math.round(amount * 100);
     
     console.log(`💳 Initializing ${paymentMethod} payment: GHS ${amount} for user ${userId}`);
 
-    // Build payment parameters with Ghana-specific enhancements
     const paymentParams = {
       email,
       amount: amountInPesewas,
@@ -135,7 +127,6 @@ export const initializePayment = async (req, res) => {
       }
     };
     
-    // Add mobile money specific parameters
     if (paymentMethod === 'mobile_money') {
       paymentParams.channels = ['mobile_money']; // Restrict to mobile money only
       if (mobileMoneyValidation) {
@@ -172,7 +163,6 @@ export const initializePayment = async (req, res) => {
           const response = JSON.parse(data);
           
           if (response.status) {
-            // Handle form purchases vs general payments
             if (formId) {
               // Form purchase - save to payments collection
               const paymentsCollection = await getCollection('payments');
@@ -217,7 +207,7 @@ export const initializePayment = async (req, res) => {
               });
             }
             
-            console.log(`✅ Payment initialized: ${response.data.reference}`);
+            console.log(` Payment initialized: ${response.data.reference}`);
 
             res.json({
               success: true,
@@ -263,11 +253,10 @@ export const initializePayment = async (req, res) => {
   }
 };
 
-// Helper to assign Authentic PIN from inventory and send email
 const fulfillFormPurchase = async (paymentRecord, metadata) => {
   const client = await getClient();
   if (!client) {
-    console.error('❌ Could not get MongoDB client for transaction');
+    console.error(' Could not get MongoDB client for transaction');
     return;
   }
 
@@ -279,7 +268,6 @@ const fulfillFormPurchase = async (paymentRecord, metadata) => {
       const formInventoryCollection = await getCollection('form_inventory');
       const usersCollection = await getCollection('users');
       
-      // Ensure we haven't already fulfilled this payment
       const formCheck = await userFormsCollection.findOne({ payment_id: paymentRecord._id }, { session });
       if (formCheck) return; // Already processed
       
@@ -306,7 +294,7 @@ const fulfillFormPurchase = async (paymentRecord, metadata) => {
         pin: assignedPin && assignedPin.pin ? assignedPin.pin : null,
         status: assignedPin && assignedPin.serial_key ? 'fulfilled' : 'pending_pin'
       }, { session });
-      console.log(`✅ Form ${paymentRecord.form_id} linked to user ${String(paymentRecord.user_id)}`);
+      console.log(` Form ${paymentRecord.form_id} linked to user ${String(paymentRecord.user_id)}`);
       
       // 3. Send Email
       const user = await usersCollection.findOne({ _id: paymentRecord.user_id }, { session });
@@ -319,13 +307,12 @@ const fulfillFormPurchase = async (paymentRecord, metadata) => {
         );
       }
 
-      // Handle Depletion Alert
       if (!assignedPin || !assignedPin.serial_key) {
         await sendAdminAlertEmail(universityName);
       }
     });
   } catch (error) {
-    console.error('❌ Error fulfilling form purchase:', error);
+    console.error(' Error fulfilling form purchase:', error);
   } finally {
     await session.endSession();
   }
@@ -368,16 +355,13 @@ export const verifyPayment = async (req, res) => {
             const reference = req.params.reference;
             const metadata = response.data.metadata || {};
 
-            // Check if this is a form purchase or general payment
             const paymentsCollection = await getCollection('payments');
             const transactionsCollection = await getCollection('transactions');
             const userFormsCollection = await getCollection('user_forms');
 
-            // Check payments collection first (form purchases)
             const paymentRecord = await paymentsCollection.findOne({ reference });
 
             if (paymentRecord) {
-              // This is a form purchase
               await paymentsCollection.updateOne(
                 { reference },
                 {
@@ -389,12 +373,10 @@ export const verifyPayment = async (req, res) => {
                 }
               );
 
-              // Process form fulfillment (assign PIN from inventory and email)
               if (paymentRecord.form_id) {
                 await fulfillFormPurchase(paymentRecord, metadata);
               }
             } else {
-              // This is a general payment (premium subscription)
               const usersCollection = await getCollection('users');
 
               await transactionsCollection.updateOne(
@@ -408,7 +390,6 @@ export const verifyPayment = async (req, res) => {
                 }
               );
 
-              // Update user's premium status
               const userId = response.data.metadata?.userId;
               if (userId) {
                 await usersCollection.updateOne(
@@ -478,15 +459,13 @@ export const verifyPayment = async (req, res) => {
   }
 };
 
-// Webhook handler for Paystack
 export const handleWebhook = async (req, res) => {
   try {
-    // Paystack sends raw body; route uses express.raw so req.body will be a Buffer
     const rawBody = req.body;
     const signatureHeader = req.headers['x-paystack-signature'];
 
     if (!signatureHeader) {
-      console.warn('⚠️ Paystack webhook missing signature header');
+      console.warn(' Paystack webhook missing signature header');
       return res.status(400).json({ success: false, message: 'Missing signature header' });
     }
 
@@ -498,7 +477,7 @@ export const handleWebhook = async (req, res) => {
     const signatureBuffer = Buffer.from(String(signatureHeader));
     const computedBuffer = Buffer.from(computedHash);
     if (signatureBuffer.length !== computedBuffer.length || !crypto.timingSafeEqual(signatureBuffer, computedBuffer)) {
-      console.warn('⚠️ Paystack webhook signature mismatch');
+      console.warn(' Paystack webhook signature mismatch');
       return res.status(400).json({ success: false, message: 'Invalid signature' });
     }
 
@@ -507,17 +486,14 @@ export const handleWebhook = async (req, res) => {
     if (event.event === 'charge.success') {
       const { reference, status, amount, currency, metadata } = event.data;
 
-      // Check if this is a form purchase or general payment
       const paymentsCollection = await getCollection('payments');
       const transactionsCollection = await getCollection('transactions');
       const userFormsCollection = await getCollection('user_forms');
       const usersCollection = await getCollection('users');
 
-      // Check payments collection first (form purchases)
       const paymentRecord = await paymentsCollection.findOne({ reference });
 
       if (paymentRecord) {
-        // This is a form purchase
         await paymentsCollection.updateOne(
           { reference },
           {
@@ -529,7 +505,6 @@ export const handleWebhook = async (req, res) => {
           }
         );
 
-        // Link form to user if payment successful
         if (paymentRecord.form_id) {
           const formCheck = await userFormsCollection.findOne({
             user_id: paymentRecord.user_id,
@@ -539,7 +514,6 @@ export const handleWebhook = async (req, res) => {
           if (!formCheck) {
             await fulfillFormPurchase(paymentRecord, metadata);
             
-            // Send success notification
             await createSystemNotification(paymentRecord.user_id.toString(), 'payment_success', {
               amount: (amount / 100).toFixed(2), // Convert from pesewas
               transactionId: reference
@@ -547,7 +521,6 @@ export const handleWebhook = async (req, res) => {
           }
         }
       } else {
-        // This is a general payment (premium subscription)
         await transactionsCollection.updateOne(
           { reference },
           {
@@ -559,7 +532,6 @@ export const handleWebhook = async (req, res) => {
           }
         );
 
-        // Activate premium for user
         if (metadata && metadata.userId) {
           await usersCollection.updateOne(
             { _id: new ObjectId(metadata.userId) },
@@ -574,7 +546,7 @@ export const handleWebhook = async (req, res) => {
         }
       }
 
-      console.log(`✅ Payment confirmed via webhook: ${reference}`);
+      console.log(` Payment confirmed via webhook: ${reference}`);
     }
 
     res.status(200).json({ success: true });
@@ -588,7 +560,6 @@ export const handleWebhook = async (req, res) => {
   }
 };
 
-// Get user transactions
 export const getUserTransactions = async (req, res) => {
   try {
     const userId = req.user.id;

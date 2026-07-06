@@ -10,20 +10,18 @@ export const cleanupReadNotifications = async () => {
   try {
     const notificationsCollection = await getCollection('notifications');
     
-    // Check if collection is available (DB connected)
     if (!notificationsCollection) {
       return { success: false, error: 'Database not connected', deletedCount: 0 };
     }
     
     const now = new Date();
 
-    // Delete notifications scheduled for deletion
     const result = await notificationsCollection.deleteMany({
       scheduledDeletionAt: { $lte: now }
     });
 
     if (result.deletedCount > 0) {
-      console.log(`✅ Cleanup: Deleted ${result.deletedCount} expired notifications`);
+      console.log(` Cleanup: Deleted ${result.deletedCount} expired notifications`);
     }
 
     return {
@@ -31,7 +29,7 @@ export const cleanupReadNotifications = async () => {
       deletedCount: result.deletedCount
     };
   } catch (error) {
-    console.error('❌ Notification cleanup error:', error);
+    console.error(' Notification cleanup error:', error);
     return {
       success: false,
       error: error.message
@@ -39,21 +37,16 @@ export const cleanupReadNotifications = async () => {
   }
 };
 
-// Run cleanup every 2 seconds (to catch 2-second deletion deadlines) 
 export const startCleanupSchedule = () => {
   console.log('🔄 Starting notification cleanup scheduler (runs every 2 seconds)');
   
-  // Run immediately on start
   cleanupReadNotifications();
   
-  // Then run every 2 seconds
   setInterval(() => {
     cleanupReadNotifications();
   }, 2 * 1000); // 2 seconds
 };
 
-// For manual execution - DISABLED to prevent server crashes
-// Uncomment to enable manual script execution
 /*
 if (import.meta.url === `file://${process.argv[1]}`) {
   cleanupReadNotifications()

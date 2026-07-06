@@ -11,31 +11,12 @@ export default defineConfig(() => {
       emptyOutDir: true,
       rollupOptions: {
         output: {
-          manualChunks: (id) => {
-            if (id.includes('node_modules')) {
-              // Core React libs in one chunk
-              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-                return 'vendor';
-              }
-              // Motion/animation libs
-              if (id.includes('framer-motion')) {
-                return 'motion';
-              }
-              // State management
-              if (id.includes('zustand')) {
-                return 'state';
-              }
-              // All other node_modules
-              return 'libs';
-            }
-            // Don't split app code by folder - keep it together to avoid circular deps
-          },
         },
       },
       chunkSizeWarningLimit: 1000,
       sourcemap: false,
       target: 'es2015',
-      minify: 'esbuild',
+      minify: 'esbuild' as const,
       cssCodeSplit: false, // Keep CSS together to avoid loading issues
       assetsInlineLimit: 4096,
       reportCompressedSize: false,
@@ -69,8 +50,6 @@ export default defineConfig(() => {
         'Expires': '0',
       },
     },
-    appType: 'spa', // Important for SPA routing
-    // Ensure environment variables are properly exposed
     envPrefix: 'VITE_',
   }
 })

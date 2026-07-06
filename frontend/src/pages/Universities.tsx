@@ -10,7 +10,6 @@ import { UNIVERSITIES_DATA } from '../data/constants';
 import LazyImage from '../components/LazyImage';
 import { useUniversityChat } from '../hooks/useUniversityChat';
 
-// Animation variants for staggered animations
 const staggerContainer = {
   hidden: { opacity: 0 },
   show: {

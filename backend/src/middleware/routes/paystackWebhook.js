@@ -34,7 +34,7 @@ function verifyPaystackSignature(req) {
   const body = req.rawBody; // Use raw body, not parsed JSON
   
   if (!signature) {
-    console.warn('⚠️ Missing Paystack signature header');
+    console.warn(' Missing Paystack signature header');
     return false;
   }
   
@@ -52,14 +52,14 @@ function verifyPaystackSignature(req) {
     );
     
     if (isValid) {
-      console.log('✅ Paystack signature verified');
+      console.log(' Paystack signature verified');
       return true;
     } else {
-      console.error('❌ SECURITY: Invalid Paystack signature - possible attack!');
+      console.error(' SECURITY: Invalid Paystack signature - possible attack!');
       return false;
     }
   } catch (error) {
-    console.error('❌ Signature verification error:', error);
+    console.error(' Signature verification error:', error);
     return false;
   }
 }
@@ -82,7 +82,7 @@ router.use((req, res, next) => {
         req.body = JSON.parse(data);
         next();
       } catch (e) {
-        console.error('❌ Failed to parse webhook JSON:', e);
+        console.error(' Failed to parse webhook JSON:', e);
         req.body = {};
         res.status(400).json({ success: false, message: 'Invalid JSON in webhook body' });
       }
@@ -117,13 +117,12 @@ router.post('/', async (req, res) => {
       customer: data?.customer?.email
     });
 
-    // Only process charge.success events (payment confirmed)
     if (event === 'charge.success') {
       await handleChargeSuccess(data, res);
     } else if (event === 'charge.failed') {
       await handleChargeFailed(data, res);
     } else if (event === 'subscription.created') {
-      console.log('📝 Subscription created:', data.subscription_code);
+      console.log(' Subscription created:', data.subscription_code);
       res.json({ success: true, message: 'Subscription event processed' });
     } else {
       console.log(`ℹ️ Unhandled event: ${event}`);
@@ -131,7 +130,7 @@ router.post('/', async (req, res) => {
     }
 
   } catch (error) {
-    console.error('❌ Webhook processing error:', error);
+    console.error(' Webhook processing error:', error);
     res.status(500).json({
       success: false,
       message: 'Webhook processing failed'
@@ -164,18 +163,15 @@ async function handleChargeSuccess(data, res) {
       metadata
     });
 
-    // Update payment record in database
     const paymentsCollection = await getCollection('payments');
     const transactionsCollection = await getCollection('transactions');
     const usersCollection = await getCollection('users');
 
-    // Check if this is a form payment or general transaction
     const paymentRecord = await paymentsCollection.findOne({ reference });
     const isFormPayment = !!paymentRecord;
 
     if (isFormPayment && paymentRecord) {
-      // UPDATE FORM PAYMENT
-      console.log('📋 Updating form payment record');
+      console.log(' Updating form payment record');
       
       const updateResult = await paymentsCollection.updateOne(
         { reference },
@@ -198,9 +194,9 @@ async function handleChargeSuccess(data, res) {
       );
 
       if (updateResult.modifiedCount === 0) {
-        console.warn('⚠️ Payment record was not updated (may have been updated before)');
+        console.warn(' Payment record was not updated (may have been updated before)');
       } else {
-        console.log('✅ Payment record updated to "success"');
+        console.log(' Payment record updated to "success"');
       }
 
       // FULFILL ACTION: Grant access to form or digital product
@@ -211,7 +207,6 @@ async function handleChargeSuccess(data, res) {
       if (userId && formId) {
         const userCollection = await getCollection('users');
         
-        // Mark form as purchased/accessible for user
         const purchaseResult = await userCollection.updateOne(
           { _id: new ObjectId(userId) },
           {
@@ -229,9 +224,8 @@ async function handleChargeSuccess(data, res) {
         );
 
         if (purchaseResult.modifiedCount > 0) {
-          console.log('✅ Form access granted to user:', userId);
+          console.log(' Form access granted to user:', userId);
           
-          // Send notification to user
           try {
             const user = await userCollection.findOne({ _id: new ObjectId(userId) });
             if (user && global.io) {
@@ -249,7 +243,6 @@ async function handleChargeSuccess(data, res) {
               console.log('📢 Payment success notification sent to user');
             }
 
-            // Create system notification
             await createSystemNotification({
               userId,
               title: 'Payment Successful',
@@ -258,13 +251,12 @@ async function handleChargeSuccess(data, res) {
               data: { reference, formId }
             });
           } catch (notifErr) {
-            console.warn('⚠️ Could not send payment notification:', notifErr.message);
+            console.warn(' Could not send payment notification:', notifErr.message);
           }
         }
       }
 
     } else {
-      // UPDATE GENERAL TRANSACTION
       console.log('💰 Updating general transaction record');
       
       const transactionRecord = await transactionsCollection.findOne({ reference });
@@ -286,9 +278,8 @@ async function handleChargeSuccess(data, res) {
         );
 
         if (updateResult.modifiedCount > 0) {
-          console.log('✅ Transaction record updated to "success"');
+          console.log(' Transaction record updated to "success"');
 
-          // Send success notification
           const userId = transactionRecord.user_id;
           if (userId && global.io) {
             global.io.to(`user_${userId}`).emit('notification', {
@@ -304,7 +295,7 @@ async function handleChargeSuccess(data, res) {
     }
 
     // SUCCESS RESPONSE
-    console.log('✅ Charge success webhook processed');
+    console.log(' Charge success webhook processed');
     res.json({
       success: true,
       message: 'Payment verified and processed',
@@ -312,7 +303,7 @@ async function handleChargeSuccess(data, res) {
     });
 
   } catch (error) {
-    console.error('❌ Error handling charge success:', error);
+    console.error(' Error handling charge success:', error);
     res.status(500).json({
       success: false,
       message: 'Error processing payment',
@@ -328,7 +319,7 @@ async function handleChargeFailed(data, res) {
   try {
     const { reference, reason, authorization } = data;
 
-    console.log('❌ Processing failed charge:', {
+    console.log(' Processing failed charge:', {
       reference,
       reason,
       authorization
@@ -337,7 +328,6 @@ async function handleChargeFailed(data, res) {
     const paymentsCollection = await getCollection('payments');
     const transactionsCollection = await getCollection('transactions');
 
-    // Update payment record
     const paymentRecord = await paymentsCollection.findOne({ reference });
     
     if (paymentRecord) {
@@ -352,7 +342,6 @@ async function handleChargeFailed(data, res) {
         }
       );
 
-      // Send failure notification to user
       if (paymentRecord.user_id && global.io) {
         global.io.to(`user_${paymentRecord.user_id}`).emit('notification', {
           type: 'payment_failed',
@@ -363,7 +352,6 @@ async function handleChargeFailed(data, res) {
         });
       }
     } else {
-      // Try general transaction
       const transRecord = await transactionsCollection.findOne({ reference });
       if (transRecord) {
         await transactionsCollection.updateOne(
@@ -379,7 +367,7 @@ async function handleChargeFailed(data, res) {
       }
     }
 
-    console.log('✅ Charge failure webhook processed');
+    console.log(' Charge failure webhook processed');
     res.json({
       success: true,
       message: 'Failed charge recorded',
@@ -387,7 +375,7 @@ async function handleChargeFailed(data, res) {
     });
 
   } catch (error) {
-    console.error('❌ Error handling charge failure:', error);
+    console.error(' Error handling charge failure:', error);
     res.status(500).json({
       success: false,
       message: 'Error processing failed charge',

@@ -143,11 +143,9 @@ export const sendMessageToRag = async (req, res) => {
       });
     }
 
-    // Get MongoDB collections
     //const chatsCollection = await getCollection('chats');
     const messagesCollection = await getCollection('messages');
 
-    // Ensure conversation exists
     // Use string IDs unless a valid 24-hex string is provided
     let conversationKey = conversation_id;
     if (/^[a-fA-F0-9]{24}$/.test(conversation_id)) {
@@ -179,7 +177,6 @@ export const sendMessageToRag = async (req, res) => {
       });
     }
 
-    // Save user message to MongoDB with consistent field naming
     const userMessage = {
       user_id: userId, // store as plain string for consistency
       conversation_id: conversation_id, // keep as string for flexibility
@@ -203,11 +200,10 @@ export const sendMessageToRag = async (req, res) => {
       
       const query = userQueryObjId ? { $or: [{ user_id: userQueryObjId }, { user_id: userId }] } : { user_id: userId };
       
-      // Get the most recent assessment
       const assessment = await assessmentsCollection.findOne(query, { sort: { created_at: -1 } });
       if (assessment && assessment.assessment_data) {
         assessmentProfile = assessment.assessment_data;
-        console.log(`📎 Found assessment for user ${userId}`);
+        console.log(` Found assessment for user ${userId}`);
       }
     } catch (e) {
       console.warn("Could not load user assessment profile", e);
@@ -223,13 +219,11 @@ export const sendMessageToRag = async (req, res) => {
       .limit(20) // fetch last 20 messages
       .toArray();
       
-      // Reverse to chronological order and map to role/content
       chatHistory = previousMessages.reverse().map(msg => ({
         role: msg.is_bot ? 'assistant' : 'user',
         content: msg.message
       }));
       
-      // Remove the very last one because it is the message we just inserted 
       // (which will be processed as the current prompt query)
       if (chatHistory.length > 0 && chatHistory[chatHistory.length - 1].content === message) {
         chatHistory.pop();
@@ -247,7 +241,6 @@ export const sendMessageToRag = async (req, res) => {
       }
     }
 
-    // Prepare enhanced RAG request
     const ragRequest = {
       message: finalMessage,
       conversation_id: conversation_id,
@@ -264,7 +257,6 @@ export const sendMessageToRag = async (req, res) => {
 
     console.log('Sending to enhanced RAG service...');
 
-    // Send to enhanced RAG Python service
     const ragResponse = await axios.post(process.env.AI_SERVICE_URL || "http://localhost:8000/respond", ragRequest, {
       headers: {
         "Content-Type": "application/json",
@@ -283,7 +275,6 @@ export const sendMessageToRag = async (req, res) => {
     // PROFESSIONALIZED BOT REPLY: Structure and enhance bot response
     let professionalReply = ragData.reply || "I'm here to help with Ghanaian university information.";
     
-    // Ensure reply has professional formatting if it's from fallback
     if (!ragData.reply || ragData.reply.length < 10) {
       professionalReply = `**University Information** 🎓\n\n${ragData.reply || 'I apologize, I did not fully understand your question.'}\n\n**💡 Tip:** Try asking about specific universities like UG, KNUST, or UCC.`;
     }
@@ -308,15 +299,12 @@ export const sendMessageToRag = async (req, res) => {
     await messagesCollection.insertOne(aiMessage);
     console.log('Saved AI response to MongoDB');
 
-    // Update conversation metadata in conversations collection
     const conversationsCollection = await getCollection('conversations');
     
-    // Count messages to determine if this is the first exchange
     const messageCount = await messagesCollection.countDocuments({
       conversation_id: conversation_id
     });
     
-    // Generate title if this is the first exchange (2 messages: 1 user + 1 bot)
     let conversationTitle = null; // Initialize as null instead of conversation_id
     if (messageCount === 2) {
       console.log('First message exchange detected, generating conversation title...');
@@ -332,7 +320,6 @@ export const sendMessageToRag = async (req, res) => {
         console.log(`Generated conversation title: "${conversationTitle}" (method: ${titleResult.method})`);
       } catch (titleError) {
         console.error('Title generation failed:', titleError);
-        // Use message preview as fallback
         const cleanMessage = message.trim();
         conversationTitle = cleanMessage.length > 50 
           ? cleanMessage.substring(0, 50).trim() + '...' 
@@ -341,14 +328,12 @@ export const sendMessageToRag = async (req, res) => {
       }
     }
     
-    // Prepare update operations
     const updateOps = {
       last_message: professionalReply.substring(0, 100),
       updated_at: new Date(),
       message_count: messageCount
     };
     
-    // Only set title if it was generated (first exchange)
     if (conversationTitle) {
       updateOps.title = conversationTitle;
     }
@@ -368,9 +353,8 @@ export const sendMessageToRag = async (req, res) => {
       },
       { upsert: true }
     );
-    console.log('✅ Updated conversation metadata' + (conversationTitle ? ` with title: "${conversationTitle}"` : ''));
+    console.log(' Updated conversation metadata' + (conversationTitle ? ` with title: "${conversationTitle}"` : ''));
 
-    // Return enhanced response with title
     res.json({
       success: true,
       message: professionalReply,
@@ -389,7 +373,7 @@ export const sendMessageToRag = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ Enhanced RAG processing error:", error);
+    console.error(" Enhanced RAG processing error:", error);
     
     // Provide user-friendly error message in Ghanaian English
     const errorMessage = error.response?.status === 500 
@@ -423,9 +407,8 @@ export const sendDemoMessage = async (req, res) => {
       });
     }
 
-    // Send directly to RAG service for demo
     const aiServiceUrl = process.env.AI_SERVICE_URL || "http://localhost:8000";
-    console.log(`🤖 Sending demo request to: ${aiServiceUrl}/respond`);
+    console.log(` Sending demo request to: ${aiServiceUrl}/respond`);
     
     try {
       const response = await axios.post(`${aiServiceUrl}/respond`, {
@@ -443,7 +426,7 @@ export const sendDemoMessage = async (req, res) => {
         }
       });
 
-      console.log("✅ Demo response received from RAG service");
+      console.log(" Demo response received from RAG service");
 
       res.json({
         success: true,
@@ -455,9 +438,8 @@ export const sendDemoMessage = async (req, res) => {
       });
 
     } catch (ragError) {
-      console.error("❌ Demo RAG Service Error:", ragError.message);
+      console.error(" Demo RAG Service Error:", ragError.message);
       
-      // Intelligent fallback for demo
       const fallbackReply = generateDemoFallbackResponse(message);
       
       res.json({
@@ -470,7 +452,7 @@ export const sendDemoMessage = async (req, res) => {
     }
 
   } catch (error) {
-    console.error("❌ Demo Chat Error:", error);
+    console.error(" Demo Chat Error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to process your message. Please try again.",
@@ -479,7 +461,6 @@ export const sendDemoMessage = async (req, res) => {
   }
 };
 
-// Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const uploadDir = './uploads/';
@@ -521,7 +502,7 @@ export const sendMessageWithFiles = async (req, res) => {
     const userId = req.user?.id || 'demo_user';
     const files = req.files || [];
 
-    console.log('📎 Processing message with files:', {
+    console.log(' Processing message with files:', {
       message: message?.substring(0, 100),
       fileCount: files.length,
       conversation_id,
@@ -535,11 +516,9 @@ export const sendMessageWithFiles = async (req, res) => {
       });
     }
 
-    // Get MongoDB collections
     const chatsCollection = await getCollection('chats');
     const messagesCollection = await getCollection('messages');
 
-    // Ensure conversation exists
     // Use string IDs unless a valid 24-hex string is provided
     let conversationKey = conversation_id;
     if (/^[a-fA-F0-9]{24}$/.test(conversation_id)) {
@@ -550,7 +529,6 @@ export const sendMessageWithFiles = async (req, res) => {
       }
     }
 
-    // Process uploaded files
     const fileAttachments = files.map(file => ({
       originalName: file.originalname,
       filename: file.filename,
@@ -559,14 +537,12 @@ export const sendMessageWithFiles = async (req, res) => {
       path: file.path
     }));
 
-    // Create message text including file information
     let messageText = message || '';
     if (files.length > 0) {
       const fileInfo = files.map(f => `📎 ${f.originalname} (${(f.size/1024).toFixed(1)}KB)`).join('\n');
       messageText = message ? `${message}\n\n${fileInfo}` : fileInfo;
     }
 
-    // Save user message with attachments to MongoDB
     const userMessage = {
       user_id: userId, // store as plain string (even for demo)
       conversation_id: conversationKey,
@@ -578,9 +554,8 @@ export const sendMessageWithFiles = async (req, res) => {
     };
 
     await messagesCollection.insertOne(userMessage);
-    console.log('✅ Saved user message with files to MongoDB');
+    console.log(' Saved user message with files to MongoDB');
 
-    // Prepare enhanced RAG request with file information
     const ragRequest = {
       message: message || `User sent ${files.length} file(s)`,
       conversation_id: conversation_id,
@@ -597,9 +572,8 @@ export const sendMessageWithFiles = async (req, res) => {
       }
     };
 
-    console.log('🔍 Sending message with files to RAG service...');
+    console.log(' Sending message with files to RAG service...');
 
-    // Send to RAG Python service
     const ragResponse = await axios.post(
       process.env.AI_SERVICE_URL || "http://localhost:8000/respond", 
       ragRequest, 
@@ -638,9 +612,8 @@ export const sendMessageWithFiles = async (req, res) => {
     };
 
     await messagesCollection.insertOne(aiMessage);
-    console.log('✅ Saved AI response for files to MongoDB');
+    console.log(' Saved AI response for files to MongoDB');
 
-    // Update conversation metadata
     await chatsCollection.updateOne(
       { 
         user_id: userId, 
@@ -659,7 +632,6 @@ export const sendMessageWithFiles = async (req, res) => {
       { upsert: true }
     );
 
-    // Return enhanced response
     res.json({
       success: true,
       message: ragData.reply,
@@ -678,7 +650,7 @@ export const sendMessageWithFiles = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ File upload processing error:", error);
+    console.error(" File upload processing error:", error);
     
     const errorMessage = error.response?.status === 500 
       ? "The AI service is having trouble processing your files. Please try again."
@@ -729,7 +701,7 @@ export const getHistory = async (req, res) => {
     }
     return res.json({ success: true, history });
   } catch (err) {
-    console.error('❌ GetHistory error:', err);
+    console.error(' GetHistory error:', err);
     return res.status(500).json({ success: false, message: 'Failed to fetch conversation history' });
   }
 };
@@ -759,15 +731,13 @@ export const getConversationDetails = async (req, res) => {
     }
     return res.json({ success: true, conversation_id: conversationId, messages });
   } catch (err) {
-    console.error('❌ GetConversationDetails error:', err);
+    console.error(' GetConversationDetails error:', err);
     return res.status(500).json({ success: false, message: 'Failed to fetch conversation thread' });
   }
 };
 
-// Export multer upload middleware
 export const uploadMiddleware = upload.array('files', 5);
 
-// Helper function for demo fallback responses
 function generateDemoFallbackResponse(message) {
   const messageLower = message.toLowerCase();
   

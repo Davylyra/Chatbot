@@ -7,6 +7,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { assessmentService, type AssessmentQuestion } from '../services/assessmentService';
 import { parseWassceResult } from '../services/ocrService';
+import { useToast } from '../hooks/useToast';
+import ToastContainer from '../components/ToastContainer';
 
 interface AssessmentData {
   bestSubject: string[];
@@ -20,7 +22,7 @@ interface AssessmentData {
 const Assessment: React.FC = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, updateProfile } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [questions, setQuestions] = useState<AssessmentQuestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +36,7 @@ const Assessment: React.FC = () => {
   });
   const [isOcrLoading, setIsOcrLoading] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const { toasts, removeToast, showWarning, showError } = useToast();
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -41,21 +44,36 @@ const Assessment: React.FC = () => {
 
     try {
       setIsOcrLoading(true);
-      const { bestSubject, wassceGrade } = await parseWassceResult(file);
+      const { wassceGrade } = await parseWassceResult(file);
       
       setAssessmentData(prev => ({
         ...prev,
-        bestSubject: bestSubject.length > 0 ? Array.from(new Set([...prev.bestSubject, ...bestSubject])) : prev.bestSubject,
         wassceGrade: wassceGrade || prev.wassceGrade
       }));
       
+      if (wassceGrade && wassceGrade.split(',').length < 8) {
+        showWarning(
+          "Missing Subjects",
+          "We couldn't clearly read all your subjects from the image. Please review the text box and fill in any missing grades manually.",
+          5000
+        );
+      }
+
       if (fileInputRef.current) fileInputRef.current.value = '';
       
     } catch (error: any) {
       if (error.message === 'NO_GRADES_FOUND') {
-        alert("We couldn't clearly detect your grades from this image. Please ensure the photo is clear, well-lit, and contains your WASSCE results, or type them in manually.");
+        showWarning(
+          "No Grades Detected",
+          "We couldn't clearly detect your grades from this image. Please ensure the photo is clear, well-lit, and contains your WASSCE results, or type them in manually.",
+          5000
+        );
       } else {
-        alert("Oops! Something went wrong while scanning the document. Please try again with a clearer image, or type your grades manually.");
+        showError(
+          "Scan Failed",
+          "Oops! Something went wrong while scanning the document. Please try again with a clearer image, or type your grades manually.",
+          5000
+        );
       }
     } finally {
       setIsOcrLoading(false);
@@ -69,7 +87,6 @@ const Assessment: React.FC = () => {
         const dynamicQuestions = await assessmentService.getAssessmentQuestions();
         setQuestions(dynamicQuestions);
       } catch {
-        // Failed to load assessment questions - handled gracefully
         setQuestions([]);
       } finally {
         setLoading(false);
@@ -162,7 +179,11 @@ const Assessment: React.FC = () => {
           }
         }
 
-        // Navigate to chat with assessment data
+        localStorage.setItem('assessmentCompleted', 'true');
+        if (isAuthenticated && updateProfile) {
+          updateProfile({ assessmentCompleted: true });
+        }
+
         navigate('/chat', { 
           state: { 
             assessmentData,
@@ -321,6 +342,7 @@ const Assessment: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
       <Navbar 
         title="PROGRAM ASSESSMENT"
         showBackButton={true}
@@ -407,6 +429,8 @@ const Assessment: React.FC = () => {
                       ref={fileInputRef} 
                       onChange={handleFileUpload} 
                       className="hidden" 
+                      aria-label="Upload WASSCE result slip"
+                      title="Upload WASSCE result slip"
                     />
                     <button 
                       onClick={() => fileInputRef.current?.click()}

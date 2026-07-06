@@ -29,17 +29,14 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Fetch event - Network first for API, cache first for static assets
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
   
-  // Network first for API calls
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Clone and cache the response
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(request, responseClone);
@@ -47,14 +44,12 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          // Fallback to cache if network fails
           return caches.match(request);
         })
     );
     return;
   }
   
-  // Cache first for images (including university logos)
   if (request.destination === 'image' || url.pathname.startsWith('/university-logos/')) {
     event.respondWith(
       caches.match(request)
@@ -62,9 +57,7 @@ self.addEventListener('fetch', (event) => {
           if (cachedResponse) {
             return cachedResponse;
           }
-          // If not in cache, fetch from network and cache it
           return fetch(request).then((response) => {
-            // Only cache successful responses
             if (response && response.status === 200) {
               const responseClone = response.clone();
               caches.open(CACHE_NAME).then((cache) => {
@@ -82,7 +75,6 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(request)
       .then((response) => {
-        // Return cached version or fetch from network
         return response || fetch(request);
       })
   );

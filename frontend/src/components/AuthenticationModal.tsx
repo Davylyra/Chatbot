@@ -72,7 +72,6 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
         const result = await signup(formData.name, formData.email, formData.password);
         if (result.success) {
           handleClose();
-          // Redirect user to login page with success message (no auto-login)
           navigate('/login', { state: { signupSuccess: true, message: result.message } });
         } else {
           setError(result.message);
@@ -84,7 +83,6 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
           handleClose();
           navigate('/');
         } else {
-          // Show error inline - keep modal open
           setError(result.message || 'Invalid email or password. Please try again.');
         }
       }

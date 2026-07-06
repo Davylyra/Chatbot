@@ -131,7 +131,6 @@ const HelpSupport: React.FC = () => {
                   );
                 })
               ) : (
-                // Regular support items (non-FAQ)
                 section.items.map((item, itemIndex) => (
                   <motion.div
                     key={item}

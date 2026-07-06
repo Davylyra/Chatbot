@@ -43,7 +43,6 @@ const Signup: React.FC = () => {
   const handleSendVerification = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Clear previous errors
     const newErrors: {[key: string]: string} = {};
 
     if (!formData.name.trim() || formData.name.trim().length < 2) {
@@ -82,7 +81,6 @@ const Signup: React.FC = () => {
       newErrors.confirmPassword = 'Passwords do not match';
     }
     
-    // If there are errors, show them and stop
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -96,7 +94,6 @@ const Signup: React.FC = () => {
 
         setIsVerificationModalOpen(true);
       } else {
-        // Parse backend errors
         if (result.errors && Array.isArray(result.errors)) {
           const backendErrors: {[key: string]: string} = {};
           for (const error of result.errors) {
@@ -139,7 +136,6 @@ const Signup: React.FC = () => {
           navigate('/login', { state: { signupSuccess: true, message: 'Account created successfully! Please log in.' } });
         }, 2000);
       } else {
-        // Throw error to be caught by modal
         throw new Error(result.message || 'Verification failed');
       }
     } catch (error: any) {

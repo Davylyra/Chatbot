@@ -14,7 +14,6 @@ class CacheManager {
     this.MEMORY_TTL = 5 * 60 * 1000; // 5 minutes
     this.DB_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
     
-    // University data cache (longer TTL since it changes less frequently)
     this.universityCache = new Map();
     this.UNIVERSITY_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -79,10 +78,9 @@ class CacheManager {
     try {
       const cacheKey = this.generateCacheKey(query, universityContext, userId);
       
-      // Check memory cache first (fastest)
       const memoryCacheResult = this.getFromMemoryCache(cacheKey);
       if (memoryCacheResult) {
-        console.log(`🚀 Memory cache HIT: ${cacheKey}`);
+        console.log(` Memory cache HIT: ${cacheKey}`);
         return {
           ...memoryCacheResult,
           cached: true,
@@ -90,12 +88,10 @@ class CacheManager {
         };
       }
 
-      // Check database cache (slower but persistent)
       const dbCacheResult = await this.getFromDbCache(cacheKey);
       if (dbCacheResult) {
         console.log(`💾 DB cache HIT: ${cacheKey}`);
         
-        // Promote to memory cache
         this.setInMemoryCache(cacheKey, dbCacheResult);
         
         return {
@@ -105,10 +101,10 @@ class CacheManager {
         };
       }
 
-      console.log(`❌ Cache MISS: ${cacheKey}`);
+      console.log(` Cache MISS: ${cacheKey}`);
       return null;
     } catch (error) {
-      console.error('❌ Cache retrieval error:', error);
+      console.error(' Cache retrieval error:', error);
       return null;
     }
   }
@@ -135,16 +131,14 @@ class CacheManager {
         model_used: response.model_used || 'unknown'
       };
 
-      // Store in memory cache
       this.setInMemoryCache(cacheKey, cacheData);
 
-      // Store in database cache (for persistence)
       await this.setInDbCache(cacheKey, cacheData);
 
-      console.log(`✅ Cached response: ${cacheKey}`);
+      console.log(` Cached response: ${cacheKey}`);
       return true;
     } catch (error) {
-      console.error('❌ Cache storage error:', error);
+      console.error(' Cache storage error:', error);
       return false;
     }
   }
@@ -156,13 +150,11 @@ class CacheManager {
     const cached = this.memoryCache.get(key);
     if (!cached) return null;
 
-    // Check TTL
     if (Date.now() - cached.stored > this.MEMORY_TTL) {
       this.memoryCache.delete(key);
       return null;
     }
 
-    // Update hit count
     cached.data.hit_count = (cached.data.hit_count || 0) + 1;
     cached.lastAccess = Date.now();
 
@@ -221,7 +213,6 @@ class CacheManager {
       });
 
       if (cached) {
-        // Update hit count
         await cacheCollection.updateOne(
           { cache_key: key },
           { 
@@ -241,7 +232,7 @@ class CacheManager {
 
       return null;
     } catch (error) {
-      console.error('❌ DB cache retrieval error:', error);
+      console.error(' DB cache retrieval error:', error);
       return null;
     }
   }
@@ -272,7 +263,7 @@ class CacheManager {
 
       return true;
     } catch (error) {
-      console.error('❌ DB cache storage error:', error);
+      console.error(' DB cache storage error:', error);
       return false;
     }
   }
@@ -288,7 +279,6 @@ class CacheManager {
       timestamp: Date.now()
     });
 
-    // Also persist to DB
     try {
       const universityCollection = await getCollection('university_cache');
       await universityCollection.replaceOne(
@@ -304,20 +294,18 @@ class CacheManager {
         { upsert: true }
       );
     } catch (error) {
-      console.error('❌ University cache storage error:', error);
+      console.error(' University cache storage error:', error);
     }
   }
 
   async getUniversityData(universityName, dataType) {
     const key = `university:${universityName}:${dataType}`;
     
-    // Check memory first
     const cached = this.universityCache.get(key);
     if (cached && (Date.now() - cached.timestamp) < this.UNIVERSITY_CACHE_TTL) {
       return cached.data;
     }
 
-    // Check database
     try {
       const universityCollection = await getCollection('university_cache');
       const result = await universityCollection.findOne({
@@ -326,7 +314,6 @@ class CacheManager {
       });
 
       if (result) {
-        // Promote to memory
         this.universityCache.set(key, {
           data: result.data,
           timestamp: Date.now()
@@ -335,7 +322,7 @@ class CacheManager {
         return result.data;
       }
     } catch (error) {
-      console.error('❌ University cache retrieval error:', error);
+      console.error(' University cache retrieval error:', error);
     }
 
     return null;
@@ -355,14 +342,12 @@ class CacheManager {
    */
   async invalidateCache(pattern) {
     try {
-      // Clear memory cache
       for (const key of this.memoryCache.keys()) {
         if (key.includes(pattern)) {
           this.memoryCache.delete(key);
         }
       }
 
-      // Clear database cache
       const cacheCollection = await getCollection('response_cache');
       await cacheCollection.deleteMany({
         cache_key: { $regex: pattern, $options: 'i' }
@@ -370,7 +355,7 @@ class CacheManager {
 
       console.log(`🗑️ Invalidated cache for pattern: ${pattern}`);
     } catch (error) {
-      console.error('❌ Cache invalidation error:', error);
+      console.error(' Cache invalidation error:', error);
     }
   }
 
@@ -411,7 +396,7 @@ class CacheManager {
         university_cache_size: this.universityCache.size
       };
     } catch (error) {
-      console.error('❌ Cache stats error:', error);
+      console.error(' Cache stats error:', error);
       return null;
     }
   }
@@ -429,18 +414,17 @@ class CacheManager {
       'Business Administration fees at KNUST'
     ];
 
-    console.log('🔥 Warming up cache with common queries...');
+    console.log(' Warming up cache with common queries...');
     
     for (const query of commonQueries) {
       const cached = await this.getCachedResponse(query);
       if (!cached) {
-        console.log(`📝 Query not cached: ${query}`);
+        console.log(` Query not cached: ${query}`);
       }
     }
   }
 }
 
-// Create singleton instance
 const cacheManager = new CacheManager();
 
 /**
@@ -472,10 +456,8 @@ export const cacheMiddleware = async (req, res, next) => {
       });
     }
 
-    // Store original res.json to cache response
     const originalJson = res.json;
     res.json = function(data) {
-      // Cache the response after sending
       if (data.success && data.reply) {
         setImmediate(async () => {
           await cacheManager.cacheResponse(
@@ -491,7 +473,7 @@ export const cacheMiddleware = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('❌ Cache middleware error:', error);
+    console.error(' Cache middleware error:', error);
     next();
   }
 };

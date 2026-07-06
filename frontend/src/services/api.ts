@@ -16,7 +16,6 @@ const initializeApiConfig = async () => {
   }
 };
 
-// Initialize configuration on module load
 initializeApiConfig();
 
 export interface ApiResponse<T> {
@@ -214,7 +213,6 @@ class HttpClient {
   }
 }
 
-// Initialize HTTP client
 const httpClient = new HttpClient(API_BASE_URL, API_TIMEOUT);
 
 // API Service Class
@@ -481,7 +479,6 @@ export class SmartApiService {
     return FallbackService.sendMessage(message, universityContext);
   }
 
-  // Delegate other methods to appropriate service
   static async getUniversity(id: string) {
     const isAvailable = await this.checkApiAvailability();
     if (isAvailable) {

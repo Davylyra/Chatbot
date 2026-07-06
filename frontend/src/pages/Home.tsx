@@ -242,42 +242,44 @@ const Home: React.FC = () => {
                 </motion.div>
               )}
 
-              {/* Program Recommendation Card */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className={`p-4 mb-4 shadow-lg transition-all duration-200 ${theme === 'dark'
-                    ? 'glass-card-unified-dark'
-                    : 'glass-card-unified'
-                  }`}
-              >
-                <div className="flex items-center mb-4">
-                  <div className="bg-yellow-400 rounded-full p-2 mr-3 shadow-md">
-                    <FiStar className="w-4 h-4 text-white" />
-                  </div>
-                  <h3 className={`font-bold text-lg transition-colors duration-200 ${theme === 'dark' ? 'text-white' : 'text-gray-800'
-                    }`}>
-                    {pageContent?.sections.find(s => s.id === 'program-recommendation-title')?.title || 'Get Program Recommendation'}
-                  </h3>
-                </div>
-                <p className={`text-sm mb-5 leading-relaxed transition-colors duration-200 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                  {pageContent?.sections.find(s => s.id === 'program-recommendation-title')?.content || 'Tell us your grades and interests, and we\'ll recommend the best programs for you'}
-                </p>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    if (checkGuestAccess('assessment')) {
-                      navigate('/assessment');
-                    }
-                  }}
-                  className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-4 rounded-2xl transition-all duration-200 shadow-md text-sm"
+              {/* Get Program Recommendation */}
+              {(!isAuthenticated ? localStorage.getItem('assessmentCompleted') !== 'true' : !user?.assessmentCompleted) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className={`p-4 mb-4 shadow-lg transition-all duration-200 ${theme === 'dark'
+                      ? 'glass-card-unified-dark'
+                      : 'glass-card-unified'
+                    }`}
                 >
-                  {pageContent?.sections.find(s => s.id === 'start-assessment-button')?.content || 'Start Assessment'}
-                </motion.button>
-              </motion.div>
+                  <div className="flex items-center mb-4">
+                    <div className="bg-yellow-400 rounded-full p-2 mr-3 shadow-md">
+                      <FiStar className="w-4 h-4 text-white" />
+                    </div>
+                    <h3 className={`font-bold text-lg transition-colors duration-200 ${theme === 'dark' ? 'text-white' : 'text-gray-800'
+                      }`}>
+                      {pageContent?.sections.find(s => s.id === 'program-recommendation-title')?.title || 'Get Program Recommendation'}
+                    </h3>
+                  </div>
+                  <p className={`text-sm mb-5 leading-relaxed transition-colors duration-200 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                    {pageContent?.sections.find(s => s.id === 'program-recommendation-title')?.content || 'Tell us your grades and interests, and we\'ll recommend the best programs for you'}
+                  </p>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      if (checkGuestAccess('assessment')) {
+                        navigate('/assessment');
+                      }
+                    }}
+                    className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-4 rounded-2xl transition-all duration-200 shadow-md text-sm"
+                  >
+                    {pageContent?.sections.find(s => s.id === 'start-assessment-button')?.content || 'Start Assessment'}
+                  </motion.button>
+                </motion.div>
+              )}
 
               {/* University Sessions */}
               <motion.div

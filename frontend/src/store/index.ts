@@ -4,7 +4,6 @@ import { devtools, persist } from 'zustand/middleware';
 import { UNIVERSITIES_DATA } from '../data/constants';
 import type { Notification } from '../types';
 
-// Type definitions for the application state
 export interface User {
   id: string;
   name: string;
@@ -565,7 +564,6 @@ export const useAppStore = create<AppState>()(
   )
 );
 
-// Selectors for optimized re-renders
 export const useUser = () => useAppStore(state => state.user);
 export const useIsAuthenticated = () => useAppStore(state => state.isAuthenticated);
 export const useIsGuest = () => useAppStore(state => state.isGuest);

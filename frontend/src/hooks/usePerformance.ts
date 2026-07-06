@@ -35,7 +35,6 @@ export const usePerformance = (): UsePerformanceReturn => {
   const [shouldReduceAnimations, setShouldReduceAnimations] = useState(false);
   const [shouldLazyLoad, setShouldLazyLoad] = useState(false);
 
-  // Detect device capabilities
   const detectDeviceCapabilities = useCallback(() => {
     const startTime = performance.now();
     
@@ -66,19 +65,15 @@ export const usePerformance = (): UsePerformanceReturn => {
     setShouldLazyLoad(isLowEnd || connectionSpeed === 'slow-2g' || connectionSpeed === '2g');
   }, []);
 
-  // Optimize for performance
   const optimizeForPerformance = useCallback(() => {
     if (isLowEndDevice) {
-      // Reduce animation complexity
       document.documentElement.style.setProperty('--animation-duration', '0.1s');
       
-      // Enable lazy loading
       const images = document.querySelectorAll('img[data-src]');
       images.forEach(img => {
         (img as HTMLImageElement).src = (img as HTMLImageElement).dataset.src || '';
       });
       
-      // Reduce motion for low-end devices
       if (shouldReduceAnimations) {
         document.documentElement.classList.add('reduce-motion');
       }
@@ -89,7 +84,6 @@ export const usePerformance = (): UsePerformanceReturn => {
   useEffect(() => {
     detectDeviceCapabilities();
     
-    // Monitor memory usage
     const monitorMemory = () => {
       if ('memory' in performance) {
         const memory = (performance as any).memory;
@@ -100,10 +94,8 @@ export const usePerformance = (): UsePerformanceReturn => {
       }
     };
     
-    // Monitor performance periodically
     const interval = setInterval(monitorMemory, 5000);
     
-    // Listen for visibility changes to pause/resume monitoring
     const handleVisibilityChange = () => {
       if (document.hidden) {
         clearInterval(interval);
@@ -120,7 +112,6 @@ export const usePerformance = (): UsePerformanceReturn => {
     };
   }, [detectDeviceCapabilities]);
 
-  // Apply optimizations when device is detected as low-end
   useEffect(() => {
     if (isLowEndDevice) {
       optimizeForPerformance();

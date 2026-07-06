@@ -83,7 +83,6 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = memo(({
 
   const handleBlur = () => {
     setIsFocused(false);
-    // Delay hiding results to allow clicking on them
     setTimeout(() => setShowResults(false), 200);
   };
 

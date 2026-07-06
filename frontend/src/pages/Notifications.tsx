@@ -9,18 +9,15 @@ import { contentService, type PageContent } from '../services/contentService';
 import { useSocket } from '../hooks/useSocket';
 
 const Notifications: React.FC = () => {
-  // Hooks and state
   const navigate = useNavigate();
   const { theme } = useTheme();
   const { user, isGuest } = useAuth();
   const { notifications, markAsRead, markAllAsRead } = useSocket();
   
-  // Local state for UI feedback
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [recentlyMarkedRead, setRecentlyMarkedRead] = useState<Set<string>>(new Set());
   const [pageContent, setPageContent] = useState<PageContent | null>(null);
 
-  // No need to manually load - they come in real-time
 
   useEffect(() => {
     const loadPageContent = async () => {
@@ -47,7 +44,6 @@ const Notifications: React.FC = () => {
         setTimeout(() => setShowSuccessMessage(false), 3000);
       }
     } catch {
-      // Failed to mark all notifications as read - handled gracefully
     }
   }, [user?.id, markAllAsRead]);
 

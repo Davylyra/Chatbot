@@ -16,12 +16,10 @@ const getAcademicYear = () => {
   return now.getMonth() >= 8 ? `${currentYear}/${currentYear + 1}` : `${currentYear - 1}/${currentYear}`;
 };
 
-// Check for urgent admission updates and notify all users
 export const checkAdmissionUpdates = async () => {
   try {
-    console.log('🔍 [LIVE-NOTIFICATIONS] Checking for admission updates from live sources...');
+    console.log(' [LIVE-NOTIFICATIONS] Checking for admission updates from live sources...');
 
-    // Fetch from live sources only (no fallback to prevent fake notifications)
     const events = await fetchLiveAdmissionNotifications();
     console.log(`📡 [LIVE-NOTIFICATIONS] Fetched ${Array.isArray(events) ? events.length : 0} notifications from live sources`);
 
@@ -40,14 +38,12 @@ export const checkAdmissionUpdates = async () => {
       return;
     }
 
-    // For each event create a notification per user if not recently sent
     let sentCount = 0;
     for (const event of events) {
       const title = event.title || `${event.university} update`;
       const message = event.message || '';
 
       for (const user of users) {
-        // Enhanced duplicate check: pass university code for more accurate detection
         const universityCode = event.metadata?.universityCode || event.university;
         const already = await checkRecentNotification(user._id.toString(), title, 24, universityCode);
         if (already) continue;
@@ -81,11 +77,10 @@ export const checkAdmissionUpdates = async () => {
     console.log(`[LIVE-NOTIFICATIONS] Sent ${sentCount} notifications (${events.length} events) to ${users.length} users`);
 
   } catch (error) {
-    console.error('❌ [LIVE-NOTIFICATIONS] Error checking admission updates:', error);
+    console.error(' [LIVE-NOTIFICATIONS] Error checking admission updates:', error);
   }
 };
 
-// Check if user recently received similar notification
 // ENHANCED: Now checks by university code + title for better duplicate detection
 const checkRecentNotification = async (userId, title, hoursBack = 24, universityCode = null) => {
   try {
@@ -98,7 +93,6 @@ const checkRecentNotification = async (userId, title, hoursBack = 24, university
       createdAt: { $gte: cutoffTime }
     };
     
-    // If university code provided, check for exact match to prevent cross-university duplicates
     if (universityCode) {
       query['metadata.universityCode'] = universityCode;
     }
@@ -107,12 +101,11 @@ const checkRecentNotification = async (userId, title, hoursBack = 24, university
 
     return !!existing;
   } catch (error) {
-    console.error('❌ Error checking recent notifications:', error);
+    console.error(' Error checking recent notifications:', error);
     return false;
   }
 };
 
-// Notify users about specific university updates
 export const notifyUniversityUpdate = async (universityName, updateType, details = {}) => {
   try {
     const usersCollection = await getCollection('users');
@@ -162,13 +155,11 @@ export const notifyUniversityUpdate = async (universityName, updateType, details
     console.log(`Notified ${users.length} users about ${universityName} ${updateType}`);
 
   } catch (error) {
-    console.error('❌ Error sending university update notifications:', error);
+    console.error(' Error sending university update notifications:', error);
   }
 };
 
-// Schedule periodic checks (to be called by a cron job or scheduler)
 export const scheduleAdmissionChecks = () => {
-  // Check every 6 hours
   setInterval(checkAdmissionUpdates, 6 * 60 * 60 * 1000);
 
   // Initial check

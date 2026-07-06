@@ -54,7 +54,6 @@ class ConfigService {
           lastUpdated: new Date().toISOString()
         };
         
-        // Cache the config
         this.configCache.set(key, config);
         return config.value;
       }
@@ -87,12 +86,10 @@ class ConfigService {
           lastUpdated: new Date().toISOString()
         };
         
-        // Cache individual configs
         configCategory.configs.forEach(config => {
           this.configCache.set(config.key, config);
         });
         
-        // Cache the category
         this.categoryCache.set(category, configCategory);
         return configCategory;
       }

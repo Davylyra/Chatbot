@@ -21,7 +21,6 @@ export const AcademicYearCycle = {
     const now = new Date();
     const currentYear = now.getFullYear();
     
-    // Cycle starts in September (month 8 in 0-indexed)
     // So from Sept onward, we're in the current-year/next-year cycle
     if (now.getMonth() >= 8) {
       return `${currentYear}/${currentYear + 1}`;
@@ -76,7 +75,6 @@ export const AcademicYearCycle = {
     const now = new Date();
     const currentYear = now.getFullYear();
     
-    // Determine which cycle we're in
     const cycleStartYear = now.getMonth() >= 8 ? currentYear : currentYear - 1;
     
     return {

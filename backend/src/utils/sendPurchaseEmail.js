@@ -8,7 +8,7 @@ const client = new SibApiV3Sdk.TransactionalEmailsApi();
 
 export const sendPurchaseEmail = async (to, universityName, serialKey, pin) => {
   if (!process.env.BREVO_API_KEY || !process.env.FROM_EMAIL) {
-    console.warn("⚠️ Brevo service is not configured. Email not sent.");
+    console.warn(" Brevo service is not configured. Email not sent.");
     return;
   }
 
@@ -51,13 +51,13 @@ export const sendPurchaseEmail = async (to, universityName, serialKey, pin) => {
     await client.sendTransacEmail(sendSmtpEmail);
     console.log(`📧 Purchase email sent successfully to ${to}`);
   } catch (error) {
-    console.error("❌ Error sending purchase email:", error.response?.text || error.message);
+    console.error(" Error sending purchase email:", error.response?.text || error.message);
   }
 };
 
 export const sendAdminAlertEmail = async (universityName) => {
   if (!process.env.BREVO_API_KEY || !process.env.FROM_EMAIL || !process.env.ADMIN_EMAIL) {
-    console.warn("⚠️ Brevo or ADMIN_EMAIL is not configured. Admin alert not sent.");
+    console.warn(" Brevo or ADMIN_EMAIL is not configured. Admin alert not sent.");
     return;
   }
 
@@ -77,6 +77,6 @@ export const sendAdminAlertEmail = async (universityName) => {
     await client.sendTransacEmail(sendSmtpEmail);
     console.log(`🚨 Admin alert sent for ${universityName} inventory depletion`);
   } catch (error) {
-    console.error("❌ Error sending admin alert:", error.response?.text || error.message);
+    console.error(" Error sending admin alert:", error.response?.text || error.message);
   }
 };

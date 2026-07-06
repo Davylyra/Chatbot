@@ -44,7 +44,6 @@ const Sidebar: React.FC<SidebarProps> = memo(({
     closeLimitationModal
   } = useGuestLimitations();
 
-  // All menu items
   const allMenuItems = [
     {
       icon: FiUser,
@@ -357,7 +356,7 @@ const Sidebar: React.FC<SidebarProps> = memo(({
         isOpen={showLimitationModal}
         onClose={closeLimitationModal}
         feature={limitationData?.feature || ''}
-        message={limitationData?.message || ''}
+        description={limitationData?.description || ''}
       />
     </>
   );

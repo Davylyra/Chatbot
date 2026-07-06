@@ -67,7 +67,6 @@ export const usePullToRefresh = ({
       setPullDistance(resistanceDistance);
       setCanRefresh(resistanceDistance >= threshold);
 
-      // Prevent default scrolling when pulling
       if (distance > 0) {
         e.preventDefault();
       }

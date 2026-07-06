@@ -10,13 +10,11 @@
  * - Admission statuses
  */
 
-// Get current academic year (e.g., "2025/2026")
 export const getCurrentAcademicYear = () => {
   const now = new Date();
   const currentYear = now.getFullYear();
   
   // In Ghana, academic year typically starts September
-  // So if current date is Sep-Dec, it's currentYear/currentYear+1
   // If Jan-Aug, it's currentYear-1/currentYear
   const month = now.getMonth(); // 0-11
   
@@ -27,7 +25,6 @@ export const getCurrentAcademicYear = () => {
   }
 };
 
-// Get academic year info with deadlines
 export const getAcademicYearInfo = () => {
   const academicYear = getCurrentAcademicYear();
   const [startYear, endYear] = academicYear.split('/').map(Number);
@@ -37,7 +34,6 @@ export const getAcademicYearInfo = () => {
     startYear,
     endYear,
     
-    // Key dates for Ghanaian admission cycle
     dates: {
       applicationStart: new Date(startYear, 9, 1), // October 1st of start year
       applicationDeadline: new Date(startYear + 1, 2, 31), // March 31st of next year
@@ -51,14 +47,12 @@ export const getAcademicYearInfo = () => {
       academicStart: new Date(startYear + 1, 8, 15), // Mid-September
     },
     
-    // Check if application is open
     isApplicationOpen: () => {
       const now = new Date();
       const info = getAcademicYearInfo();
       return now >= info.dates.applicationStart && now <= info.dates.applicationDeadline;
     },
     
-    // Get days until deadline
     daysUntilDeadline: () => {
       const now = new Date();
       const deadline = getAcademicYearInfo().dates.applicationDeadline;
@@ -66,7 +60,6 @@ export const getAcademicYearInfo = () => {
       return Math.ceil(diff / (1000 * 60 * 60 * 24));
     },
     
-    // Get admission cycle status
     cycleStatus: () => {
       const now = new Date();
       const info = getAcademicYearInfo();
@@ -88,7 +81,6 @@ export const getAcademicYearInfo = () => {
   };
 };
 
-// Get dynamic dates for universities
 export const getDynamicUniversityDates = () => {
   const yearInfo = getAcademicYearInfo();
   const status = yearInfo.cycleStatus();
@@ -107,12 +99,10 @@ export const getDynamicUniversityDates = () => {
   };
 };
 
-// Check if specific date has passed
 export const hasDatePassed = (date) => {
   return new Date() > new Date(date);
 };
 
-// Format date for display
 export const formatDateForDisplay = (date) => {
   const options = {
     weekday: 'short',
@@ -123,7 +113,6 @@ export const formatDateForDisplay = (date) => {
   return new Date(date).toLocaleDateString('en-GB', options);
 };
 
-// Check if date is approaching (within 30 days)
 export const isDateApproaching = (date) => {
   const now = new Date();
   const targetDate = new Date(date);
@@ -131,7 +120,6 @@ export const isDateApproaching = (date) => {
   return daysUntil > 0 && daysUntil <= 30;
 };
 
-// Get friendly cycle status message
 export const getCycleStatusMessage = () => {
   const info = getAcademicYearInfo();
   const status = info.cycleStatus();
@@ -155,12 +143,10 @@ export const getCycleStatusMessage = () => {
   }
 };
 
-// Get relevant notifications for current cycle
 export const getRelevantNotifications = () => {
   const info = getAcademicYearInfo();
   const notifications = [];
   
-  // Check application deadline
   if (isDateApproaching(info.dates.applicationDeadline) && info.cycleStatus() === 'ACTIVE') {
     notifications.push({
       type: 'warning',
@@ -170,7 +156,6 @@ export const getRelevantNotifications = () => {
     });
   }
   
-  // Check admission list release
   if (isDateApproaching(info.dates.admissionListRelease) && info.cycleStatus() === 'PROCESSING') {
     notifications.push({
       type: 'info',
@@ -180,7 +165,6 @@ export const getRelevantNotifications = () => {
     });
   }
   
-  // Check acceptance deadline
   if (isDateApproaching(info.dates.acceptanceDeadline) && info.cycleStatus() === 'ACCEPTANCE') {
     notifications.push({
       type: 'warning',

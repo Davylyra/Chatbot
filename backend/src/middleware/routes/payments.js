@@ -10,16 +10,13 @@ import {
 
 const router = express.Router();
 
-// Initialize payment
 router.post("/initialize", verifyAuth, validatePaymentPayload, initializePayment);
 
 // Verify payment
 router.get("/verify/:reference", verifyAuth, verifyPayment);
 
-// Get user transactions
 router.get("/transactions", verifyAuth, getUserTransactions);
 
-// Get payment plans - GHANA PRICING
 router.get("/plans", (req, res) => {
   res.json({
     success: true,
@@ -64,7 +61,6 @@ router.get("/plans", (req, res) => {
   });
 });
 
-// Get supported mobile money providers
 router.get("/mobile-money-providers", (req, res) => {
   res.json({
     success: true,

@@ -37,7 +37,6 @@ export const useUniversities = (): UseUniversitiesReturn => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load universities';
       setError(errorMessage);
-      // Universities loading error - handled gracefully
     } finally {
       setIsLoading(false);
     }
@@ -53,7 +52,6 @@ export const useUniversities = (): UseUniversitiesReturn => {
       }
       return [];
     } catch {
-      // University search error - handled gracefully
       return universities.filter(uni => 
         uni.name.toLowerCase().includes(query.toLowerCase()) ||
         uni.fullName.toLowerCase().includes(query.toLowerCase()) ||

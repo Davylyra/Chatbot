@@ -20,11 +20,9 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(({
   // Enhanced URL detection and linking for plain text URLs
   const autolinkText = (t: string): string => {
     // Detect URLs not already in markdown link format [text](url)
-    // This regex finds URLs that are NOT preceded by ]( or followed by ) when preceded by ](
     const urlRegex = /(?<!\]\()https?:\/\/[^\s<>"]+(?![^<]*>)(?!\))/gi;
     
     return t.replace(urlRegex, (url) => {
-      // Clean trailing punctuation that might not be part of the URL
       let cleanUrl = url.replace(/[.,;:!?'")\]]+$/, '');
       return `[${cleanUrl}](${cleanUrl})`;
     });

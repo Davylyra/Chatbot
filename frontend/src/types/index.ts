@@ -49,7 +49,6 @@ export interface UniversityForm {
   deadline: string;
   isAvailable: boolean;
   logo?: string;
-  // New dynamic fields
   status?: 'available' | 'expired' | 'not_yet_open' | 'sold_out';
   daysUntilDeadline?: number;
   lastUpdated?: string;
@@ -106,7 +105,6 @@ export interface Notification {
   // Real-time flags
   isRealTime?: boolean;
   
-  // Read message access (24-hour window)
   firstAccessedAt?: Date;
   readMessageAccessibleUntil?: Date;
   readMessageAvailable?: boolean;
@@ -120,7 +118,6 @@ export interface Notification {
   };
   university?: string;
   
-  // Enhanced notification features
   readNowUrl?: string;
   readNowExpiresAt?: Date | null;
   readNowActive?: boolean;
@@ -129,10 +126,8 @@ export interface Notification {
   timeRemaining?: number;
 }
 
-// Alias for backward compatibility
 export type NotificationData = Notification;
 
-// Settings Types
 export interface AppSettings {
   theme: 'light' | 'dark' | 'auto';
   language: 'en' | 'tw' | 'ga' | 'ew';

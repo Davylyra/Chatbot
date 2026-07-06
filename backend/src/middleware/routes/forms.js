@@ -49,7 +49,6 @@ router.post("/:id/purchase", authMiddleware, async (req, res) => {
     const usersCollection = await getCollection("users");
     const formsCollection = await getCollection("forms");
     
-    // Get user info
     const user = await usersCollection.findOne({ _id: new ObjectId(req.user.id) });
 
     if (!user) {
@@ -57,7 +56,6 @@ router.post("/:id/purchase", authMiddleware, async (req, res) => {
     }
 
     if (!user.is_verified) {
-      // Generate OTP for email verification
       const otp = Math.floor(100000 + Math.random() * 900000);
       const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
@@ -79,7 +77,6 @@ router.post("/:id/purchase", authMiddleware, async (req, res) => {
       });
     }
 
-    // Check if form exists
     const form = await formsCollection.findOne({ _id: new ObjectId(form_id) });
     if (!form) {
       return res.status(404).json({ message: "Form not found or unavailable." });
@@ -88,7 +85,6 @@ router.post("/:id/purchase", authMiddleware, async (req, res) => {
     const amountInPesewas = amount * 100;
     const reference = `FORM_${form_id}_${Date.now()}_${req.user.id}`;
 
-    // Initialize Paystack payment
     const response = await axios.post(
       "https://api.paystack.co/transaction/initialize",
       {
@@ -105,7 +101,6 @@ router.post("/:id/purchase", authMiddleware, async (req, res) => {
       }
     );
 
-    // Save payment info to DB
     const paymentsCollection = await getCollection("payments");
     const newPayment = {
       user_id: new ObjectId(req.user.id),
@@ -144,7 +139,6 @@ router.get("/verify/:reference", authMiddleware, async (req, res) => {
   const { reference } = req.params;
 
   try {
-    // Verify payment with Paystack
     const response = await axios.get(
       `https://api.paystack.co/transaction/verify/${reference}`,
       {
@@ -156,7 +150,6 @@ router.get("/verify/:reference", authMiddleware, async (req, res) => {
 
     const { status, amount, customer } = response.data.data;
 
-    // Update payment status
     const paymentsCollection = await getCollection("payments");
     const userFormsCollection = await getCollection("user_forms");
     
@@ -177,7 +170,6 @@ router.get("/verify/:reference", authMiddleware, async (req, res) => {
 
     const payment = updateResult.value;
 
-    // If successful, link form to user
     if (status === "success" && payment.form_id) {
       const formCheck = await userFormsCollection.findOne({
         user_id: payment.user_id,

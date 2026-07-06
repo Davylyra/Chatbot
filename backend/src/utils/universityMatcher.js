@@ -40,7 +40,6 @@ export function matchUniversitiesToProfile(assessmentData) {
     }
   }
 
-  // Sort by match score (highest first)
   scoredUniversities.sort((a, b) => b.matchScore - a.matchScore);
 
   return scoredUniversities;
@@ -66,20 +65,16 @@ function calculateUniversityMatchScore(university, assessmentData) {
   if (assessmentData.careerGoals) {
     const careerKeywords = assessmentData.careerGoals.toLowerCase();
     
-    // Special handling for health sciences careers
     let careerMatches = 0;
     
     if (careerKeywords.includes('medicine') || careerKeywords.includes('health') || careerKeywords.includes('medical')) {
-      // For health careers, prioritize health sciences programs
       const healthPrograms = Object.values(university.programs || {}).filter(p => p.category === 'Health Sciences');
       careerMatches = Math.min(5, healthPrograms.length);
       
-      // Extra boost for UHAS and universities with strong health focus
       if (university.name === 'University of Health and Allied Sciences' || university.name.includes('Health')) {
         careerMatches = 5; // Maximum for health-specialized institutions
       }
     } else {
-      // For other careers, do standard matching
       const matchingPrograms = Object.values(university.programs || {}).filter(program =>
         program.career_fields.some(field => 
           careerKeywords.includes(field.toLowerCase()) ||
@@ -96,7 +91,6 @@ function calculateUniversityMatchScore(university, assessmentData) {
   if (assessmentData.subjects && assessmentData.subjects.length > 0) {
     const subjects = assessmentData.subjects.map(s => s.toLowerCase());
     
-    // Check if university offers programs matching these subjects
     const stemSubjects = ['mathematics', 'physics', 'chemistry', 'biology', 'elective math'];
     const businessSubjects = ['economics', 'business', 'accounting', 'costing'];
     const artsSubjects = ['literature', 'history', 'geography', 'french', 'government'];
@@ -136,7 +130,6 @@ function calculateUniversityMatchScore(university, assessmentData) {
       breakdown.locationPreference = 8;
     }
   } else {
-    // No location preference = treat all equally
     breakdown.locationPreference = 8;
   }
 
@@ -167,7 +160,6 @@ function calculateUniversityMatchScore(university, assessmentData) {
   if (assessmentData.wassceGrade) {
     const grade = assessmentData.wassceGrade.trim();
     
-    // All universities accept varying grades, give points based on competitiveness
     // Higher grades = more options, but don't exclude any university
     if (grade.match(/^[A-C]/i)) {
       breakdown.gradeCompatibility = 10; // Excellent grades - all options
@@ -199,14 +191,12 @@ function calculateUniversityMatchScore(university, assessmentData) {
   // 8. Financial Fit (7 points)
   if (assessmentData.financialSituation) {
     if (assessmentData.financialSituation === 'need_scholarship') {
-      // Public universities typically more affordable
       if (university.type === 'public') {
         breakdown.financialFit = 7;
       } else {
         breakdown.financialFit = 3;
       }
     } else if (assessmentData.financialSituation === 'comfortable') {
-      // Can afford any university
       breakdown.financialFit = 7;
     } else {
       breakdown.financialFit = 5;
@@ -215,7 +205,6 @@ function calculateUniversityMatchScore(university, assessmentData) {
     breakdown.financialFit = 5; // Neutral
   }
 
-  // Calculate total score
   const totalScore = Math.round(
     breakdown.careerAlignment +
     breakdown.subjectAlignment +
@@ -243,7 +232,6 @@ function findBestProgramsForUser(university, assessmentData) {
   for (const [programName, programData] of Object.entries(programs)) {
     let score = 0;
 
-    // Match against career goals
     if (assessmentData.careerGoals) {
       const careerLower = assessmentData.careerGoals.toLowerCase();
       if (programData.career_fields.some(field => 
@@ -253,7 +241,6 @@ function findBestProgramsForUser(university, assessmentData) {
       }
     }
 
-    // Match against interests
     if (assessmentData.interests) {
       if (assessmentData.interests.some(interest =>
         programName.toLowerCase().includes(interest.toLowerCase()) ||
@@ -263,7 +250,6 @@ function findBestProgramsForUser(university, assessmentData) {
       }
     }
 
-    // Match against subjects
     if (assessmentData.subjects) {
       const subjectsLower = assessmentData.subjects.map(s => s.toLowerCase());
       
@@ -291,7 +277,6 @@ function findBestProgramsForUser(university, assessmentData) {
     }
   }
 
-  // Sort by score and return top 3
   scoredPrograms.sort((a, b) => b.score - a.score);
   return scoredPrograms.slice(0, 3);
 }

@@ -7,7 +7,6 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-// LoadingSpinner removed - app loads instantly
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -25,11 +24,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { isAuthenticated, isGuest } = useAuth();
   const location = useLocation();
 
-  // App loads instantly - no authentication loading
 
-  // Allow guest access if allowGuest is true
   if (allowGuest) {
-    // Allow if user is authenticated OR explicitly in guest mode
     if (isAuthenticated || isGuest) {
       return <>{children}</>;
     }

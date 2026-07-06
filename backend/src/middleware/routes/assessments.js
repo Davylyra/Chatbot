@@ -30,9 +30,8 @@ router.post("/submit", async (req, res) => {
       assessmentType = "university_preference"
     } = req.body;
 
-    console.log(`📋 Processing assessment for user: ${userId || 'anonymous'}`);
+    console.log(` Processing assessment for user: ${userId || 'anonymous'}`);
 
-    // Validate required data
     if (!assessmentData) {
       return res.status(400).json({
         success: false,
@@ -40,26 +39,20 @@ router.post("/submit", async (req, res) => {
       });
     }
 
-    // Generate AI recommendations based on assessment
-    console.log('🤖 Generating AI recommendations...');
+    console.log(' Generating AI recommendations...');
     const aiRecommendations = await generateAIRecommendations(assessmentData);
 
-    // Create comprehensive assessment record
     const assessmentRecord = {
       user_id: userId || 'anonymous',
       conversation_id: conversationId,
       assessment_type: assessmentType,
       assessment_data: {
-        grades: assessmentData.grades || [],
         subjects: assessmentData.subjects || [],
         shs_program: assessmentData.shsProgram || '',
         wassce_grade: assessmentData.wassceGrade || '',
         interests: assessmentData.interests || [],
         career_goals: assessmentData.careerGoals || '',
-        preferred_location: assessmentData.preferredLocation || '',
-        extracurricular: assessmentData.extracurricular || [],
-        financial_situation: assessmentData.financialSituation || '',
-        program_preferences: assessmentData.programPreferences || []
+        preferred_location: assessmentData.preferredLocation || ''
       },
       ai_recommendations: aiRecommendations.recommendations || [],
       university_matches: aiRecommendations.universityMatches || [],
@@ -75,18 +68,15 @@ router.post("/submit", async (req, res) => {
       }
     };
 
-    // Log assessment using middleware
     const assessmentId = await logAssessment(assessmentRecord);
 
-    // Update user profile
     if (userId && userId !== 'anonymous') {
       await updateUserProfile(userId, assessmentRecord);
     }
 
-    // Generate personalized message for chat
     const personalizedMessage = generateAssessmentMessage(assessmentRecord);
 
-    console.log(`✅ Assessment processed with ID: ${assessmentId}`);
+    console.log(` Assessment processed with ID: ${assessmentId}`);
 
     res.json({
       success: true,
@@ -100,7 +90,7 @@ router.post("/submit", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ Assessment submission error:", error);
+    console.error(" Assessment submission error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to process assessment",
@@ -154,7 +144,7 @@ router.get("/history/:userId", authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ Assessment history error:", error);
+    console.error(" Assessment history error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch assessment history"
@@ -199,7 +189,7 @@ router.get("/:assessmentId", authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ Assessment fetch error:", error);
+    console.error(" Assessment fetch error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch assessment details"
@@ -244,7 +234,7 @@ router.put("/:assessmentId/feedback", authMiddleware, async (req, res) => {
       });
     }
 
-    console.log(`✅ Assessment feedback updated: ${assessmentId}`);
+    console.log(` Assessment feedback updated: ${assessmentId}`);
     
     res.json({
       success: true,
@@ -253,7 +243,7 @@ router.put("/:assessmentId/feedback", authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ Assessment feedback error:", error);
+    console.error(" Assessment feedback error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to save feedback"
@@ -269,12 +259,10 @@ async function generateAIRecommendations(assessmentData) {
     // IMPORTANT: For assessment requests, we use the unbiased assessment-driven matcher
     // NOT the AI service. This ensures fair, data-driven recommendations.
     
-    console.log('🎯 Using assessment-driven matcher (NOT AI service - ensures fairness)');
+    console.log(' Using assessment-driven matcher (NOT AI service - ensures fairness)');
     
-    // Directly use the unbiased matcher
     const universityMatches = getTopUniversityMatches(assessmentData, 5);
     
-    // Build structured recommendations
     const recommendations = universityMatches.slice(0, 3).map((match, index) => ({
       university_name: match.universityName,
       program_name: match.recommendedPrograms[0]?.name || 'Multiple Programs Available',
@@ -300,7 +288,7 @@ async function generateAIRecommendations(assessmentData) {
       reasoning: match.reasoning
     }));
 
-    console.log(`✅ Top recommendation: ${universityMatches[0]?.universityName} (score: ${universityMatches[0]?.matchScore})`);
+    console.log(` Top recommendation: ${universityMatches[0]?.universityName} (score: ${universityMatches[0]?.matchScore})`);
 
     return {
       recommendations: recommendations,
@@ -311,9 +299,8 @@ async function generateAIRecommendations(assessmentData) {
     };
 
   } catch (error) {
-    console.error('❌ Assessment matching error:', error);
+    console.error(' Assessment matching error:', error);
     
-    // Fallback to rule-based recommendations
     return generateFallbackRecommendations(assessmentData);
   }
 }
@@ -326,7 +313,6 @@ async function generateAIRecommendations(assessmentData) {
 function generateFallbackRecommendations(assessmentData) {
   console.log('🔄 Generating fallback recommendations using assessment-driven matching...');
   
-  // Use unbiased matcher even for fallback
   const matches = getTopUniversityMatches(assessmentData, 3);
   
   const fallbackRecommendations = matches.map((match, index) => ({
@@ -368,7 +354,6 @@ function assessRequirementsMet(assessmentData, universityName) {
 }
 
 function assessScholarshipEligibility(assessmentData) {
-  // Check if user needs or qualifies for scholarships
   return assessmentData.financialSituation === 'need_scholarship' || 
          assessmentData.grades?.some(grade => grade.match(/^[A-C]/i));
 }
@@ -453,9 +438,9 @@ async function updateUserProfile(userId, assessmentRecord) {
       { upsert: true }
     );
 
-    console.log(`✅ User profile updated: ${userId}`);
+    console.log(` User profile updated: ${userId}`);
   } catch (error) {
-    console.error('❌ User profile update error:', error);
+    console.error(' User profile update error:', error);
   }
 }
 

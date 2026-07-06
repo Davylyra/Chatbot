@@ -1,4 +1,3 @@
-// Unified notification service for real-time and database notifications
 
 import { getCollection } from '../config/db.js';
 import { ObjectId } from 'mongodb';
@@ -6,13 +5,11 @@ import { buildNotification } from './notificationBuilder.js';
 
 let io = null;
 
-// Set Socket.io instance
 export const setIO = (ioInstance) => {
   io = ioInstance;
   console.log('NotificationService: Socket.io configured');
 };
 
-// Send notification to specific user
 export const sendToUser = async (userId, notification) => {
   try {
     const notificationsCollection = await getCollection('notifications');
@@ -26,7 +23,6 @@ export const sendToUser = async (userId, notification) => {
     const result = await notificationsCollection.insertOne(toInsert);
     const notificationId = result.insertedId.toString();
 
-    // Emit to websocket if available
     if (io) {
       io.to(`user_${userId}`).emit('notification', { 
         ...toInsert, 
@@ -42,13 +38,11 @@ export const sendToUser = async (userId, notification) => {
   }
 };
 
-// Broadcast notification to all users
 export const broadcastNotification = async (notification) => {
   try {
     const notificationsCollection = await getCollection('notifications');
     const usersCollection = await getCollection('users');
 
-    // Emit to all connected users via Socket.io
     if (io) {
       io.emit('broadcast-notification', notification);
       console.log('Broadcast notification emitted to all clients');
@@ -78,7 +72,6 @@ export const broadcastNotification = async (notification) => {
   }
 };
 
-// Send notification with automatic building
 export const sendUserNotification = async (userId, notificationData) => {
   try {
     const notification = buildNotification({
@@ -102,7 +95,6 @@ export const sendUserNotification = async (userId, notificationData) => {
   }
 };
 
-// Send admission update notification
 export const sendAdmissionUpdate = async (universityName, updateType, details = {}) => {
   try {
     const notification = buildNotification({
@@ -137,7 +129,6 @@ export const sendAdmissionUpdate = async (universityName, updateType, details = 
       if (result.success) sentCount++;
     }
 
-    // Broadcast for high priority updates
     if (updateType.includes('List') || updateType.includes('Opening')) {
       await broadcastNotification(notification);
     }
@@ -149,7 +140,6 @@ export const sendAdmissionUpdate = async (universityName, updateType, details = 
   }
 };
 
-// Send payment notification
 export const sendPaymentNotification = async (userId, status, amount, details = {}) => {
   try {
     const statusMessages = {
@@ -188,7 +178,6 @@ export const sendPaymentNotification = async (userId, status, amount, details = 
   }
 };
 
-// Send form notification
 export const sendFormNotification = async (userId, formName, eventType, details = {}) => {
   try {
     const eventMessages = {
@@ -227,7 +216,6 @@ export const sendFormNotification = async (userId, formName, eventType, details 
   }
 };
 
-// Get unread notification count for user
 export const getUnreadCount = async (userId) => {
   try {
     const notificationsCollection = await getCollection('notifications');
@@ -248,7 +236,6 @@ export const getUnreadCount = async (userId) => {
 
 // Note: markAsRead removed - use scheduleNotificationDeletion instead
 
-// Schedule notification for deletion
 export const scheduleNotificationDeletion = async (notificationId, userId, delaySeconds = 2) => {
   try {
     const notificationsCollection = await getCollection('notifications');

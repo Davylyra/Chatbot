@@ -47,7 +47,7 @@ const Transactions: React.FC = () => {
               : 'bg-white/80 border-white/30'
           }`}
         >
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <p className={`text-sm mb-1 transition-colors duration-200 ${
                 theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
@@ -72,7 +72,7 @@ const Transactions: React.FC = () => {
             </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-4 mt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
             <div>
               <span className={`text-2xl font-bold transition-colors duration-200 ${
                 theme === 'dark' ? 'text-white' : 'text-gray-800'

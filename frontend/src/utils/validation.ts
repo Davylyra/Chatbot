@@ -23,17 +23,14 @@ export const validateField = (value: any, rules: ValidationRule, fieldName: stri
     return `${fieldName} is required`;
   }
 
-  // Skip other validations if value is empty and not required
   if (!value || (typeof value === 'string' && !value.trim())) {
     return null;
   }
 
-  // Min length validation
   if (rules.minLength && typeof value === 'string' && value.length < rules.minLength) {
     return `${fieldName} must be at least ${rules.minLength} characters`;
   }
 
-  // Max length validation
   if (rules.maxLength && typeof value === 'string' && value.length > rules.maxLength) {
     return `${fieldName} must be no more than ${rules.maxLength} characters`;
   }
@@ -70,7 +67,6 @@ export const validateForm = (data: Record<string, any>, rules: Record<string, Va
   };
 };
 
-// Common validation rules
 export const validationRules = {
   email: {
     required: true,
@@ -138,7 +134,6 @@ export const validationRules = {
 export const validateGhanaPhone = (phone: string): string | null => {
   const cleanPhone = phone.replace(/\s+/g, '');
   
-  // Ghana phone number patterns
   const patterns = [
     /^\+233[0-9]{9}$/, // +233XXXXXXXXX
     /^0[0-9]{9}$/, // 0XXXXXXXXX
@@ -154,7 +149,6 @@ export const validateGhanaPhone = (phone: string): string | null => {
   return null;
 };
 
-// University form validation
 export const validateUniversityForm = (data: {
   fullName: string;
   email: string;

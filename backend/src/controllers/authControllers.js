@@ -9,7 +9,6 @@ export const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Enhanced validation with specific error messages
     const errors = [];
 
     if (!name || typeof name !== 'string') {
@@ -69,7 +68,6 @@ export const registerUser = async (req, res) => {
     }
     const usersCollection = await getCollection("users");
     
-    // Check if user already exists (case-insensitive)
     const existingUser = await usersCollection.findOne({ 
       email: email.toLowerCase() 
     });
@@ -108,7 +106,6 @@ export const registerUser = async (req, res) => {
   } catch (err) {
     console.error("Registration error:", err);
     
-    // Handle duplicate key errors (race condition)
     if (err.code === 11000) {
       return res.status(409).json({ 
         success: false,
@@ -161,14 +158,12 @@ export const loginUser = async (req, res) => {
 
     if (!user) {
       console.log(`Login failed: User not found for email ${email}`);
-      // Generic message for security (don't reveal if email exists)
       return res.status(401).json({ 
         success: false,
         message: "Invalid email or password. Please check your credentials and try again." 
       });
     }
 
-    // Check if password field exists (handle legacy data)
     if (!user.password) {
       console.error(`User ${user._id} has no password field`);
       return res.status(500).json({ 
@@ -187,7 +182,6 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // Check if account is active (if you add account status later)
     if (user.status === 'suspended' || user.status === 'deleted') {
       return res.status(403).json({ 
         success: false,
@@ -195,7 +189,6 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // Generate token with additional claims
     const token = jwt.sign(
       { 
         id: user._id.toString(),
@@ -206,7 +199,6 @@ export const loginUser = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    // Update last login timestamp
     await usersCollection.updateOne(
       { _id: user._id },
       { 

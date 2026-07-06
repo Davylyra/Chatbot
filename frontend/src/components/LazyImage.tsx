@@ -76,7 +76,6 @@ const LazyImage: React.FC<LazyImageProps> = memo(({
       onError?.();
     };
 
-    // The browser will use cached version if available (from service worker)
     img.src = src;
     
     // Cleanup

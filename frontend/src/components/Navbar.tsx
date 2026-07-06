@@ -71,8 +71,6 @@ const Navbar: React.FC<NavbarProps> = memo(({
 
   const isButtonDisabled = !onMarkAllReadClick || isMarkingAllRead;
 
-  // Scroll event listener for frosted glass effect
-  // Creates seamless glassmorphism effect when user scrolls
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
@@ -152,8 +150,8 @@ const Navbar: React.FC<NavbarProps> = memo(({
             )}
           </div>
 
-                 {/* Center - Section Title (always centered) */}
-                 <div className="absolute left-1/2 transform -translate-x-1/2 px-2 md:px-4 max-w-[50%] md:max-w-[60%] flex justify-center">
+                  {/* Center - Section Title (flexible and centered) */}
+                  <div className="flex-1 flex justify-center px-2 md:px-4 mx-2 overflow-hidden">
                    <motion.div
                      initial={{ scale: 0.9, opacity: 0 }}
                      animate={{ scale: 1, opacity: 1 }}

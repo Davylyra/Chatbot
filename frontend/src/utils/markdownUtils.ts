@@ -30,10 +30,8 @@ export function stripMarkdown(text: string): string {
   // Remove strikethrough (~~text~~ -> text)
   cleaned = cleaned.replace(/~~(.+?)~~/g, '$1');
   
-  // Remove code blocks (```code``` -> code)
   cleaned = cleaned.replace(/```[\s\S]*?```/g, '');
   
-  // Remove inline code (`code` -> code)
   cleaned = cleaned.replace(/`(.+?)`/g, '$1');
   
   // Remove links ([text](url) -> text)
@@ -45,10 +43,8 @@ export function stripMarkdown(text: string): string {
   // Remove blockquotes (> text -> text)
   cleaned = cleaned.replace(/^>\s+/gm, '');
   
-  // Remove horizontal rules (---, ***, ___ -> empty)
   cleaned = cleaned.replace(/^[-*_]{3,}$/gm, '');
   
-  // Remove list markers (- item, * item, 1. item -> item)
   cleaned = cleaned.replace(/^[\s]*[-*+]\s+/gm, '');
   cleaned = cleaned.replace(/^[\s]*\d+\.\s+/gm, '');
   
@@ -65,23 +61,19 @@ export function stripMarkdown(text: string): string {
  * @returns Truncated, markdown-free text
  */
 export function truncateCleanText(text: string, maxLength: number = 100, suffix: string = '...'): string {
-  // First strip markdown to get clean text
   const cleaned = stripMarkdown(text);
   
   if (cleaned.length <= maxLength) {
     return cleaned;
   }
   
-  // Truncate at word boundary
   const truncated = cleaned.substring(0, maxLength);
   const lastSpace = truncated.lastIndexOf(' ');
   
   if (lastSpace > maxLength * 0.8) {
-    // If we have a space near the end, cut there
     return truncated.substring(0, lastSpace) + suffix;
   }
   
-  // Otherwise just truncate and add suffix
   return truncated + suffix;
 }
 

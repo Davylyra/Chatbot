@@ -21,7 +21,6 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 console.log("Auth router file is executing");
 
-// SEND SIGNUP VERIFICATION CODE
 // Step 1: User enters email → we send verification code
 router.post("/send-signup-verification", rateLimiters.authRateLimit, async (req, res) => {
   const { email } = req.body;
@@ -61,7 +60,6 @@ router.post("/send-signup-verification", rateLimiters.authRateLimit, async (req,
     const usersCollection = await getCollection("users");
     const signupVerificationsCollection = await getCollection("signup_verifications");
     
-    // Check if user already exists
     const existingUser = await usersCollection.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(409).json({ 
@@ -71,11 +69,9 @@ router.post("/send-signup-verification", rateLimiters.authRateLimit, async (req,
       });
     }
 
-    // Generate 6-digit verification code
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Store verification request temporarily
     await signupVerificationsCollection.updateOne(
       { email: normalizedEmail },
       { 
@@ -89,10 +85,9 @@ router.post("/send-signup-verification", rateLimiters.authRateLimit, async (req,
       { upsert: true }
     );
 
-    // Send verification code via email
     await sendVerificationEmail(normalizedEmail, verificationCode);
 
-    console.log('✅ Verification code sent:', { email: normalizedEmail });
+    console.log(' Verification code sent:', { email: normalizedEmail });
 
     return res.status(200).json({
       success: true,
@@ -100,7 +95,7 @@ router.post("/send-signup-verification", rateLimiters.authRateLimit, async (req,
       email: normalizedEmail
     });
   } catch (err) {
-    console.error('❌ Send verification error:', err);
+    console.error(' Send verification error:', err);
     return res.status(500).json({ 
       success: false,
       message: "Failed to send verification code",
@@ -139,14 +134,12 @@ router.post("/verify-signup", rateLimiters.authRateLimit, async (req, res) => {
 
   const normalizedEmail = String(email).toLowerCase();
 
-  // Validate name
   if (name.trim().length < 3) {
     errors.push('Name must be at least 3 characters');
   } else if (name.length > 100) {
     errors.push('Name must not exceed 100 characters');
   }
 
-  // Validate email
   if (!validateEmail(normalizedEmail)) {
     errors.push('Invalid email format');
   }
@@ -154,7 +147,6 @@ router.post("/verify-signup", rateLimiters.authRateLimit, async (req, res) => {
     errors.push('Email must end with @gmail.com');
   }
 
-  // Validate password
   const pwdValidation = validatePassword(password);
   if (!pwdValidation.valid) {
     errors.push(...pwdValidation.errors);
@@ -172,7 +164,6 @@ router.post("/verify-signup", rateLimiters.authRateLimit, async (req, res) => {
     const usersCollection = await getCollection("users");
     const signupVerificationsCollection = await getCollection("signup_verifications");
     
-    // Check if user already exists
     const existingUser = await usersCollection.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(409).json({ 
@@ -182,7 +173,6 @@ router.post("/verify-signup", rateLimiters.authRateLimit, async (req, res) => {
       });
     }
 
-    // Retrieve and verify the code
     const verificationRecord = await signupVerificationsCollection.findOne({ 
       email: normalizedEmail 
     });
@@ -215,7 +205,6 @@ router.post("/verify-signup", rateLimiters.authRateLimit, async (req, res) => {
     // Hash password
     const password_hash = await bcrypt.hash(password, 10);
 
-    // Create user with verified status (email verified via code)
     const newUser = {
       name: name.trim(),
       email: normalizedEmail,
@@ -227,10 +216,9 @@ router.post("/verify-signup", rateLimiters.authRateLimit, async (req, res) => {
     
     const result = await usersCollection.insertOne(newUser);
 
-    // Clean up verification record
     await signupVerificationsCollection.deleteOne({ email: normalizedEmail });
 
-    console.log('✅ Account created after verification:', { name, email: normalizedEmail, userId: result.insertedId });
+    console.log(' Account created after verification:', { name, email: normalizedEmail, userId: result.insertedId });
 
     return res.status(201).json({
       success: true,
@@ -238,7 +226,7 @@ router.post("/verify-signup", rateLimiters.authRateLimit, async (req, res) => {
       email: normalizedEmail
     });
   } catch (err) {
-    console.error('❌ Verify signup error:', err);
+    console.error(' Verify signup error:', err);
     return res.status(500).json({ 
       success: false,
       message: "Failed to create account",
@@ -250,7 +238,6 @@ router.post("/verify-signup", rateLimiters.authRateLimit, async (req, res) => {
 
 
 // LEGACY SIGNUP ENDPOINT - NOW USES TWO-STEP VERIFICATION FLOW
-// The old direct signup is deprecated. Use:
 // 1. POST /api/auth/send-signup-verification (send email with code)
 // 2. POST /api/auth/verify-signup (verify code and create account)
 
@@ -265,7 +252,6 @@ router.post("/login", rateLimiters.authRateLimit, validateAuthPayload, async (re
   try {
     const usersCollection = await getCollection("users");
     
-    // Normalize email for lookup
     const normalizedEmail = String(email).toLowerCase();
     const user = await usersCollection.findOne({ email: normalizedEmail });
 
@@ -282,6 +268,10 @@ router.post("/login", rateLimiters.authRateLimit, validateAuthPayload, async (re
       { expiresIn: "7d" }
     );
 
+    const userProfilesCollection = await getCollection("user_profiles");
+    const userProfile = userProfilesCollection ? await userProfilesCollection.findOne({ user_id: user._id }) : null;
+    const assessmentCompleted = userProfile ? (userProfile.assessment_count > 0) : false;
+
     res.status(200).json({
       token,
       user: {
@@ -289,6 +279,7 @@ router.post("/login", rateLimiters.authRateLimit, validateAuthPayload, async (re
         name: user.name,
         email: user.email,
         is_verified: user.is_verified,
+        assessmentCompleted
       },
     });
   } catch (err) {
@@ -300,7 +291,6 @@ router.post("/login", rateLimiters.authRateLimit, validateAuthPayload, async (re
 // GUEST LOGIN (explicit, no token)
 router.post('/guest', rateLimiters.authRateLimit, async (req, res) => {
   try {
-    // Return guest session info - frontend should treat this as guest-only (no token)
     return res.status(200).json({
       guest: true,
       user: {

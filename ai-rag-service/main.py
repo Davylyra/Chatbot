@@ -59,10 +59,8 @@ def sanitize_markdown_urls(text: str) -> str:
         # Find proper link text (if the text is not a URL)
         link_text = text_part
         if url and url in link_text:
-            # Remove URL from link text if it's duplicated there
             link_text = re.sub(r"https?://[^\s\[\]]+", "", text_part).strip()
 
-        # If link text is empty or just the URL, use a generic text
         if not link_text or link_text == url:
             try:
                 domain = url.split("/")[2] if url else "Link"
@@ -109,7 +107,6 @@ def sanitize_markdown_urls(text: str) -> str:
                 if "%F0%9D" in url or "%2D" in url:  # These are typically bad encodings
                     try:
                         decoded = urllib.parse.unquote(url)
-                        # If decoded version contains non-ASCII, this was double-encoded
                         if any(ord(c) > 127 for c in decoded):
                             # Re-encode using proper URL encoding
                             url = urllib.parse.quote(
@@ -121,7 +118,6 @@ def sanitize_markdown_urls(text: str) -> str:
             pass
 
         # 2. Validate URL format
-        # Remove any trailing special characters that shouldn't be in URLs
         url = re.sub(r'[`\'"]*$', "", url)
 
         # 3. Ensure URL has protocol if it's a web URL
@@ -210,7 +206,6 @@ def configure_tesseract_path_if_needed(pytesseract_module) -> None:
     if getattr(pytesseract_module, "pytesseract", None):
         pytesseract_module = pytesseract_module.pytesseract
 
-    # If already set, don't override
     if getattr(pytesseract_module, "tesseract_cmd", None):
         return
 
@@ -685,40 +680,40 @@ async def initialize_services():
     """Initialize all services on startup"""
     global embedding_model, groq_client, db_client, GHANA_UNIVERSITIES_KNOWLEDGE
 
-    print("🚀 Initializing Glinax RAG+CAG Services...")
+    print(" Initializing Glinax RAG+CAG Services...")
 
     try:
         groq_api_key = os.getenv("GROQ_API_KEY")
         if groq_api_key:
             try:
-                groq_client = Groq(api_key=groq_api_key)
-                print("✅ Groq client initialized")
+                groq_client = AsyncGroq(api_key=groq_api_key)
+                print(" Groq client initialized")
             except Exception as groq_error:
-                print(f"⚠️ Groq client initialization failed: {groq_error}")
+                print(f" Groq client initialization failed: {groq_error}")
                 groq_client = None
         else:
-            print("⚠️ GROQ_API_KEY not found, will use fallback responses")
+            print(" GROQ_API_KEY not found, will use fallback responses")
 
         mongodb_uri = os.getenv("MONGODB_URI")
         if mongodb_uri:
             try:
                 db_client = motor.motor_asyncio.AsyncIOMotorClient(mongodb_uri)
                 await db_client.admin.command("ping")
-                print("✅ MongoDB connected successfully")
+                print(" MongoDB connected successfully")
 
                 # Seed + load university knowledge base from MongoDB
                 await seed_and_load_universities()
 
             except Exception as mongo_error:
-                print(f"⚠️ MongoDB connection failed: {mongo_error}")
+                print(f" MongoDB connection failed: {mongo_error}")
                 db_client = None
         else:
-            print("⚠️ MongoDB URI not found — using hardcoded knowledge base")
+            print(" MongoDB URI not found — using hardcoded knowledge base")
 
-        print("🎯 Services initialization complete")
+        print(" Services initialization complete")
 
     except Exception as e:
-        print(f"❌ Critical service initialization error: {e}")
+        print(f" Critical service initialization error: {e}")
         raise
 
 
@@ -738,11 +733,10 @@ async def seed_and_load_universities():
             {"name": name, **data} for name, data in GHANA_UNIVERSITIES_KNOWLEDGE.items()
         ]
         await col.insert_many(docs)
-        print(f"✅ Seeded {len(docs)} universities into MongoDB")
+        print(f" Seeded {len(docs)} universities into MongoDB")
     else:
-        print("✅ Universities collection already seeded; skipping overwrite.")
+        print(" Universities collection already seeded; skipping overwrite.")
 
-    # Load from DB into the in-memory dict so the RAG queries use the DB data directly
     cursor = col.find({})
     loaded = {}
     async for doc in cursor:
@@ -753,7 +747,7 @@ async def seed_and_load_universities():
     
     if loaded:
         GHANA_UNIVERSITIES_KNOWLEDGE = loaded
-        print(f"✅ University knowledge base loaded from MongoDB ({len(loaded)} entries)")
+        print(f" University knowledge base loaded from MongoDB ({len(loaded)} entries)")
 # Shared university name/alias mapping — used by search and fallback functions
 UNI_NAME_VARIATIONS = {
     "university of ghana": "University of Ghana",
@@ -849,7 +843,6 @@ def search_local_knowledge(query: str, university_name: str = None) -> Dict[str,
                 university_name = full_name
                 break
 
-    # If specific university mentioned, prioritize it
     if university_name:
         uni_data = GHANA_UNIVERSITIES_KNOWLEDGE.get(university_name, {})
         if uni_data:
@@ -872,7 +865,6 @@ def search_local_knowledge(query: str, university_name: str = None) -> Dict[str,
                 if any(word in program_text for word in query_lower.split()):
                     relevance += 0.4
 
-        # Check for keyword matches
         text_to_search = f"{uni_name} {json.dumps(uni_data)}".lower()
 
         # High-value keywords
@@ -976,7 +968,7 @@ async def search_web_realtime(query: str) -> Dict[str, Any]:
             )
         return {"results": results, "confidence": 0.75 if results else 0.0}
     except Exception as e:
-        print(f"⚠️ Web search error (continuing with local knowledge): {e}")
+        print(f" Web search error (continuing with local knowledge): {e}")
         return {"results": [], "confidence": 0.0}
 
 
@@ -1038,7 +1030,7 @@ async def search_with_serpapi(query: str, api_key: str) -> Dict[str, Any]:
         return {"results": results, "confidence": 0.8 if results else 0.0}
 
     except Exception as e:
-        print(f"❌ SerpAPI error: {e}")
+        print(f" SerpAPI error: {e}")
         return {"results": [], "confidence": 0.0}
 
 
@@ -1173,7 +1165,7 @@ Respond naturally and helpfully. Answer only what was asked. If this is a recomm
         return sanitize_markdown_urls(raw_response)
 
     except Exception as e:
-        print(f"❌ Groq generation error: {e}")
+        print(f" Groq generation error: {e}")
         return generate_smart_fallback_response(query, context, sources, user_profile)
 
 
@@ -1569,7 +1561,7 @@ async def list_conversations(current=Depends(get_current_user)):
             )
         return {"success": True, "history": items}
     except Exception as e:
-        print(f"❌ Conversations list error: {e}")
+        print(f" Conversations list error: {e}")
         raise HTTPException(
             status_code=500, detail="Failed to fetch conversation history"
         )
@@ -1650,7 +1642,7 @@ async def get_history(user_id: str):
             )
         return {"success": True, "history": items}
     except Exception as e:
-        print(f"❌ History aggregation error: {e}")
+        print(f" History aggregation error: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch history")
 
 
@@ -1687,7 +1679,7 @@ async def get_conversation(conversation_id: str):
                 )
         return {"success": True, "conversation_id": conversation_id, "messages": thread}
     except Exception as e:
-        print(f"❌ Conversation fetch error: {e}")
+        print(f" Conversation fetch error: {e}")
         raise HTTPException(
             status_code=500, detail="Failed to fetch conversation thread"
         )
@@ -1745,7 +1737,6 @@ async def respond_to_query(request: ChatRequest):
         all_sources: List[Dict[str, Any]] = []
         context_parts: List[str] = []
 
-        # Add local sources immediately
         for result in local_results.get("results", []):
             all_sources.append(
                 {
@@ -1766,7 +1757,6 @@ async def respond_to_query(request: ChatRequest):
             combined_context = "\n\n".join(context_parts)
             combined_context = combined_context[:6000]
             final_confidence = local_results.get("confidence", 0.8)
-            # Generate response
             if groq_client and (final_confidence > 0.3 or combined_context):
                 response_text = await generate_response_with_groq(
                     user_message, combined_context, all_sources, user_profile, request.chat_history
@@ -1810,7 +1800,6 @@ async def respond_to_query(request: ChatRequest):
                     user_message, combined_context, all_sources, user_profile
                 )
 
-        # Calculate processing time
         processing_time = (datetime.now() - start_time).total_seconds()
         print(
             f"✅ Response generated in {processing_time:.2f}s with confidence {final_confidence:.2f}"
@@ -1833,7 +1822,7 @@ async def respond_to_query(request: ChatRequest):
                     }
                 )
             except Exception as e:
-                print(f"⚠️ Failed to save to MongoDB: {e}")
+                print(f" Failed to save to MongoDB: {e}")
 
         return ChatResponse(
             success=True,
@@ -1846,7 +1835,7 @@ async def respond_to_query(request: ChatRequest):
         )
 
     except Exception as e:
-        print(f"❌ RAG processing error: {e}")
+        print(f" RAG processing error: {e}")
 
         # Even on error, try to provide a helpful fallback response
         try:
@@ -1869,7 +1858,7 @@ async def respond_to_query(request: ChatRequest):
                 model_used="emergency-fallback",
             )
         except Exception as fallback_error:
-            print(f"❌ Even fallback failed: {fallback_error}")
+            print(f" Even fallback failed: {fallback_error}")
 
             return ChatResponse(
                 success=False,
@@ -1907,10 +1896,9 @@ async def respond_with_files(
                 model_used="hybrid-rag-with-files",
             )
 
-        print(f"📎 Processing message with files: {user_message[:100]}")
-        print(f"📎 File count: {len(files) if files else 0}")
+        print(f" Processing message with files: {user_message[:100]}")
+        print(f" File count: {len(files) if files else 0}")
 
-        # Process uploaded files if any
         file_contents = []
         file_info = []
         extracted_content_parts: List[
@@ -1968,7 +1956,6 @@ async def respond_with_files(
                                 if not extracted_text:
                                     extracted_text = "[No selectable text extracted from PDF. This may be a scanned document or image-based PDF.]"
 
-                                # Store full extracted content for LLM context
                                 extracted_content_parts.append(extracted_text)
 
                                 # Proof-of-life debugging to verify University name capture
@@ -2114,7 +2101,7 @@ Please let me know what specific aspect of this document you'd like me to help y
                         )
 
                     except Exception as file_error:
-                        print(f"⚠️ Error processing file {file.filename}: {file_error}")
+                        print(f" Error processing file {file.filename}: {file_error}")
                         file_contents.append(
                             f"File: {file.filename} - processing error"
                         )
@@ -2159,10 +2146,9 @@ Please let me know what specific aspect of this document you'd like me to help y
             if k not in skip_keys and v:
                 file_user_profile.setdefault(k, v)
 
-        # Process with standard RAG pipeline
         local_results = search_local_knowledge(enhanced_message, university_name)
 
-        print(f"🔍 Local search found {len(local_results['results'])} results")
+        print(f" Local search found {len(local_results['results'])} results")
 
         # Search web for real-time information
         web_results = await search_web_realtime(enhanced_message)
@@ -2172,7 +2158,6 @@ Please let me know what specific aspect of this document you'd like me to help y
         all_sources = []
         context_parts = []
 
-        # Add file sources
         if file_info:
             all_sources.append(
                 {
@@ -2185,7 +2170,6 @@ Please let me know what specific aspect of this document you'd like me to help y
                 f"User uploaded {len(file_info)} files: {', '.join([f['name'] for f in file_info])}"
             )
 
-        # Add local sources
         for result in local_results["results"]:
             all_sources.append(
                 {
@@ -2198,7 +2182,6 @@ Please let me know what specific aspect of this document you'd like me to help y
                 build_university_context(result["source"], result["data"])
             )
 
-        # Add web sources
         for result in web_results["results"]:
             all_sources.append(
                 {
@@ -2217,12 +2200,12 @@ Please let me know what specific aspect of this document you'd like me to help y
             final_confidence = max(final_confidence, 0.8)  # Boost confidence with files
 
         if groq_client and (final_confidence > 0.3 or combined_context):
-            print("🤖 Generating response with Groq LLM (including file context)...")
+            print(" Generating response with Groq LLM (including file context)...")
             response_text = await generate_response_with_groq(
                 enhanced_message, combined_context, all_sources, file_user_profile
             )
         else:
-            print("🧠 Generating smart fallback response (with file acknowledgment)...")
+            print(" Generating smart fallback response (with file acknowledgment)...")
             response_text = generate_smart_fallback_response(
                 enhanced_message, combined_context, all_sources, file_user_profile
             )
@@ -2255,15 +2238,13 @@ Please let me know what specific aspect of this document you'd like me to help y
                 analysis_intro = f"**📝 Document Analysis**\n\nI have processed your text document(s): {file_list}. I can provide guidance based on the content and help with university admission questions."
             else:
                 # Generic file handling
-                analysis_intro = f"**📎 File Analysis Complete**\n\nI have successfully processed {total_files} file(s): {file_list}. I can now provide targeted university admission assistance based on the content."
+                analysis_intro = f"**📎File Analysis Complete**\n\nI have successfully processed {total_files} file(s): {file_list}. I can now provide targeted university admission assistance based on the content."
 
             enhanced_response = f"{analysis_intro}\n\n---\n\n{response_text}\n\n---\n\n**🎯 Specific Recommendations Based on Your Documents:**\n\n"
 
-            # Add smart recommendations based on file content analysis
             if extracted_content:
                 content_lower = extracted_content.lower()
 
-                # Check for specific academic content
                 if any(
                     word in content_lower
                     for word in ["grade", "score", "mark", "point", "aggregate"]
@@ -2273,43 +2254,41 @@ Please let me know what specific aspect of this document you'd like me to help y
                     word in content_lower
                     for word in ["university", "college", "institution"]
                 ):
-                    enhanced_response += "• **University Matching**: Based on your document content, I can suggest specific universities and programs.\n"
+                    enhanced_response += " **University Matching**: Based on your document content, I can suggest specific universities and programs.\n"
                 if any(
                     word in content_lower
                     for word in ["subject", "course", "program", "major"]
                 ):
-                    enhanced_response += "• **Program Guidance**: I can help identify suitable programs based on your subject background.\n"
+                    enhanced_response += "**Program Guidance**: I can help identify suitable programs based on your subject background.\n"
                 if any(
                     word in content_lower
                     for word in ["deadline", "application", "admission"]
                 ):
-                    enhanced_response += "• **Application Timeline**: I can provide current deadlines and application procedures.\n"
+                    enhanced_response += " **Application Timeline**: I can provide current deadlines and application procedures.\n"
 
-            enhanced_response += "• **Scholarship Opportunities**: Explore funding options that match your academic profile.\n"
-            enhanced_response += "• **Career Guidance**: Get insights on job prospects for different programs.\n\n"
+            enhanced_response += "**Scholarship Opportunities**: Explore funding options that match your academic profile.\n"
+            enhanced_response += "**Career Guidance**: Get insights on job prospects for different programs.\n\n"
 
-            enhanced_response += "**💬 Next Steps:**\n"
+            enhanced_response += "** Next Steps:**\n"
             enhanced_response += (
                 "• Ask me specific questions about universities or programs\n"
             )
-            enhanced_response += "• Request detailed admission requirements\n"
+            enhanced_response += "Request detailed admission requirements\n"
             enhanced_response += (
                 "• Inquire about fees, scholarships, or career prospects\n"
             )
-            enhanced_response += "• Get help with application procedures\n\n"
+            enhanced_response += "Get help with application procedures\n\n"
 
             enhanced_response += "What specific aspect of university admissions would you like me to help you with based on your documents?"
 
             response_text = enhanced_response
 
-        # Calculate processing time
         processing_time = (datetime.now() - start_time).total_seconds()
 
         print(
-            f"✅ File response generated in {processing_time:.2f}s with confidence {final_confidence:.2f}"
+            f"File response generated in {processing_time:.2f}s with confidence {final_confidence:.2f}"
         )
 
-        # Save to MongoDB if available (including user_id)
         if db_client:
             try:
                 db = db_client[os.getenv("DB_NAME", "glinax_chatbot_db")]
@@ -2328,7 +2307,7 @@ Please let me know what specific aspect of this document you'd like me to help y
                     }
                 )
             except Exception as e:
-                print(f"⚠️ Failed to save file-response to MongoDB: {e}")
+                print(f" Failed to save file-response to MongoDB: {e}")
 
         return ChatResponse(
             success=True,
@@ -2341,7 +2320,7 @@ Please let me know what specific aspect of this document you'd like me to help y
         )
 
     except Exception as e:
-        print(f"❌ File processing error: {e}")
+        print(f" File processing error: {e}")
 
         return ChatResponse(
             success=True,

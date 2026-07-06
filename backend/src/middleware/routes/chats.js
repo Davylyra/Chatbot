@@ -17,7 +17,6 @@ dotenv.config();
 
 const router = express.Router();
 
-// Multer setup for file uploads
 const upload = multer({ dest: "uploads/" });
 
 // Python RAG endpoint
@@ -25,18 +24,16 @@ const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://127.0.0.1:8000/resp
 
 // 📎 File upload endpoint for chat with attachments - WITH AUTHENTICATION
 router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res) => {
-  // Extract early so we can use them in error fallback
   const { message, conversation_id, university_name } = req.body;
   const userId = req.user?.id || 'demo_user';
 
-  // Allow reuse in catch for fallback saving
   let messagesCollection;
 
   try {
     messagesCollection = await getCollection('messages');
     const files = req.files || [];
 
-    console.log('📎 Processing message with files:', {
+    console.log(' Processing message with files:', {
       message: message?.substring(0, 100),
       fileCount: files.length,
       conversation_id,
@@ -50,7 +47,6 @@ router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res
       });
     }
 
-    // Process uploaded files
     const fileAttachments = files.map(file => ({
       originalName: file.originalname,
       filename: file.filename,
@@ -59,14 +55,12 @@ router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res
       path: file.path
     }));
 
-    // Create message text including file information
     let messageText = message || '';
     if (files.length > 0) {
       const fileInfo = files.map(f => `📎 ${f.originalname} (${(f.size/1024).toFixed(1)}KB)`).join('\n');
       messageText = message ? `${message}\n\n${fileInfo}` : fileInfo;
     }
 
-    // Save user message with attachments to MongoDB (store IDs as strings)
     const userMessage = {
       user_id: userId,
       conversation_id: conversation_id,
@@ -78,9 +72,8 @@ router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res
     };
 
     await messagesCollection.insertOne(userMessage);
-    console.log('✅ Saved user message with files to MongoDB');
+    console.log(' Saved user message with files to MongoDB');
 
-    // Prepare enhanced RAG request with file information
     const ragRequest = {
       message: message || `User sent ${files.length} file(s)`,
       conversation_id: conversation_id,
@@ -95,7 +88,7 @@ router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res
       }
     };
 
-    console.log('🔍 Sending message with files to RAG service...');
+    console.log(' Sending message with files to RAG service...');
 
     // FIXED: Send files to the new RAG service endpoint
     const formData = new FormData();
@@ -111,7 +104,6 @@ router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res
       file_types: files.map(f => f.mimetype)
     }));
 
-    // Add actual file data with proper field name
     files.forEach((file) => {
       formData.append('files', fs.createReadStream(file.path), {
         filename: file.originalname,
@@ -119,9 +111,8 @@ router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res
       });
     });
 
-    console.log('🔍 Sending files to enhanced RAG service endpoint...');
+    console.log(' Sending files to enhanced RAG service endpoint...');
 
-    // Send to the new file-handling endpoint
     const fileEndpoint = AI_SERVICE_URL.replace('/respond', '/respond-with-files');
     console.log('📤 Using file endpoint:', fileEndpoint);
 
@@ -160,18 +151,16 @@ router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res
     };
 
     await messagesCollection.insertOne(aiMessage);
-    console.log('✅ Saved AI response for files to MongoDB');
+    console.log(' Saved AI response for files to MongoDB');
 
-    // Clean up uploaded files
     files.forEach(file => {
       try {
         fs.unlinkSync(file.path);
       } catch (err) {
-        console.warn('⚠️ Could not delete uploaded file:', file.path);
+        console.warn(' Could not delete uploaded file:', file.path);
       }
     });
 
-    // Return enhanced response
     res.json({
       success: true,
       message: ragData.reply || 'Files processed successfully',
@@ -190,12 +179,10 @@ router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res
     });
 
   } catch (error) {
-    console.error("❌ File upload processing error:", error);
+    console.error(" File upload processing error:", error);
 
-    // Provide a graceful fallback so the UI always gets a reply
     const fallbackReply = generateQuickFallback(message || '');
 
-    // Try to persist fallback bot message for continuity
     try {
       if (!messagesCollection) {
         messagesCollection = await getCollection('messages');
@@ -212,9 +199,9 @@ router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res
         fallback_mode: true,
         rag_error: error?.message
       });
-      console.log('✅ Saved fallback AI response for file upload');
+      console.log(' Saved fallback AI response for file upload');
     } catch (dbErr) {
-      console.warn('⚠️ Could not save fallback AI response:', dbErr?.message);
+      console.warn(' Could not save fallback AI response:', dbErr?.message);
     }
 
     res.status(200).json({ 
@@ -231,7 +218,6 @@ router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res
   }
 });
 
-// Demo chat endpoint (no authentication required) - Enhanced with caching and logging
 router.post("/demo", cacheMiddleware, logConversationMiddleware, async (req, res) => {
   try {
     const { message, conversation_id } = req.body;
@@ -245,8 +231,7 @@ router.post("/demo", cacheMiddleware, logConversationMiddleware, async (req, res
       });
     }
 
-    // Send directly to RAG service for demo
-    console.log(`🤖 Sending demo request to: ${AI_SERVICE_URL}`);
+    console.log(` Sending demo request to: ${AI_SERVICE_URL}`);
     
     try {
       const response = await fetch(AI_SERVICE_URL, {
@@ -266,7 +251,7 @@ router.post("/demo", cacheMiddleware, logConversationMiddleware, async (req, res
       });
 
       const data = await response.json();
-      console.log("✅ Demo response received from RAG service");
+      console.log(" Demo response received from RAG service");
 
       res.json({
         success: true,
@@ -278,9 +263,8 @@ router.post("/demo", cacheMiddleware, logConversationMiddleware, async (req, res
       });
 
     } catch (ragError) {
-      console.error("❌ Demo RAG Service Error:", ragError.message);
+      console.error(" Demo RAG Service Error:", ragError.message);
       
-      // Intelligent fallback for demo
       const fallbackReply = generateQuickFallback(message);
       
       res.json({
@@ -293,7 +277,7 @@ router.post("/demo", cacheMiddleware, logConversationMiddleware, async (req, res
     }
 
   } catch (error) {
-    console.error("❌ Demo Chat Error:", error);
+    console.error(" Demo Chat Error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to process your message. Please try again.",
@@ -305,7 +289,6 @@ router.post("/demo", cacheMiddleware, logConversationMiddleware, async (req, res
 function generateQuickFallback(message) {
   const messageLower = message?.toLowerCase() || '';
   
-  // Check for assessment data in message
   if (messageLower.includes('assessment') || messageLower.includes('grades') || messageLower.includes('career goals')) {
     return `**🎯 Assessment Results Analysis**
 
@@ -393,7 +376,7 @@ router.post("/", authMiddleware, async (req, res) => {
 
     res.status(201).json({ conversation });
   } catch (err) {
-    console.error("❌ Error creating conversation:", err);
+    console.error(" Error creating conversation:", err);
     res.status(500).json({ message: "Failed to start new conversation" });
   }
 });
@@ -416,7 +399,6 @@ router.post(
     try {
       const conversationsCollection = await getCollection("conversations");
       
-      // Try to find the conversation
       const convoCheck = await conversationsCollection.findOne({
         _id: new ObjectId(conversation_id),
         user_id: new ObjectId(userId)
@@ -424,7 +406,7 @@ router.post(
       
       
       if (!convoCheck) {
-        console.log("⚠️ WARNING: Chat ID not found in DB, proceeding anyway for demo.");
+        console.log(" WARNING: Chat ID not found in DB, proceeding anyway for demo.");
       }
       // -----------------------------------------------------
 
@@ -442,7 +424,6 @@ router.post(
           body: formData,
         });
 
-        // Clean up uploaded file
         try { fs.unlinkSync(file.path); } catch (e) { console.error("Error deleting file:", e); }
 
       } else {
@@ -456,7 +437,6 @@ router.post(
         });
       }
 
-      // Safely handle text or JSON replies
       const aiResponseText = await aiResponse.text();
       let data;
       try {
@@ -469,7 +449,6 @@ router.post(
 
       const messagesCollection = await getCollection("messages");
       
-      // Save user message
       if (message) {
         await chatsCollection.insertOne({
           user_id: new ObjectId(userId),
@@ -502,7 +481,7 @@ router.post(
       res.json({ reply: aiMessage });
 
     } catch (err) {
-      console.error("❌ Chat error:", err);
+      console.error(" Chat error:", err);
       res.status(500).json({ message: "Server error" });
     }
   }
@@ -532,7 +511,7 @@ router.get("/user/all", authMiddleware, async (req, res) => {
     
     res.json({ conversations: formattedConversations });
   } catch (err) {
-    console.error("❌ Error fetching conversations:", err);
+    console.error(" Error fetching conversations:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -550,7 +529,6 @@ router.get("/history/:conversation_id", authMiddleware, async (req, res) => {
 
     const messagesCollection = await getCollection("messages");
 
-    // Build robust filter that supports string IDs and ObjectId values
     const userIdCandidates = [userId];
     if (/^[a-fA-F0-9]{24}$/.test(userId)) {
       try { userIdCandidates.push(new ObjectId(userId)); } catch (e) {}
@@ -592,7 +570,7 @@ router.get("/history/:conversation_id", authMiddleware, async (req, res) => {
       chats: formattedChats,
     });
   } catch (err) {
-    console.error("❌ Error fetching chat history:", err);
+    console.error(" Error fetching chat history:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -615,21 +593,18 @@ router.post("/save-conversation", async (req, res) => {
     const conversationsCollection = await getCollection("conversations");
     const messagesCollection = await getCollection("messages");
 
-    // Use provided userId or fallback to "demo_user"
     const actualUserId = userId || "demo_user";
 
     // 🏷️ SMART TITLE GENERATION: Generate LLM-powered title from FIRST user message
     let finalTitle = conversation.title || 'Untitled';
     let titleMethod = 'provided';
     
-    // Check if current title is a generic placeholder that should be replaced
     const isGenericTitle = !conversation.title || 
                           conversation.title === 'Untitled' ||
                           conversation.title === 'New Conversation' ||
                           conversation.title === 'Untitled Conversation' ||
                           conversation.title.startsWith('conv_');
     
-    // Generate title only if we have at least one user message and one bot reply
     // AND if the current title is generic or missing
     if (messages.length >= 2 && isGenericTitle) {
       const firstUserMessage = messages.find(m => m.isUser === true || m.sender === 'user');
@@ -650,16 +625,14 @@ router.post("/save-conversation", async (req, res) => {
           
           finalTitle = titleResult.title;
           titleMethod = titleResult.method;
-          console.log(`✅ [SAVE] Generated title: "${finalTitle}" (method: ${titleMethod})`);
+          console.log(` [SAVE] Generated title: "${finalTitle}" (method: ${titleMethod})`);
           console.log(`   └─ Title is brief: ${finalTitle.split(' ').length} words, one sentence: ${!finalTitle.includes('.')}`);
         } catch (titleError) {
-          console.warn('⚠️ [SAVE] Title generation failed, using original title:', titleError.message);
-          // Keep original title on error
+          console.warn(' [SAVE] Title generation failed, using original title:', titleError.message);
         }
       }
     }
 
-    // Create proper conversation document for MongoDB
     const conversationDoc = {
       _id: conversation.id, // Use the conversation ID as-is (string format: conv_TIMESTAMP)
       title: finalTitle,
@@ -675,17 +648,15 @@ router.post("/save-conversation", async (req, res) => {
 
     console.log(`💾 [SAVE] Saving conversation with _id (type: ${typeof conversation.id}): ${conversation.id}`);
 
-    // Save or update conversation
     await conversationsCollection.replaceOne(
       { _id: conversation.id },
       conversationDoc,
       { upsert: true }
     );
 
-    console.log(`✅ [SAVE] Conversation upserted with _id: ${conversation.id}, title: "${finalTitle}"`);
+    console.log(` [SAVE] Conversation upserted with _id: ${conversation.id}, title: "${finalTitle}"`);
 
     // CRITICAL FIX: Delete all existing messages for this conversation BEFORE saving new ones
-    // This prevents duplicate messages when the same conversation is saved multiple times
     console.log(`🧹 [SAVE] Clearing existing messages for conversation ${conversation.id}`);
     const deleteResult = await messagesCollection.deleteMany({
       conversation_id: conversation.id,
@@ -693,7 +664,6 @@ router.post("/save-conversation", async (req, res) => {
     });
     console.log(`🗑️ [SAVE] Deleted ${deleteResult.deletedCount} existing messages`);
 
-    // Save messages to messages collection - now guaranteed to be fresh without duplicates
     const messagePromises = messages.map(async (message, index) => {
       try {
         const messageDoc = {
@@ -705,21 +675,18 @@ router.post("/save-conversation", async (req, res) => {
           sources: message.sources || [],
           confidence: message.confidence || 0,
           user_id: actualUserId,
-          // Add sequence number to maintain order
           sequence: index
         };
 
-        // Insert fresh message (no upsert needed since we deleted all existing ones)
         await messagesCollection.insertOne(messageDoc);
       } catch (msgError) {
-        console.warn(`⚠️ Error saving individual message:`, msgError.message);
-        // Continue with other messages even if one fails
+        console.warn(` Error saving individual message:`, msgError.message);
       }
     });
 
     await Promise.all(messagePromises);
 
-    console.log(`✅ [SAVE] Conversation ${conversation.id} with ${messages.length} messages saved for user ${actualUserId}`);
+    console.log(` [SAVE] Conversation ${conversation.id} with ${messages.length} messages saved for user ${actualUserId}`);
     res.json({ 
       success: true, 
       message: "Conversation saved successfully",
@@ -730,7 +697,7 @@ router.post("/save-conversation", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ Error saving conversation to MongoDB:", error);
+    console.error(" Error saving conversation to MongoDB:", error);
     res.status(500).json({ 
       success: false, 
       message: "Failed to save conversation to MongoDB",
@@ -748,7 +715,6 @@ router.get("/conversations", authMiddleware, async (req, res) => {
     const { limit = 50, skip = 0 } = req.query; // 🚀 PERFORMANCE: Pagination support
     const conversationsCollection = await getCollection("conversations");
 
-    // Prevent browser caching to ensure fresh data is always loaded
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
@@ -756,7 +722,7 @@ router.get("/conversations", authMiddleware, async (req, res) => {
     const parsedLimit = Math.min(parseInt(limit) || 50, 100); // Max 100 conversations
     const parsedSkip = parseInt(skip) || 0;
 
-    console.log(`🔍 [GET] Fetching conversations for user: ${userId} (limit: ${parsedLimit}, skip: ${parsedSkip})`);
+    console.log(` [GET] Fetching conversations for user: ${userId} (limit: ${parsedLimit}, skip: ${parsedSkip})`);
 
     // 🚀 PERFORMANCE: Field projection - only fetch needed fields
     const projection = {
@@ -785,7 +751,6 @@ router.get("/conversations", authMiddleware, async (req, res) => {
       .skip(parsedSkip)
       .toArray();
 
-    // Get total count for pagination metadata
     const totalCount = await conversationsCollection.countDocuments({
       $or: [
         { user_id: userId },
@@ -793,9 +758,8 @@ router.get("/conversations", authMiddleware, async (req, res) => {
       ]
     });
 
-    console.log(`✅ [GET] Retrieved ${conversations.length}/${totalCount} conversations for user ${userId}`);
+    console.log(` [GET] Retrieved ${conversations.length}/${totalCount} conversations for user ${userId}`);
     
-    // If no conversations found for authenticated user, return empty array
     if (conversations.length === 0) {
       return res.json({
         success: true,
@@ -819,7 +783,6 @@ router.get("/conversations", authMiddleware, async (req, res) => {
         timestamp: conv.updated_at?.toISOString() || conv.created_at?.toISOString() || new Date().toISOString(),
         messageCount: conv.message_count || conv.messageCount || 0,
         universityContext: conv.university_context || conv.universityContext || null,
-        // Include both field names for backward compatibility
         last_message: conv.last_message || conv.lastMessage || '',
         message_count: conv.message_count || conv.messageCount || 0,
         university_context: conv.university_context || conv.universityContext || null
@@ -833,7 +796,7 @@ router.get("/conversations", authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ Error fetching conversations:", error);
+    console.error(" Error fetching conversations:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch conversations",
@@ -852,7 +815,7 @@ router.get("/conversations-demo", async (req, res) => {
     const parsedLimit = Math.min(parseInt(limit) || 20, 50);
     const parsedSkip = parseInt(skip) || 0;
     
-    console.log(`🔍 [DEMO] Loading conversations (limit: ${parsedLimit}, skip: ${parsedSkip})`);
+    console.log(` [DEMO] Loading conversations (limit: ${parsedLimit}, skip: ${parsedSkip})`);
     
     // 🚀 PERFORMANCE: Field projection + pagination
     const projection = {
@@ -876,7 +839,7 @@ router.get("/conversations-demo", async (req, res) => {
       .toArray();
 
     const totalCount = await conversationsCollection.countDocuments({});
-    console.log(`✅ Retrieved ${conversations.length}/${totalCount} demo conversations in ${Date.now()}`);
+    console.log(` Retrieved ${conversations.length}/${totalCount} demo conversations in ${Date.now()}`);
     
     res.json({ 
       success: true, 
@@ -897,7 +860,7 @@ router.get("/conversations-demo", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ Error fetching demo conversations:", error);
+    console.error(" Error fetching demo conversations:", error);
     res.status(500).json({ 
       success: false, 
       message: "Failed to fetch conversations" 
@@ -917,7 +880,7 @@ router.get("/conversations-demo/:conversation_id/messages", async (req, res) => 
     const parsedLimit = Math.min(parseInt(limit) || 100, 200);
     const parsedSkip = parseInt(skip) || 0;
     
-    console.log(`🔍 [DEMO] Loading messages for ${conversation_id} (limit: ${parsedLimit}, skip: ${parsedSkip})`);
+    console.log(` [DEMO] Loading messages for ${conversation_id} (limit: ${parsedLimit}, skip: ${parsedSkip})`);
     
     // 🚀 PERFORMANCE: Field projection
     const projection = {
@@ -949,7 +912,7 @@ router.get("/conversations-demo/:conversation_id/messages", async (req, res) => 
       conversation_id: { $in: convIdCandidates }
     });
     
-    console.log(`✅ [DEMO] Retrieved ${messages.length}/${totalCount} messages`);
+    console.log(` [DEMO] Retrieved ${messages.length}/${totalCount} messages`);
     
     res.json({
       success: true,
@@ -975,7 +938,7 @@ router.get("/conversations-demo/:conversation_id/messages", async (req, res) => 
     });
     
   } catch (error) {
-    console.error("❌ [DEMO] Error fetching messages:", error);
+    console.error(" [DEMO] Error fetching messages:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch messages"
@@ -993,7 +956,6 @@ router.get("/conversations/:conversation_id/messages", authMiddleware, async (re
     const userId = req.user.id;
     const messagesCollection = await getCollection("messages");
 
-    // Prevent caching to ensure fresh messages
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
@@ -1001,7 +963,7 @@ router.get("/conversations/:conversation_id/messages", authMiddleware, async (re
     const parsedLimit = Math.min(parseInt(limit) || 100, 200); // Max 200 messages
     const parsedSkip = parseInt(skip) || 0;
 
-    console.log(`🔍 Fetching messages for conversation: ${conversation_id} (user: ${userId}, limit: ${parsedLimit}, skip: ${parsedSkip})`);
+    console.log(` Fetching messages for conversation: ${conversation_id} (user: ${userId}, limit: ${parsedLimit}, skip: ${parsedSkip})`);
 
     // SECURITY FIX: Filter by both conversation_id AND user_id (support string/ObjectId)
     const userIdCandidates2 = [userId];
@@ -1038,20 +1000,18 @@ router.get("/conversations/:conversation_id/messages", authMiddleware, async (re
       .limit(parsedLimit)
       .toArray();
 
-    // Get total count for pagination
     const totalCount = await messagesCollection.countDocuments({
       conversation_id: { $in: convIdCandidates2 },
       user_id: { $in: userIdCandidates2 }
     });
 
-    console.log(`✅ Retrieved ${messages.length}/${totalCount} raw messages for conversation ${conversation_id} (user: ${userId})`);
+    console.log(` Retrieved ${messages.length}/${totalCount} raw messages for conversation ${conversation_id} (user: ${userId})`);
 
     // CRITICAL: Deduplicate messages in case there are database duplicates
     const dedupedMessages = [];
     const seenSignatures = new Set();
     
     for (const msg of messages) {
-      // Create signature for deduplication: conversation_id + is_bot + message + timestamp (to second)
       const timestamp = msg.created_at || msg.timestamp;
       const timestampSec = timestamp ? Math.floor(new Date(timestamp).getTime() / 1000) : 0;
       const signature = `${conversation_id}|${msg.is_bot}|${msg.message}|${timestampSec}`;
@@ -1060,12 +1020,12 @@ router.get("/conversations/:conversation_id/messages", authMiddleware, async (re
         seenSignatures.add(signature);
         dedupedMessages.push(msg);
       } else {
-        console.warn(`⚠️ [DEDUP] Skipping duplicate message: ${msg.message?.substring(0, 50)}...`);
+        console.warn(` [DEDUP] Skipping duplicate message: ${msg.message?.substring(0, 50)}...`);
       }
     }
 
     if (dedupedMessages.length < messages.length) {
-      console.warn(`⚠️ [DEDUP] Removed ${messages.length - dedupedMessages.length} duplicate messages`);
+      console.warn(` [DEDUP] Removed ${messages.length - dedupedMessages.length} duplicate messages`);
     }
 
     res.json({
@@ -1089,7 +1049,7 @@ router.get("/conversations/:conversation_id/messages", authMiddleware, async (re
     });
 
   } catch (error) {
-    console.error("❌ Error fetching messages:", error);
+    console.error(" Error fetching messages:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch messages",
@@ -1107,7 +1067,6 @@ router.delete("/:conversation_id/clear", authMiddleware, async (req, res) => {
     const { conversation_id } = req.params;
     const messagesCollection = await getCollection("messages");
 
-    // Delete messages matching either string or ObjectId ids
     const deleteFilter = { user_id: userId, conversation_id };
     await messagesCollection.deleteMany(deleteFilter);
 
@@ -1116,7 +1075,7 @@ router.delete("/:conversation_id/clear", authMiddleware, async (req, res) => {
       message: "Chat history cleared successfully" 
     });
   } catch (err) {
-    console.error("❌ Error clearing chats:", err);
+    console.error(" Error clearing chats:", err);
     res.status(500).json({ 
       success: false,
       message: "Server error" 
@@ -1135,26 +1094,22 @@ router.delete("/:conversation_id", authMiddleware, async (req, res) => {
     const messagesCollection = await getCollection("messages");
     const conversationsCollection = await getCollection("conversations");
 
-    // Prevent caching of delete operations
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
 
     console.log(`🗑️ [DELETE] Starting deletion of conversation ${conversation_id} for user ${userId}`);
 
-    // Delete all messages in this conversation
     const messagesResult = await messagesCollection.deleteMany({ 
       user_id: userId, 
       conversation_id 
     });
-    console.log(`📝 [DELETE] Deleted ${messagesResult.deletedCount} messages for conversation ${conversation_id}`);
+    console.log(` [DELETE] Deleted ${messagesResult.deletedCount} messages for conversation ${conversation_id}`);
 
-    // Delete the conversation metadata
     // IMPORTANT: Conversations are stored with _id as STRING (e.g., 'conv_1734556789123')
     // NOT as MongoDB ObjectId. Query by string ID directly.
     let conversationResult = { deletedCount: 0 };
     
-    // First try string ID (this should work)
     conversationResult = await conversationsCollection.deleteOne({
       _id: conversation_id,
       user_id: userId
@@ -1172,19 +1127,18 @@ router.delete("/:conversation_id", authMiddleware, async (req, res) => {
         });
         console.log(`💾 [DELETE] Query by ObjectId: ${conversation_id}, deleted: ${conversationResult.deletedCount}`);
       } catch (objectIdError) {
-        console.log(`⚠️ [DELETE] ObjectId conversion failed: ${objectIdError.message}`);
+        console.log(` [DELETE] ObjectId conversion failed: ${objectIdError.message}`);
       }
     }
 
-    // Log final result
     if (conversationResult.deletedCount === 0) {
-      console.warn(`⚠️ [DELETE] WARNING: Conversation ${conversation_id} not found for user ${userId}`);
-      console.warn(`⚠️ [DELETE] This may indicate the conversation was already deleted or doesn't exist`);
+      console.warn(` [DELETE] WARNING: Conversation ${conversation_id} not found for user ${userId}`);
+      console.warn(` [DELETE] This may indicate the conversation was already deleted or doesn't exist`);
     } else {
-      console.log(`✅ [DELETE] Successfully deleted conversation metadata`);
+      console.log(` [DELETE] Successfully deleted conversation metadata`);
     }
 
-    console.log(`✅ [DELETE] COMPLETE: Deleted ${messagesResult.deletedCount} messages and ${conversationResult.deletedCount} conversation records for ${conversation_id}`);
+    console.log(` [DELETE] COMPLETE: Deleted ${messagesResult.deletedCount} messages and ${conversationResult.deletedCount} conversation records for ${conversation_id}`);
 
     res.json({ 
       success: true,
@@ -1193,7 +1147,7 @@ router.delete("/:conversation_id", authMiddleware, async (req, res) => {
       deletedConversation: conversationResult.deletedCount
     });
   } catch (err) {
-    console.error("❌ Error deleting conversation:", err);
+    console.error(" Error deleting conversation:", err);
     res.status(500).json({ 
       success: false,
       message: "Failed to delete conversation" 
@@ -1216,17 +1170,15 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
     console.log(`📨 [CHAT-SEND] User ${userId} sending message (${message?.length || 0} chars) to conversation ${conversation_id}`);
 
     if (!message || !conversation_id) {
-      console.warn(`⚠️ [CHAT-SEND] Missing required fields: message=${!!message}, conversation_id=${!!conversation_id}`);
+      console.warn(` [CHAT-SEND] Missing required fields: message=${!!message}, conversation_id=${!!conversation_id}`);
       return res.status(400).json({ 
         success: false,
         message: "Message and conversation_id are required" 
       });
     }
 
-    // Get MongoDB collections
     const messagesCollection = await getCollection('messages');
 
-    // Save user message (store ids as strings)
     const userMessage = {
       user_id: userId,
       conversation_id: conversation_id,
@@ -1239,13 +1191,11 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
     try {
       await messagesCollection.insertOne(userMessage);
       userMessageSaved = true;
-      console.log(`✅ [CHAT-SEND] User message saved to MongoDB`);
+      console.log(` [CHAT-SEND] User message saved to MongoDB`);
     } catch (dbError) {
-      console.error(`❌ [CHAT-SEND] Failed to save user message:`, dbError);
-      // Continue to try RAG service even if DB save fails
+      console.error(` [CHAT-SEND] Failed to save user message:`, dbError);
     }
 
-    // Prepare RAG request
     const ragRequest = {
       message: message,
       conversation_id: conversation_id,
@@ -1258,7 +1208,7 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
       }
     };
 
-    console.log(`🤖 [CHAT-SEND] Sending to RAG service: ${AI_SERVICE_URL}`);
+    console.log(` [CHAT-SEND] Sending to RAG service: ${AI_SERVICE_URL}`);
 
     // ✅ FIXED: Use AbortController for proper timeout cleanup
     const abortController = new AbortController();
@@ -1269,7 +1219,6 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
 
     let ragData;
     try {
-      // Send to RAG service with abort signal
       const ragResponse = await fetch(AI_SERVICE_URL, {
         method: "POST",
         headers: {
@@ -1280,44 +1229,38 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
         signal: abortController.signal
       });
 
-      // Clear timeout on successful response
       clearTimeout(timeoutId);
 
-      // Check if RAG service is available
       if (!ragResponse.ok) {
         const errorText = await ragResponse.text().catch(() => 'Unknown error');
-        console.error(`❌ [CHAT-SEND] RAG service error: ${ragResponse.status} ${ragResponse.statusText} - ${errorText}`);
+        console.error(` [CHAT-SEND] RAG service error: ${ragResponse.status} ${ragResponse.statusText} - ${errorText}`);
         
-        // Throw to trigger fallback in catch block
         throw new Error(`RAG service returned ${ragResponse.status}: ${errorText}`);
       }
 
       ragData = await ragResponse.json();
-      console.log(`✅ [CHAT-SEND] RAG response received successfully`);
+      console.log(` [CHAT-SEND] RAG response received successfully`);
       console.log(`   └─ Confidence: ${ragData.confidence || 0}`);
       console.log(`   └─ Sources: ${ragData.sources?.length || 0}`);
       console.log(`   └─ Reply length: ${ragData.reply?.length || 0} chars`);
 
     } catch (ragError) {
-      // Clear timeout on error
       clearTimeout(timeoutId);
 
-      // Log detailed error information
       if (ragError.name === 'AbortError') {
         console.error(`⏱️ [CHAT-SEND] RAG service request aborted (timeout)`);
       } else if (ragError.code === 'ECONNREFUSED') {
-        console.error(`❌ [CHAT-SEND] RAG service connection refused - service may be down`);
+        console.error(` [CHAT-SEND] RAG service connection refused - service may be down`);
       } else if (ragError.code === 'ENOTFOUND') {
-        console.error(`❌ [CHAT-SEND] RAG service not found at: ${AI_SERVICE_URL}`);
+        console.error(` [CHAT-SEND] RAG service not found at: ${AI_SERVICE_URL}`);
       } else {
-        console.error(`❌ [CHAT-SEND] RAG service error:`, ragError.message);
+        console.error(` [CHAT-SEND] RAG service error:`, ragError.message);
       }
       
       // ✅ Generate intelligent fallback
       const fallbackMessage = generateContextualFallback(message, university_name);
-      console.log(`⚠️ [CHAT-SEND] Using contextual fallback response`);
+      console.log(` [CHAT-SEND] Using contextual fallback response`);
       
-      // Save fallback response to DB for continuity
       const fallbackAiMessage = {
         user_id: userId,
         conversation_id: conversation_id,
@@ -1333,9 +1276,9 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
 
       try {
         await messagesCollection.insertOne(fallbackAiMessage);
-        console.log(`✅ [CHAT-SEND] Fallback response saved to MongoDB`);
+        console.log(` [CHAT-SEND] Fallback response saved to MongoDB`);
       } catch (dbError) {
-        console.error(`❌ [CHAT-SEND] Failed to save fallback:`, dbError.message);
+        console.error(` [CHAT-SEND] Failed to save fallback:`, dbError.message);
       }
 
       const processingTime = Date.now() - startTime;
@@ -1370,19 +1313,16 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
 
     try {
       await messagesCollection.insertOne(aiMessage);
-      console.log(`✅ [CHAT-SEND] AI response saved to MongoDB`);
+      console.log(` [CHAT-SEND] AI response saved to MongoDB`);
     } catch (dbError) {
-      console.error(`❌ [CHAT-SEND] Failed to save AI response:`, dbError.message);
+      console.error(` [CHAT-SEND] Failed to save AI response:`, dbError.message);
       console.error(`   └─ Database error details:`, dbError);
-      // Continue to return response even if DB save fails
     }
 
     // 🏷️ AUTO-GENERATE TITLE: Generate conversation title from first user message
-    // This happens after the first exchange (user message + bot reply)
     try {
       const conversationsCollection = await getCollection('conversations');
       
-      // Check if this is the first exchange (message count = 2: 1 user + 1 bot)
       const messageCount = await messagesCollection.countDocuments({
         conversation_id: conversation_id,
         user_id: userId
@@ -1390,11 +1330,9 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
 
       console.log(`📊 [TITLE-GEN] Message count for conversation ${conversation_id}: ${messageCount}`);
 
-      // Generate title only after first exchange (2 messages) and if title is not already set
       if (messageCount === 2) {
         console.log(`🏷️ [TITLE-GEN] This is the first exchange! Generating title from first user message...`);
         
-        // Check if conversation already has a custom title
         const conversation = await conversationsCollection.findOne({
           _id: conversation_id,
           user_id: userId
@@ -1408,7 +1346,6 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
         if (!hasCustomTitle) {
           console.log(`🏷️ [TITLE-GEN] No custom title set, generating from first message...`);
           
-          // Generate title asynchronously (non-blocking)
           setImmediate(async () => {
             try {
               const titleResult = await generateTitleWithFallback(
@@ -1418,7 +1355,6 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
                 // Fallback: Extract key phrase from first message
                 () => {
                   const cleanMsg = message.trim();
-                  // Take first sentence or first 50 chars, whichever is shorter
                   const firstSentence = cleanMsg.match(/^[^.!?]+/)?.[0] || cleanMsg;
                   return firstSentence.length > 60 
                     ? firstSentence.substring(0, 60).trim() + '...' 
@@ -1426,7 +1362,6 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
                 }
               );
 
-              // Update conversation with generated title (upsert to create if doesn't exist)
               const updateResult = await conversationsCollection.updateOne(
                 { _id: conversation_id, user_id: userId },
                 { 
@@ -1446,12 +1381,12 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
               );
 
               if (updateResult.upsertedCount > 0) {
-                console.log(`✅ [TITLE-GEN] Created conversation with title: "${titleResult.title}" (method: ${titleResult.method})`);
+                console.log(` [TITLE-GEN] Created conversation with title: "${titleResult.title}" (method: ${titleResult.method})`);
               } else {
-                console.log(`✅ [TITLE-GEN] Updated conversation with title: "${titleResult.title}" (method: ${titleResult.method})`);
+                console.log(` [TITLE-GEN] Updated conversation with title: "${titleResult.title}" (method: ${titleResult.method})`);
               }
             } catch (titleError) {
-              console.error(`❌ [TITLE-GEN] Failed to generate title:`, titleError.message);
+              console.error(` [TITLE-GEN] Failed to generate title:`, titleError.message);
               // Non-critical error, don't fail the request
             }
           });
@@ -1462,13 +1397,13 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
         console.log(`ℹ️ [TITLE-GEN] Not first exchange (count: ${messageCount}), skipping title generation`);
       }
     } catch (titleCheckError) {
-      console.error(`❌ [TITLE-GEN] Error checking for title generation:`, titleCheckError.message);
+      console.error(` [TITLE-GEN] Error checking for title generation:`, titleCheckError.message);
       // Non-critical error, don't fail the request
     }
 
     const processingTime = Date.now() - startTime;
     console.log(`⏱️ [CHAT-SEND] Total processing time: ${processingTime}ms`);
-    console.log(`✅ [CHAT-SEND] Response sent successfully to client`);
+    console.log(` [CHAT-SEND] Response sent successfully to client`);
 
     // ✅ Return successful response
     res.json({
@@ -1484,10 +1419,9 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
 
   } catch (error) {
     const processingTime = Date.now() - startTime;
-    console.error(`❌ [CHAT-SEND] Critical error (after ${processingTime}ms):`, error);
-    console.error(`❌ [CHAT-SEND] Error stack:`, error.stack);
+    console.error(` [CHAT-SEND] Critical error (after ${processingTime}ms):`, error);
+    console.error(` [CHAT-SEND] Error stack:`, error.stack);
     
-    // Return graceful fallback even on critical errors
     const fallbackMessage = generateContextualFallback(
       req.body?.message, 
       req.body?.university_name
@@ -1539,7 +1473,6 @@ router.post("/send-message-demo", async (req, res) => {
       });
     }
 
-    // Prepare RAG request
     const ragRequest = {
       message: message,
       conversation_id: conversation_id,
@@ -1550,7 +1483,6 @@ router.post("/send-message-demo", async (req, res) => {
       }
     };
 
-    // Send to RAG service
     const ragResponse = await fetch(AI_SERVICE_URL, {
       method: "POST",
       headers: {
@@ -1562,10 +1494,8 @@ router.post("/send-message-demo", async (req, res) => {
 
     const ragData = await ragResponse.json();
 
-    // Save messages to MongoDB (store ids as strings)
     const messagesCollection = await getCollection("messages");
 
-    // Save user message
     await messagesCollection.insertOne({
       user_id: userId,
       conversation_id: conversation_id,
@@ -1591,7 +1521,6 @@ router.post("/send-message-demo", async (req, res) => {
     try {
       const conversationsCollection = await getCollection('conversations');
       
-      // Check if this is the first exchange (message count = 2: 1 user + 1 bot)
       const messageCount = await messagesCollection.countDocuments({
         conversation_id: conversation_id,
         user_id: userId
@@ -1602,7 +1531,6 @@ router.post("/send-message-demo", async (req, res) => {
       if (messageCount === 2) {
         console.log(`🏷️ [DEMO-TITLE] First exchange! Generating title...`);
         
-        // Check if conversation already has a custom title
         const convIdCandidates = [conversation_id];
         if (/^[a-fA-F0-9]{24}$/.test(conversation_id)) {
           try { convIdCandidates.push(new ObjectId(conversation_id)); } catch (e) {}
@@ -1620,7 +1548,6 @@ router.post("/send-message-demo", async (req, res) => {
         if (!hasCustomTitle) {
           console.log(`🏷️ [DEMO-TITLE] Generating title from: "${message.substring(0, 50)}..."`);
           
-          // Generate title asynchronously (non-blocking)
           setImmediate(async () => {
             try {
               const titleResult = await generateTitleWithFallback(
@@ -1636,7 +1563,6 @@ router.post("/send-message-demo", async (req, res) => {
                 }
               );
 
-              // Update conversation with generated title (upsert to create if doesn't exist)
               const updateResult = await conversationsCollection.updateOne(
                 { _id: { $in: convIdCandidates } },
                 { 
@@ -1657,12 +1583,12 @@ router.post("/send-message-demo", async (req, res) => {
               );
 
               if (updateResult.upsertedCount > 0) {
-                console.log(`✅ [DEMO-TITLE] Created conversation with title: "${titleResult.title}" (${titleResult.method})`);
+                console.log(` [DEMO-TITLE] Created conversation with title: "${titleResult.title}" (${titleResult.method})`);
               } else {
-                console.log(`✅ [DEMO-TITLE] Updated conversation with title: "${titleResult.title}" (${titleResult.method})`);
+                console.log(` [DEMO-TITLE] Updated conversation with title: "${titleResult.title}" (${titleResult.method})`);
               }
             } catch (titleError) {
-              console.error(`❌ [DEMO-TITLE] Failed:`, titleError.message);
+              console.error(` [DEMO-TITLE] Failed:`, titleError.message);
             }
           });
         } else {
@@ -1672,10 +1598,9 @@ router.post("/send-message-demo", async (req, res) => {
         console.log(`ℹ️ [DEMO-TITLE] Not first exchange (count: ${messageCount})`);
       }
     } catch (titleCheckError) {
-      console.error(`❌ [DEMO-TITLE] Error:`, titleCheckError.message);
+      console.error(` [DEMO-TITLE] Error:`, titleCheckError.message);
     }
 
-    // Return response
     res.json({
       success: true,
       message: ragData.reply,
@@ -1687,7 +1612,7 @@ router.post("/send-message-demo", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ Chat error:", error);
+    console.error(" Chat error:", error);
     res.status(500).json({ 
       success: false,
       message: "I'm having some technical issues right now. Please try again.",
@@ -1697,8 +1622,6 @@ router.post("/send-message-demo", async (req, res) => {
 });
 
 // 🏷️ Generate LLM-powered title for conversation from FIRST user message
-// Called after first exchange (user message + bot reply)
-// Ensures title is brief, concise, and one sentence (max 7 words)
 router.post("/conversations/:id/generate-title", async (req, res) => {
   try {
     const conversationId = req.params.id;
@@ -1707,7 +1630,6 @@ router.post("/conversations/:id/generate-title", async (req, res) => {
     console.log('🏷️ Generating LLM title from FIRST user message for conversation:', conversationId);
     console.log('   └─ First user message:', firstUserMessage?.substring(0, 100));
 
-    // Validate input - FIRST user message is required
     if (!firstUserMessage || firstUserMessage.trim().length < 5) {
       return res.status(400).json({
         success: false,
@@ -1715,8 +1637,6 @@ router.post("/conversations/:id/generate-title", async (req, res) => {
       });
     }
 
-    // Generate title with LLM from FIRST user message (with automatic fallback)
-    // Title will be: brief, concise, one sentence, max 7 words
     const result = await generateTitleWithFallback(
       firstUserMessage,
       firstBotReply,
@@ -1725,9 +1645,8 @@ router.post("/conversations/:id/generate-title", async (req, res) => {
       () => fallbackTitle || firstUserMessage.substring(0, 50).trim()
     );
 
-    console.log('✅ Generated title:', result.title, '(method:', result.method + ')');
+    console.log(' Generated title:', result.title, '(method:', result.method + ')');
 
-    // Update conversation title in database
     const conversationsCollection = await getCollection("conversations");
     await conversationsCollection.updateOne(
       { _id: conversationId },
@@ -1740,7 +1659,7 @@ router.post("/conversations/:id/generate-title", async (req, res) => {
       }
     );
 
-    console.log('✅ Updated conversation title in database');
+    console.log(' Updated conversation title in database');
 
     res.json({
       success: true,
@@ -1749,11 +1668,10 @@ router.post("/conversations/:id/generate-title", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error generating conversation title:', error);
+    console.error(' Error generating conversation title:', error);
     res.status(500).json({
       success: false,
       error: error.message,
-      // Return fallback title if available
       title: req.body.fallbackTitle || 'Untitled Conversation'
     });
   }

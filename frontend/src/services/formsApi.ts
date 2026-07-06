@@ -18,7 +18,6 @@ export interface FormData {
   isAvailable: boolean;
   description: string;
   logo?: string;
-  // Additional dynamic fields
   lastUpdated: string; // ISO timestamp
   applicationPeriod: {
     start: string; // ISO date
@@ -60,18 +59,15 @@ export class FormsApiService {
    */
   static async getForms(): Promise<FormsApiResponse> {
     try {
-      // Try to get from API first
       const response = await ApiService.getUniversities();
       
       if (response.success && response.data) {
-        // Process and validate the data
         const processedForms = this.processFormsData(response.data.map(uni => ({
           ...uni,
           formPrice: uni.formPrice || uni.buyPrice || '0',
           currency: 'GHS'
         })));
         
-        // Cache the data
         this.cacheManager.set(processedForms);
         
         return {
@@ -118,7 +114,6 @@ export class FormsApiService {
    * TODO: Implement when backend API is available
    */
   static async updateFormPrice(_update: FormPriceUpdate): Promise<boolean> {
-    // updateFormPrice not implemented - backend API required
     return false;
   }
 
@@ -127,7 +122,6 @@ export class FormsApiService {
    * TODO: Implement when backend API is available
    */
   static async updateFormDeadline(_update: FormDeadlineUpdate): Promise<boolean> {
-    // updateFormDeadline not implemented - backend API required
     return false;
   }
 
@@ -153,7 +147,6 @@ export class FormsApiService {
     const deadline = new Date(form.deadline);
     const daysUntilDeadline = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     
-    // Determine form status
     let status: FormData['status'] = 'available';
     if (daysUntilDeadline < 0) {
       status = 'expired';
@@ -232,5 +225,4 @@ export class FormsApiService {
   }
 }
 
-// Export for use in other services
 export default FormsApiService;

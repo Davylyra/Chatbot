@@ -49,6 +49,7 @@ const conversationsCache = {
 const ConversationHistory: React.FC = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -319,12 +320,14 @@ const ConversationHistory: React.FC = () => {
     });
   };
 
-  const handleDeleteConversation = async (conversation: Conversation, e: React.MouseEvent) => {
+  const handleDeleteConversation = (conversation: Conversation, e: React.MouseEvent) => {
     e.stopPropagation();
-    
-    if (!window.confirm(`Delete conversation "${conversation.title}"?\n\nThis will permanently delete all ${conversation.messageCount} messages in this conversation. This action cannot be undone.`)) {
-      return;
-    }
+    setConversationToDelete(conversation);
+  };
+
+  const confirmDelete = async () => {
+    if (!conversationToDelete) return;
+    const conversation = conversationToDelete;
 
     const previousConversations = [...conversations];
     const previousSelected = selectedConversation;
@@ -387,6 +390,8 @@ const ConversationHistory: React.FC = () => {
       
       setError('Failed to delete conversation. Please try again.');
       setTimeout(() => setError(null), 3000);
+    } finally {
+      setConversationToDelete(null);
     }
   };
 
@@ -808,6 +813,56 @@ const ConversationHistory: React.FC = () => {
           </div>
         )}
       </div>
+      <AnimatePresence>
+        {conversationToDelete && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className={`w-full max-w-sm rounded-2xl shadow-xl overflow-hidden ${
+                theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+              }`}
+            >
+              <div className="p-5">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 ${
+                  theme === 'dark' ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-600'
+                }`}>
+                  <FiTrash2 className="w-5 h-5" />
+                </div>
+                <h3 className={`text-lg font-bold mb-2 ${
+                  theme === 'dark' ? 'text-white' : 'text-gray-900'
+                }`}>
+                  Delete Conversation?
+                </h3>
+                <p className={`text-sm mb-5 ${
+                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                }`}>
+                  Are you sure you want to delete "{conversationToDelete.title}"? This action cannot be undone.
+                </p>
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => setConversationToDelete(null)}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' 
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    className="px-4 py-2 rounded-lg font-medium bg-red-600 hover:bg-red-700 text-white transition-colors shadow-lg shadow-red-500/30"
+                  >
+                    Delete Permanently
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

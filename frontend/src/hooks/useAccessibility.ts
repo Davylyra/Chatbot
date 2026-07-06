@@ -54,7 +54,6 @@ export const useAccessibility = (options: UseAccessibilityOptions = {}) => {
   // Keyboard shortcuts
   const setupKeyboardShortcuts = useCallback(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Escape key to close modals/dropdowns
       if (e.key === 'Escape') {
         const activeElement = document.activeElement as HTMLElement;
         if (activeElement?.closest('[role="dialog"]') || activeElement?.closest('[role="menu"]')) {
@@ -87,7 +86,6 @@ export const useAccessibility = (options: UseAccessibilityOptions = {}) => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Screen reader announcements
   const announceToScreenReader = useCallback((message: string, priority: 'polite' | 'assertive' = 'polite') => {
     const announcement = document.createElement('div');
     announcement.setAttribute('aria-live', priority);
@@ -102,7 +100,6 @@ export const useAccessibility = (options: UseAccessibilityOptions = {}) => {
     }, 1000);
   }, []);
 
-  // Skip to content link
   const createSkipLink = useCallback(() => {
     const skipLink = document.createElement('a');
     skipLink.href = '#main-content';
@@ -113,7 +110,6 @@ export const useAccessibility = (options: UseAccessibilityOptions = {}) => {
     document.body.insertBefore(skipLink, document.body.firstChild);
   }, []);
 
-  // Setup accessibility features
   useEffect(() => {
     if (enableKeyboardNavigation) {
       const cleanup = setupKeyboardShortcuts();

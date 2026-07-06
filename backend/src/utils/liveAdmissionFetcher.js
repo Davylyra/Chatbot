@@ -25,7 +25,6 @@ export const fetchLiveAdmissionNotifications = async () => {
   const academicYear = `${currentYear}/${currentYear + 1}`;
   
   try {
-    // Try to fetch from various sources with graceful fallbacks
     const fetchPromises = [
       fetchUniversityUpdates(),
       fetchEducationNews(),
@@ -39,27 +38,23 @@ export const fetchLiveAdmissionNotifications = async () => {
         notifications.push(...result.value);
         console.log(`Source ${index + 1} returned ${result.value.length} notifications`);
       } else if (result.status === 'rejected') {
-        console.warn(`⚠️ Source ${index + 1} failed:`, result.reason?.message || 'Unknown error');
+        console.warn(` Source ${index + 1} failed:`, result.reason?.message || 'Unknown error');
       }
     });
     
-    // Return only real notifications - no fake fallbacks
-    // Better to show 0 notifications than fake data
     if (notifications.length === 0) {
       console.log('ℹ️ No real notifications available - returning empty array');
       return [];
     }
 
-    // Deduplicate and sort by priority
     const uniqueNotifications = deduplicateNotifications(notifications);
     const sortedNotifications = sortNotificationsByPriority(uniqueNotifications);
     
-    console.log(`✅ Returning ${sortedNotifications.length} real notifications`);
+    console.log(` Returning ${sortedNotifications.length} real notifications`);
     return sortedNotifications;
     
   } catch (error) {
-    console.error('❌ Error fetching live notifications:', error);
-    // Return empty array on error - no fake fallbacks
+    console.error(' Error fetching live notifications:', error);
     return [];
   }
 };
@@ -71,10 +66,8 @@ export const fetchLiveAdmissionNotifications = async () => {
 async function fetchUniversityUpdates() {
   const timeout = 5000; // 5 second timeout
   
-  // Fetch all universities in parallel for better performance
   const fetchPromises = Object.entries(UNIVERSITY_SOURCES).map(async ([code, uni]) => {
     try {
-      // Attempt to fetch news/admission pages with retry/timeout
       const response = await fetchWithRetry(uni.newsUrl || uni.admissionUrl, {
         headers: { 'User-Agent': DEFAULT_USER_AGENT }
       }, 2, timeout);
@@ -82,12 +75,10 @@ async function fetchUniversityUpdates() {
       if (response && response.ok) {
         const html = await response.text();
         
-        // Parse for admission-related keywords
         const admissionKeywords = ['admission list', 'admission status', 'admissions open', 'application deadline', 'entrance exam', 'matriculation', 'application form', 'online application'];
         
         for (const keyword of admissionKeywords) {
           if (html.toLowerCase().includes(keyword)) {
-            // Create notification with proper schema
             const notification = {
               id: `${code}_live_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
               university: uni.name,
@@ -113,27 +104,24 @@ async function fetchUniversityUpdates() {
               }
             };
             
-            console.log(`✅ Found admission updates for ${uni.name} (keyword: "${keyword}")`);
+            console.log(` Found admission updates for ${uni.name} (keyword: "${keyword}")`);
             return notification; // Return only real updates
           }
         }
       }
       
-      // Skip generic fallback notifications - return null if no real update found
       console.log(`ℹ️ No real updates from ${uni.name}`);
       return null;
       
     } catch (error) {
       // Don't create fallback notifications on error - just log and return null
-      console.log(`⚠️ Could not fetch from ${uni.name}: ${error.message}`);
+      console.log(` Could not fetch from ${uni.name}: ${error.message}`);
       return null;
     }
   });
   
-  // Wait for all fetches to complete
   const results = await Promise.allSettled(fetchPromises);
   
-  // Extract only successful real notifications (filter out nulls and rejected)
   const updates = results
     .filter(r => r.status === 'fulfilled' && r.value !== null)
     .map(r => r.value);
@@ -147,7 +135,6 @@ async function fetchUniversityUpdates() {
  */
 async function fetchEducationNews() {
   const news = [];
-  // This would parse RSS feeds or scrape news sites
   // For now, return empty to avoid blocking
   return news;
 }

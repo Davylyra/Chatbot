@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiSend, FiImage, FiFile, FiCamera, FiShoppingCart, FiX, FiUsers, FiMessageCircle, FiSearch, FiStar } from 'react-icons/fi';
+import { FiSend, FiImage, FiFile, FiCamera, FiShoppingCart, FiX, FiUsers, FiSearch, FiStar } from 'react-icons/fi';
 import ChatBubble from './ChatBubble';
 import AuthenticationModal from './AuthenticationModal';
 import { useAppStore } from '../store';
@@ -76,7 +76,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
   const [error, setError] = useState<string | null>(null);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
-  const [showUniversityModal, setShowUniversityModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -665,7 +664,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
     }
   };
 
-  // handleQuickAction and handleKeyPress removed due to TS6133
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -759,35 +757,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
   const handleBuyForms = () => {
     setShowAttachMenu(false);
     window.location.href = '/forms';
-  };
-
-  const handleViewUniversitySession = () => {
-    setShowAttachMenu(false);
-    setShowUniversityModal(true);
-  };
-
-  const handleUniversitySelect = (university: { name: string; fullName: string; logo?: string }) => {
-    setShowUniversityModal(false);
-    
-    const conversationTitle = 'New Conversation';
-    const newConversationId = stableCreateConversation(conversationTitle);
-    
-    const newConversation = useAppStore.getState().conversations.find(c => c.id === newConversationId);
-    stableSetCurrentConversation(newConversation || null);
-    
-    const { greeting } = getPersonalizedGreeting(user?.name);
-    const guestNote = isGuest ? " (You're in guest mode - some features may be limited)" : "";
-    const welcomeText = `${greeting}! I'm here to help you with ${university.name} admissions and information.${guestNote}`;
-    
-    const welcomeMessage = {
-      id: '1',
-      text: welcomeText,
-      isUser: false,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      conversationId: newConversationId,
-    };
-    
-    stableAddMessage(welcomeMessage);
   };
 
   const handleStartNewConversation = useCallback(() => {
@@ -1222,141 +1191,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(({ universityContext: propUniversit
                     </div>
                     <span className="text-xs font-medium">Buy University Forms</span>
                   </motion.button>
-                </div>
-                
-                {/* View University Session - Full Width */}
-                <motion.button
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  onClick={handleViewUniversitySession}
-                  className={`w-full flex items-center justify-center p-2 rounded-3xl transition-all duration-200 mt-2 ${
-                    theme === 'dark' 
-                      ? 'bg-gray-700/50 hover:bg-gray-700 text-gray-300' 
-                      : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  <div className={`p-1.5 rounded-full mr-2.5 ${
-                    theme === 'dark' ? 'bg-indigo-500/20' : 'bg-indigo-100'
-                  }`}>
-                    <FiUsers className={`w-3.5 h-3.5 ${
-                      theme === 'dark' ? 'text-indigo-400' : 'text-indigo-600'
-                    }`} />
-                  </div>
-                  <span className="text-xs font-medium">View University Session</span>
-                </motion.button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence mode="wait">
-        {showUniversityModal && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              key="university-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowUniversityModal(false)}
-              className={`fixed inset-0 backdrop-blur-sm z-50 ${
-                theme === 'dark' ? 'bg-black/60' : 'bg-black/50'
-              }`}
-            />
-            
-            {/* University Selection Modal */}
-            <motion.div
-              key="university-modal"
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.2 }}
-              className={`fixed inset-x-4 top-1/2 -translate-y-1/2 max-h-[80vh] overflow-y-auto scrollbar-hide rounded-3xl shadow-2xl border z-50 ${
-                theme === 'dark' 
-                  ? 'bg-gray-800 border-gray-700' 
-                  : 'bg-white border-gray-200'
-              }`}
-            >
-              {/* Header */}
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                  <h3 className={`text-xl font-bold transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-white' : 'text-gray-800'
-                  }`}>
-                    Select University
-                  </h3>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowUniversityModal(false)}
-                    className={`p-2 rounded-full transition-colors duration-200 ${
-                      theme === 'dark' 
-                        ? 'bg-gray-700 hover:bg-gray-600' 
-                        : 'bg-gray-100 hover:bg-gray-200'
-                    }`}
-                  >
-                    <FiX className={`w-5 h-5 transition-colors duration-200 ${
-                      theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                    }`} />
-                  </motion.button>
-                </div>
-                <p className={`text-sm mt-2 transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  Choose a university to start a chat session
-                </p>
-              </div>
-              
-              {/* Universities List */}
-              <div className="p-6">
-                <div className="grid grid-cols-1 gap-3">
-                  {[
-                    { name: 'KNUST', fullName: 'Kwame Nkrumah University of Science and Technology' },
-                    { name: 'UG', fullName: 'University of Ghana' },
-                    { name: 'UCC', fullName: 'University of Cape Coast' },
-                    { name: 'UENR', fullName: 'University of Energy and Natural Resources' },
-                    { name: 'UMaT', fullName: 'University of Mines and Technology' },
-                    { name: 'UDS', fullName: 'University for Development Studies' },
-                    { name: 'UEW', fullName: 'University of Education, Winneba' },
-                    { name: 'UPSA', fullName: 'University of Professional Studies' }
-                  ].map((university, index) => (
-                    <motion.button
-                      key={university.name}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleUniversitySelect(university)}
-                      className={`flex items-center space-x-3 p-4 rounded-2xl transition-all duration-200 ${
-                        theme === 'dark' 
-                          ? 'bg-gray-700/50 hover:bg-gray-700 text-gray-300' 
-                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">
-                          {university.name.charAt(0)}
-                        </span>
-                      </div>
-                      <div className="flex-1 text-left">
-                        <h4 className={`font-semibold transition-colors duration-200 ${
-                          theme === 'dark' ? 'text-white' : 'text-gray-800'
-                        }`}>
-                          {university.name}
-                        </h4>
-                        <p className={`text-sm transition-colors duration-200 ${
-                          theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
-                          {university.fullName}
-                        </p>
-                      </div>
-                      <FiMessageCircle className={`w-5 h-5 transition-colors duration-200 ${
-                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                      }`} />
-                    </motion.button>
-                  ))}
                 </div>
               </div>
             </motion.div>

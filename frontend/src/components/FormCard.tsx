@@ -14,7 +14,6 @@ interface FormCardProps {
   isAvailable: boolean;
   onBuyClick: () => void;
   logo?: string;
-  // New dynamic fields
   status?: 'available' | 'expired' | 'not_yet_open' | 'sold_out';
   daysUntilDeadline?: number;
   lastUpdated?: string;
@@ -91,7 +90,7 @@ const FormCard: React.FC<FormCardProps> = memo(({
       </div>
 
       {/* Price and Deadline Info */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div className="flex items-center space-x-2">
           <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-colors duration-200 ${
             theme === 'dark' ? 'bg-yellow-500/20' : 'bg-yellow-100'

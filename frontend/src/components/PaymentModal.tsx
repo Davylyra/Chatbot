@@ -79,12 +79,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         throw new Error(data.message || 'Invalid payment response');
       }
 
-      // Paystack requires user authorization flow; opening the URL triggers the MoMo approval journey.
       if (data.data.authorization_url) {
         window.open(data.data.authorization_url, '_blank', 'noopener,noreferrer');
       }
 
-      // Start verification polling
       startPaymentVerification(data.data.reference);
 
     } catch (err: any) {
@@ -121,8 +119,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         const data = await response.json();
         const paymentStatus = data?.data?.status || data?.status;
 
-        // Some backends return non-200 while transaction is still pending.
-        // Keep polling unless we have a final failure.
         if (!response.ok && paymentStatus === 'failed') {
           throw new Error(data?.message || 'Payment was declined. Please try again.');
         }

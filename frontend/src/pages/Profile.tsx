@@ -62,7 +62,8 @@ const Profile: React.FC = () => {
           updateProfile({
             name: data.user.name,
             email: data.user.email,
-            createdAt: data.user.createdAt
+            createdAt: data.user.createdAt,
+            assessmentCompleted: data.user.stats?.assessmentCount > 0
           });
         }
       } catch (error) {
@@ -115,7 +116,6 @@ const Profile: React.FC = () => {
       newErrors.email = 'Email is invalid';
     }
     
-    // Location is optional, no validation needed
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -249,7 +249,7 @@ const Profile: React.FC = () => {
             <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
               <FiUser className="w-10 h-10 text-white" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               {isEditing ? (
                 <div className="space-y-2">
                   <input
@@ -264,15 +264,15 @@ const Profile: React.FC = () => {
                     placeholder="Enter your name"
                   />
                   {errors.name && (
-                    <p className="text-red-500 text-sm">{errors.name}</p>
+                    <p className="text-red-500 text-sm truncate">{errors.name}</p>
                   )}
                 </div>
               ) : (
-                <h2 className={`text-xl font-bold transition-colors duration-200 ${
+                <h2 className={`text-xl font-bold truncate transition-colors duration-200 ${
                   theme === 'dark' ? 'text-white' : 'text-gray-800'
                 }`}>{user?.name || 'User'}</h2>
               )}
-              <p className={`text-sm transition-colors duration-200 ${
+              <p className={`text-sm truncate transition-colors duration-200 ${
                 theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
               }`}>{user?.email || 'user@example.com'}</p>
             </div>
@@ -583,6 +583,18 @@ const Profile: React.FC = () => {
                     Complete an assessment to see university recommendations
                   </p>
                 )}
+              </div>
+
+              <div className={`mt-6 pt-6 border-t transition-colors duration-200 ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigate('/assessment')}
+                  className="w-full sm:w-auto px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
+                >
+                  <FiEdit3 className="w-4 h-4" />
+                  <span>Edit Assessment</span>
+                </motion.button>
               </div>
             </div>
           )}

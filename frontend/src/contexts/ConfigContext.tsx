@@ -37,7 +37,6 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load configuration';
       setError(errorMessage);
-      // Config loading error - handled gracefully
     } finally {
       setIsLoading(false);
     }
@@ -55,12 +54,10 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
       const updatedConfig = { ...config, ...updates };
       setConfig(updatedConfig);
       
-      // In a real app, you would also update the backend
       // await SmartApiService.updateAppConfig(updates);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update configuration';
       setError(errorMessage);
-      // Config update error - handled gracefully
     }
   };
 

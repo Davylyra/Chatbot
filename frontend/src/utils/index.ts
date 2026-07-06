@@ -185,7 +185,6 @@ export const storage = {
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch {
-      // Failed to save to localStorage - handled gracefully
     }
   },
   
@@ -193,7 +192,6 @@ export const storage = {
     try {
       localStorage.removeItem(key);
     } catch {
-      // Failed to remove from localStorage - handled gracefully
     }
   },
   
@@ -201,7 +199,6 @@ export const storage = {
     try {
       localStorage.clear();
     } catch {
-      // Failed to clear localStorage - handled gracefully
     }
   }
 };

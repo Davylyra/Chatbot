@@ -15,6 +15,7 @@ function isTokenValid(token: string | null): boolean {
 function clearAuthStorage() {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
+  localStorage.removeItem('assessmentCompleted');
 }
 
 interface User {
@@ -23,6 +24,7 @@ interface User {
   email: string;
   is_verified?: boolean;
   createdAt?: string;
+  assessmentCompleted?: boolean;
 }
 
 interface AuthContextType {
@@ -52,7 +54,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
-    // Check token exists AND is not expired before trusting stored user
     if (isTokenValid(token) && storedUser) {
       try {
         return JSON.parse(storedUser);
@@ -72,7 +73,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return null;
   });
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    // Only authenticated if token actually exists AND hasn't expired
     return isTokenValid(localStorage.getItem('token'));
   });
   const [isGuest, setIsGuest] = useState(() => {
