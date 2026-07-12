@@ -690,15 +690,17 @@ async def seed_and_load_universities():
     db = db_client[os.getenv("DB_NAME", "glinax_chatbot_db")]
     col = db["universities_knowledge"]
 
-    # Seed only if collection is empty
-    if await col.count_documents({}) == 0:
-        docs = [
-            {"name": name, **data} for name, data in GHANA_UNIVERSITIES_KNOWLEDGE.items()
-        ]
-        await col.insert_many(docs)
-        print(f" Seeded {len(docs)} universities into MongoDB")
-    else:
-        print(" Universities collection already seeded; skipping overwrite.")
+    # Always wipe and reseed from the current hardcoded knowledge base so that
+    # code updates (new programs, fixed deadlines, etc.) always take effect on
+    # restart. Previously this only seeded when the collection was empty, which
+    # meant stale/incomplete data from an earlier deploy could persist forever
+    # and silently override GHANA_UNIVERSITIES_KNOWLEDGE below.
+    await col.delete_many({})
+    docs = [
+        {"name": name, **data} for name, data in GHANA_UNIVERSITIES_KNOWLEDGE.items()
+    ]
+    await col.insert_many(docs)
+    print(f" Wiped and reseeded {len(docs)} universities into MongoDB")
 
     cursor = col.find({})
     loaded = {}
@@ -1061,6 +1063,10 @@ DOCUMENT ANALYSIS:
 
 Current year: {current_year}"""
 
+        # Fields handled separately (structured sections below), so the
+        # generic profile loop shouldn't also dump their raw Python repr.
+        structured_keys = ("raw_context", "university_matches", "ai_recommendations")
+
         # Build student profile section
         profile_section = ""
         if user_profile:
@@ -1081,19 +1087,65 @@ Current year: {current_year}"""
                 if val:
                     profile_lines.append(f"  - {label}: {val}")
             for key, val in user_profile.items():
-                if key not in field_labels and val and key not in ("raw_context",):
+                if key not in field_labels and val and key not in structured_keys:
                     profile_lines.append(f"  - {key.replace('_', ' ').title()}: {val}")
             if profile_lines:
                 profile_section = (
                     "STUDENT PROFILE:\n" + "\n".join(profile_lines) + "\n\n"
                 )
 
-        user_message = f"""{profile_section}Student's question: {query}
+        # Build pre-computed university matches section. These come from the
+        # student's completed assessment (utils/universityMatcher.js on the
+        # Node side) — a deterministic scorer, not a guess — so they should
+        # anchor any recommendation Groq gives rather than being re-derived
+        # from scratch on every turn.
+        matches_section = ""
+        if user_profile:
+            matches = user_profile.get("university_matches")
+            if isinstance(matches, list) and matches:
+                match_lines = []
+                for m in matches[:5]:
+                    if not isinstance(m, dict):
+                        continue
+                    name = m.get("university_name") or m.get("universityName")
+                    if not name:
+                        continue
+                    score = m.get("match_score", m.get("matchScore"))
+                    programs = m.get("programs_eligible")
+                    if not programs:
+                        raw_programs = m.get("recommendedPrograms") or []
+                        programs = [
+                            p.get("name") for p in raw_programs if isinstance(p, dict) and p.get("name")
+                        ]
+                    programs_str = ", ".join(programs) if programs else ""
+                    reasoning = m.get("reasoning", "")
+
+                    line = f"  - {name}"
+                    if score is not None:
+                        line += f" (match score: {score}/100)"
+                    if programs_str:
+                        line += f"\n    Relevant programmes: {programs_str}"
+                    if reasoning:
+                        line += f"\n    Why this fits: {reasoning}"
+                    match_lines.append(line)
+
+                if match_lines:
+                    matches_section = (
+                        "PRE-COMPUTED UNIVERSITY MATCHES (already scored against this "
+                        "student's profile by our matching system — use these as your "
+                        "primary basis for recommendations rather than re-deriving new "
+                        "ones; you may still mention other universities if the student "
+                        "asks about one by name):\n"
+                        + "\n".join(match_lines)
+                        + "\n\n"
+                    )
+
+        user_message = f"""{profile_section}{matches_section}Student's question: {query}
 
 Available university information:
 {context}
 
-Respond naturally and helpfully. Answer only what was asked. If this is a recommendation request, base it strictly on the student profile above — explain why each recommendation fits their specific subjects, grade, and goals."""
+Respond naturally and helpfully. Answer only what was asked. If this is a recommendation request and pre-computed university matches are provided above, base your recommendation on those matches and their stated reasoning — do not invent a different ranking. Otherwise, base recommendations strictly on the student profile — explain why each recommendation fits their specific subjects, grade, and goals."""
 
         messages_array = [{"role": "system", "content": system_prompt}]
         if chat_history:
@@ -1102,7 +1154,7 @@ Respond naturally and helpfully. Answer only what was asked. If this is a recomm
 
         chat_completion = await groq_client.chat.completions.create(
             messages=messages_array,
-            model="llama-3.1-8b-instant",
+            model=os.getenv("GROQ_MODEL", "openai/gpt-oss-20b"),
             temperature=0.4,
             max_tokens=2048,
         )
@@ -1219,7 +1271,7 @@ def generate_smart_fallback_response(
             "University of Professional Studies",
             "Central University",
             "Academic City University",
-            "University of Mines and Techonology",
+            "University of Mines and Technology",
         ]
 
         shown_count = 0

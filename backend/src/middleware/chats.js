@@ -1119,6 +1119,66 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
 
     const chatHistoryDB = await getCollection('messages');
 
+    // Load recent conversation turns BEFORE inserting the current message,
+    // so chat_history reflects everything that happened prior to this turn.
+    // main.py builds [system, ...chat_history, current user_message] - if we
+    // fetched after inserting, the current message would be duplicated.
+    let chatHistoryForAI = [];
+    try {
+      const userIdCandidatesHist = [userId];
+      if (/^[a-fA-F0-9]{24}$/.test(userId)) {
+        try { userIdCandidatesHist.push(new ObjectId(userId)); } catch (e) {}
+      }
+      const convIdCandidatesHist = [conversation_id];
+      if (/^[a-fA-F0-9]{24}$/.test(conversation_id)) {
+        try { convIdCandidatesHist.push(new ObjectId(conversation_id)); } catch (e) {}
+      }
+
+      const priorMessages = await chatHistoryDB
+        .find({
+          conversation_id: { $in: convIdCandidatesHist },
+          user_id: { $in: userIdCandidatesHist }
+        })
+        .sort({ sequence: -1, created_at: -1 })
+        .limit(20)
+        .toArray();
+
+      chatHistoryForAI = priorMessages
+        .reverse()
+        .map(m => ({ role: m.is_bot ? 'assistant' : 'user', content: m.message || '' }));
+
+      console.log(` [CHAT-SEND] Loaded ${chatHistoryForAI.length} prior messages for context`);
+    } catch (historyError) {
+      console.error(` [CHAT-SEND] Failed to load chat history:`, historyError.message);
+    }
+
+    // Load the user's saved assessment profile + already-computed university
+    // matches (written by assessments.js on submit) so the AI doesn't have to
+    // re-derive recommendations from scratch on every turn.
+    let assessmentContext = {};
+    try {
+      const userProfilesDB = await getCollection('user_profiles');
+      const profileIdCandidates = [userId];
+      if (/^[a-fA-F0-9]{24}$/.test(userId)) {
+        try { profileIdCandidates.push(new ObjectId(userId)); } catch (e) {}
+      }
+
+      const userProfile = await userProfilesDB.findOne({
+        user_id: { $in: profileIdCandidates }
+      });
+
+      if (userProfile) {
+        assessmentContext = {
+          assessment_data: userProfile.preferences || null,
+          university_matches: userProfile.university_matches || null,
+          ai_recommendations: userProfile.ai_recommendations || null
+        };
+        console.log(` [CHAT-SEND] Loaded saved assessment profile for user ${userId}`);
+      }
+    } catch (profileError) {
+      console.error(` [CHAT-SEND] Failed to load assessment profile:`, profileError.message);
+    }
+
     const studentMessage = {
       user_id: userId,
       conversation_id: conversation_id,
@@ -1140,7 +1200,9 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
       message: message,
       conversation_id: conversation_id,
       university_name: university_name || null,
+      chat_history: chatHistoryForAI,
       user_context: {
+        ...assessmentContext,
         ...(user_context || {}),
         user_id: userId,
         preferred_university: university_name,
