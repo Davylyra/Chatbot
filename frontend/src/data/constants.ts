@@ -291,16 +291,16 @@ export const PAYMENT_METHODS = [
     description: 'Pay with MTN Mobile Money',
   },
   {
-    name: 'Vodafone Cash',
+    name: 'Telecel Cash',
     color: 'bg-red-500',
-    code: 'VODAFONE',
-    description: 'Pay with Vodafone Cash',
+    code: 'TELECEL',
+    description: 'Pay with Telecel Cash',
   },
   {
-    name: 'AirtelTigo Money',
+    name: 'AT Money',
     color: 'bg-blue-500',
-    code: 'AIRTELTIGO',
-    description: 'Pay with AirtelTigo Money',
+    code: 'AT_MONEY',
+    description: 'Pay with AT Money',
   },
 ];
 
@@ -316,7 +316,7 @@ export const FAQS: FAQItem[] = [
     id: 'faq-apply',
     question: 'How do I apply for university admission?',
     answer:
-      'Applying for university admission in Ghana involves obtaining a voucher from the university’s portal or designated outlets, then creating an account on the admissions portal with the voucher details. You complete the application form with personal information, academic records, programme choices, and upload required documents such as WASSCE results, birth certificate, passport photos, and ID. Some programmes may demand extra documents, exams, or interviews. After paying the processing fee via mobile money, bank transfer, or online platforms, you submit the application and receive a reference number to track your status. It’s best to apply early, especially for competitive courses, and always check specific programme requirements.',
+      'Applying for university admission in Ghana involves obtaining a voucher, which you can conveniently purchase directly on our app by going to the [BUY_FORM] section on the menu. Once you have the voucher details, create an account on the respective university admissions portal. Complete the application form with personal information, academic records, programme choices, and upload required documents such as WASSCE results, birth certificate, passport photos, and ID. After completing the form, you submit the application and receive a reference number to track your status. It’s best to apply early, especially for competitive courses.',
   },
   {
     id: 'faq-requirements',
