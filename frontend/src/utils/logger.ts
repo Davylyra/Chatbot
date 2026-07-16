@@ -5,7 +5,7 @@
  * In production, all logs are suppressed to improve performance and security.
  */
 
-const isDevelopment = import.meta.env.MODE === 'development';
+const isDevelopment = import.meta.env.MODE === "development";
 
 class Logger {
   /**

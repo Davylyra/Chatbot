@@ -12,43 +12,43 @@
  * @returns Clean text without markdown formatting
  */
 export function stripMarkdown(text: string): string {
-  if (!text) return '';
+  if (!text) return "";
 
   let cleaned = text;
 
   // Remove headers (## Header -> Header)
-  cleaned = cleaned.replace(/^#{1,6}\s+/gm, '');
+  cleaned = cleaned.replace(/^#{1,6}\s+/gm, "");
 
   // Remove bold/italic (**text** or __text__ -> text)
-  cleaned = cleaned.replace(/\*\*(.+?)\*\*/g, '$1');
-  cleaned = cleaned.replace(/__(.+?)__/g, '$1');
+  cleaned = cleaned.replace(/\*\*(.+?)\*\*/g, "$1");
+  cleaned = cleaned.replace(/__(.+?)__/g, "$1");
 
   // Remove italic (*text* or _text_ -> text)
-  cleaned = cleaned.replace(/\*(.+?)\*/g, '$1');
-  cleaned = cleaned.replace(/_(.+?)_/g, '$1');
+  cleaned = cleaned.replace(/\*(.+?)\*/g, "$1");
+  cleaned = cleaned.replace(/_(.+?)_/g, "$1");
 
   // Remove strikethrough (~~text~~ -> text)
-  cleaned = cleaned.replace(/~~(.+?)~~/g, '$1');
+  cleaned = cleaned.replace(/~~(.+?)~~/g, "$1");
 
-  cleaned = cleaned.replace(/```[\s\S]*?```/g, '');
+  cleaned = cleaned.replace(/```[\s\S]*?```/g, "");
 
-  cleaned = cleaned.replace(/`(.+?)`/g, '$1');
+  cleaned = cleaned.replace(/`(.+?)`/g, "$1");
 
   // Remove links ([text](url) -> text)
-  cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+  cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1");
 
   // Remove images (![alt](url) -> alt)
-  cleaned = cleaned.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '$1');
+  cleaned = cleaned.replace(/!\[([^\]]*)\]\([^\)]+\)/g, "$1");
 
   // Remove blockquotes (> text -> text)
-  cleaned = cleaned.replace(/^>\s+/gm, '');
+  cleaned = cleaned.replace(/^>\s+/gm, "");
 
-  cleaned = cleaned.replace(/^[-*_]{3,}$/gm, '');
+  cleaned = cleaned.replace(/^[-*_]{3,}$/gm, "");
 
-  cleaned = cleaned.replace(/^[\s]*[-*+]\s+/gm, '');
-  cleaned = cleaned.replace(/^[\s]*\d+\.\s+/gm, '');
+  cleaned = cleaned.replace(/^[\s]*[-*+]\s+/gm, "");
+  cleaned = cleaned.replace(/^[\s]*\d+\.\s+/gm, "");
 
-  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+  cleaned = cleaned.replace(/\s+/g, " ").trim();
 
   return cleaned;
 }
@@ -63,7 +63,7 @@ export function stripMarkdown(text: string): string {
 export function truncateCleanText(
   text: string,
   maxLength: number = 100,
-  suffix: string = '...'
+  suffix: string = "...",
 ): string {
   const cleaned = stripMarkdown(text);
 
@@ -72,7 +72,7 @@ export function truncateCleanText(
   }
 
   const truncated = cleaned.substring(0, maxLength);
-  const lastSpace = truncated.lastIndexOf(' ');
+  const lastSpace = truncated.lastIndexOf(" ");
 
   if (lastSpace > maxLength * 0.8) {
     return truncated.substring(0, lastSpace) + suffix;
@@ -88,6 +88,9 @@ export function truncateCleanText(
  * @param maxLength - Maximum length of preview (default: 120)
  * @returns Clean, truncated preview text
  */
-export function getMarkdownPreview(markdown: string, maxLength: number = 120): string {
-  return truncateCleanText(markdown, maxLength, '...');
+export function getMarkdownPreview(
+  markdown: string,
+  maxLength: number = 120,
+): string {
+  return truncateCleanText(markdown, maxLength, "...");
 }

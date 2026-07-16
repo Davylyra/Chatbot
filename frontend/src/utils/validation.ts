@@ -20,27 +20,42 @@ export interface ValidationResult {
 export const validateField = (
   value: any,
   rules: ValidationRule,
-  fieldName: string
+  fieldName: string,
 ): string | null => {
   // Required validation
-  if (rules.required && (!value || (typeof value === 'string' && !value.trim()))) {
+  if (
+    rules.required &&
+    (!value || (typeof value === "string" && !value.trim()))
+  ) {
     return `${fieldName} is required`;
   }
 
-  if (!value || (typeof value === 'string' && !value.trim())) {
+  if (!value || (typeof value === "string" && !value.trim())) {
     return null;
   }
 
-  if (rules.minLength && typeof value === 'string' && value.length < rules.minLength) {
+  if (
+    rules.minLength &&
+    typeof value === "string" &&
+    value.length < rules.minLength
+  ) {
     return `${fieldName} must be at least ${rules.minLength} characters`;
   }
 
-  if (rules.maxLength && typeof value === 'string' && value.length > rules.maxLength) {
+  if (
+    rules.maxLength &&
+    typeof value === "string" &&
+    value.length > rules.maxLength
+  ) {
     return `${fieldName} must be no more than ${rules.maxLength} characters`;
   }
 
   // Pattern validation
-  if (rules.pattern && typeof value === 'string' && !rules.pattern.test(value)) {
+  if (
+    rules.pattern &&
+    typeof value === "string" &&
+    !rules.pattern.test(value)
+  ) {
     return `${fieldName} format is invalid`;
   }
 
@@ -54,7 +69,7 @@ export const validateField = (
 
 export const validateForm = (
   data: Record<string, any>,
-  rules: Record<string, ValidationRule>
+  rules: Record<string, ValidationRule>,
 ): ValidationResult => {
   const errors: Record<string, string> = {};
 
@@ -79,11 +94,11 @@ export const validationRules = {
     required: true,
     pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
     custom: (value: string) => {
-      if (!value.includes('@')) {
-        return 'Email must contain @ symbol';
+      if (!value.includes("@")) {
+        return "Email must contain @ symbol";
       }
-      if (!value.includes('.')) {
-        return 'Email must contain a domain';
+      if (!value.includes(".")) {
+        return "Email must contain a domain";
       }
       return null;
     },
@@ -95,13 +110,13 @@ export const validationRules = {
     pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
     custom: (value: string) => {
       if (!/(?=.*[a-z])/.test(value)) {
-        return 'Password must contain at least one lowercase letter';
+        return "Password must contain at least one lowercase letter";
       }
       if (!/(?=.*[A-Z])/.test(value)) {
-        return 'Password must contain at least one uppercase letter';
+        return "Password must contain at least one uppercase letter";
       }
       if (!/(?=.*\d)/.test(value)) {
-        return 'Password must contain at least one number';
+        return "Password must contain at least one number";
       }
       return null;
     },
@@ -111,9 +126,9 @@ export const validationRules = {
     required: true,
     pattern: /^\+?[1-9]\d{1,14}$/,
     custom: (value: string) => {
-      const cleanValue = value.replace(/\s+/g, '');
+      const cleanValue = value.replace(/\s+/g, "");
       if (!/^\+?[1-9]\d{1,14}$/.test(cleanValue)) {
-        return 'Phone number must be valid (e.g., +233123456789)';
+        return "Phone number must be valid (e.g., +233123456789)";
       }
       return null;
     },
@@ -126,7 +141,7 @@ export const validationRules = {
     pattern: /^[a-zA-Z\s]+$/,
     custom: (value: string) => {
       if (!/^[a-zA-Z\s]+$/.test(value)) {
-        return 'Name can only contain letters and spaces';
+        return "Name can only contain letters and spaces";
       }
       return null;
     },
@@ -139,7 +154,7 @@ export const validationRules = {
 
 // Ghana-specific phone number validation
 export const validateGhanaPhone = (phone: string): string | null => {
-  const cleanPhone = phone.replace(/\s+/g, '');
+  const cleanPhone = phone.replace(/\s+/g, "");
 
   const patterns = [
     /^\+233[0-9]{9}$/, // +233XXXXXXXXX
@@ -150,7 +165,7 @@ export const validateGhanaPhone = (phone: string): string | null => {
   const isValid = patterns.some((pattern) => pattern.test(cleanPhone));
 
   if (!isValid) {
-    return 'Please enter a valid Ghana phone number (e.g., +233123456789 or 0123456789)';
+    return "Please enter a valid Ghana phone number (e.g., +233123456789 or 0123456789)";
   }
 
   return null;

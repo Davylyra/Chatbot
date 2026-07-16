@@ -2,37 +2,37 @@ export const getTimeBasedGreeting = (): string => {
   const hour = new Date().getHours();
 
   if (hour >= 5 && hour < 12) {
-    return 'Good morning';
+    return "Good morning";
   } else if (hour >= 12 && hour < 17) {
-    return 'Good afternoon';
+    return "Good afternoon";
   } else if (hour >= 17 && hour < 20) {
-    return 'Good evening';
+    return "Good evening";
   } else {
-    return 'Good night';
+    return "Good night";
   }
 };
 
 export const getPersonalizedGreeting = (
-  userName?: string
+  userName?: string,
 ): {
   greeting: string;
   message: string;
 } => {
   const timeGreeting = getTimeBasedGreeting();
 
-  if (userName && userName !== 'Guest User') {
+  if (userName && userName !== "Guest User") {
     return {
       greeting: `${timeGreeting}, ${userName}`,
       message: getWelcomeBackMessage(userName),
     };
-  } else if (userName === 'Guest User') {
+  } else if (userName === "Guest User") {
     return {
-      greeting: 'Welcome',
+      greeting: "Welcome",
       message: "Let's help you find the perfect university.",
     };
   } else {
     return {
-      greeting: 'Welcome',
+      greeting: "Welcome",
       message: "Let's help you find the perfect university.",
     };
   }
@@ -46,7 +46,7 @@ const getWelcomeBackMessage = (userName: string): string => {
     `Welcome back! How can I assist you with your university search today?`,
   ];
 
-  const hash = userName.split('').reduce((a, b) => {
+  const hash = userName.split("").reduce((a, b) => {
     a = (a << 5) - a + b.charCodeAt(0);
     return a & a;
   }, 0);
@@ -54,7 +54,10 @@ const getWelcomeBackMessage = (userName: string): string => {
   return messages[Math.abs(hash) % messages.length];
 };
 
-export const getContextualGreeting = (userName?: string, lastActivity?: string): string => {
+export const getContextualGreeting = (
+  userName?: string,
+  lastActivity?: string,
+): string => {
   if (!userName) {
     return "Welcome! Let's get started with your university search.";
   }

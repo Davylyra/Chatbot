@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FiMail, FiX, FiCheck, FiRefreshCw } from 'react-icons/fi';
-import { useTheme } from '../contexts/ThemeContext';
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { FiMail, FiX, FiCheck, FiRefreshCw } from "react-icons/fi";
+import { useTheme } from "../contexts/ThemeContext";
 
 interface EmailVerificationModalProps {
   isOpen: boolean;
@@ -19,7 +19,7 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
   onResendCode,
 }) => {
   const { theme } = useTheme();
-  const [verificationCode, setVerificationCode] = useState('');
+  const [verificationCode, setVerificationCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +35,7 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setVerificationCode('');
+      setVerificationCode("");
       setError(null);
       setSuccess(false);
       setTimeLeft(300);
@@ -44,12 +44,12 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
 
   const handleVerifyCode = async () => {
     if (!verificationCode.trim()) {
-      setError('Please enter the verification code');
+      setError("Please enter the verification code");
       return;
     }
 
     if (verificationCode.length !== 6) {
-      setError('Verification code must be 6 digits');
+      setError("Verification code must be 6 digits");
       return;
     }
 
@@ -63,7 +63,7 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
         onClose();
       }, 1500);
     } catch (err: any) {
-      setError(err.message || 'Verification failed. Please try again.');
+      setError(err.message || "Verification failed. Please try again.");
     } finally {
       setIsVerifying(false);
     }
@@ -78,7 +78,7 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
       setTimeLeft(300);
       setError(null);
     } catch {
-      setError('Failed to resend code. Please try again.');
+      setError("Failed to resend code. Please try again.");
     } finally {
       setIsResending(false);
     }
@@ -87,7 +87,7 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   if (!isOpen) return null;
@@ -105,7 +105,7 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className={`max-w-md w-full ${theme === 'dark' ? 'glass-modal-dark' : 'glass-modal'}`}
+          className={`max-w-md w-full ${theme === "dark" ? "glass-modal-dark" : "glass-modal"}`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -113,7 +113,11 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
             <div className="flex items-center space-x-3">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  success ? 'bg-green-500' : theme === 'dark' ? 'bg-blue-500' : 'bg-blue-600'
+                  success
+                    ? "bg-green-500"
+                    : theme === "dark"
+                      ? "bg-blue-500"
+                      : "bg-blue-600"
                 }`}
               >
                 {success ? (
@@ -125,19 +129,19 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
               <div>
                 <h3
                   className={`font-semibold transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-white' : 'text-gray-800'
+                    theme === "dark" ? "text-white" : "text-gray-800"
                   }`}
                 >
-                  {success ? 'Email Verified!' : 'Verify Your Email'}
+                  {success ? "Email Verified!" : "Verify Your Email"}
                 </h3>
                 <p
                   className={`text-sm transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                    theme === "dark" ? "text-gray-400" : "text-gray-500"
                   }`}
                 >
                   {success
-                    ? 'You can now proceed with payment'
-                    : 'Enter the code sent to your email'}
+                    ? "You can now proceed with payment"
+                    : "Enter the code sent to your email"}
                 </p>
               </div>
             </div>
@@ -145,9 +149,9 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
               onClick={onClose}
               aria-label="Close verification modal"
               className={`p-2 rounded-full transition-colors duration-200 ${
-                theme === 'dark'
-                  ? 'hover:bg-white/10 text-gray-400 hover:text-white'
-                  : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
+                theme === "dark"
+                  ? "hover:bg-white/10 text-gray-400 hover:text-white"
+                  : "hover:bg-gray-100 text-gray-500 hover:text-gray-700"
               }`}
             >
               <FiX className="w-5 h-5" />
@@ -161,21 +165,21 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
                 {/* Email Display */}
                 <div
                   className={`p-4 rounded-xl mb-6 ${
-                    theme === 'dark'
-                      ? 'bg-white/5 border border-white/10'
-                      : 'bg-gray-50 border border-gray-200'
+                    theme === "dark"
+                      ? "bg-white/5 border border-white/10"
+                      : "bg-gray-50 border border-gray-200"
                   }`}
                 >
                   <p
                     className={`text-sm transition-colors duration-200 ${
-                      theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                      theme === "dark" ? "text-gray-300" : "text-gray-600"
                     }`}
                   >
                     Verification code sent to:
                   </p>
                   <p
                     className={`font-medium transition-colors duration-200 ${
-                      theme === 'dark' ? 'text-white' : 'text-gray-800'
+                      theme === "dark" ? "text-white" : "text-gray-800"
                     }`}
                   >
                     {userEmail}
@@ -186,7 +190,7 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
                 <div className="mb-6">
                   <label
                     className={`block text-sm font-medium mb-2 transition-colors duration-200 ${
-                      theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                      theme === "dark" ? "text-gray-300" : "text-gray-700"
                     }`}
                   >
                     Enter 6-digit verification code
@@ -195,15 +199,17 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
                     type="text"
                     value={verificationCode}
                     onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      const value = e.target.value
+                        .replace(/\D/g, "")
+                        .slice(0, 6);
                       setVerificationCode(value);
                       setError(null);
                     }}
                     placeholder="123456"
                     className={`w-full px-4 py-3 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      theme === 'dark'
-                        ? 'glass-input-dark text-white placeholder-gray-400'
-                        : 'glass-input text-gray-900 placeholder-gray-500'
+                      theme === "dark"
+                        ? "glass-input-dark text-white placeholder-gray-400"
+                        : "glass-input text-gray-900 placeholder-gray-500"
                     }`}
                     maxLength={6}
                     autoComplete="one-time-code"
@@ -225,7 +231,7 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
                 <div className="flex items-center justify-between mb-6">
                   <p
                     className={`text-sm transition-colors duration-200 ${
-                      theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                      theme === "dark" ? "text-gray-400" : "text-gray-500"
                     }`}
                   >
                     Didn't receive the code?
@@ -235,10 +241,10 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
                     disabled={isResending || timeLeft > 0}
                     className={`text-sm font-medium transition-colors duration-200 ${
                       isResending || timeLeft > 0
-                        ? 'text-gray-400 cursor-not-allowed'
-                        : theme === 'dark'
-                          ? 'text-blue-400 hover:text-blue-300'
-                          : 'text-blue-600 hover:text-blue-700'
+                        ? "text-gray-400 cursor-not-allowed"
+                        : theme === "dark"
+                          ? "text-blue-400 hover:text-blue-300"
+                          : "text-blue-600 hover:text-blue-700"
                     }`}
                   >
                     {isResending ? (
@@ -249,7 +255,7 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
                     ) : timeLeft > 0 ? (
                       `Resend in ${formatTime(timeLeft)}`
                     ) : (
-                      'Resend Code'
+                      "Resend Code"
                     )}
                   </button>
                 </div>
@@ -259,9 +265,9 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
                   <button
                     onClick={onClose}
                     className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
-                      theme === 'dark'
-                        ? 'bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white'
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-800'
+                      theme === "dark"
+                        ? "bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white"
+                        : "bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-800"
                     }`}
                   >
                     Cancel
@@ -271,8 +277,8 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
                     disabled={isVerifying || !verificationCode.trim()}
                     className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
                       isVerifying || !verificationCode.trim()
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-primary-600 hover:bg-primary-700 text-white hover:scale-105'
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-primary-600 hover:bg-primary-700 text-white hover:scale-105"
                     }`}
                   >
                     {isVerifying ? (
@@ -281,7 +287,7 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
                         <span>Verifying...</span>
                       </div>
                     ) : (
-                      'Verify Email'
+                      "Verify Email"
                     )}
                   </button>
                 </div>
@@ -298,14 +304,14 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
                 </div>
                 <h4
                   className={`text-lg font-semibold mb-2 transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-white' : 'text-gray-800'
+                    theme === "dark" ? "text-white" : "text-gray-800"
                   }`}
                 >
                   Email Verified Successfully!
                 </h4>
                 <p
                   className={`text-sm transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                    theme === "dark" ? "text-gray-400" : "text-gray-500"
                   }`}
                 >
                   You can now proceed with your payment

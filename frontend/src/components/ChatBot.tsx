@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useRef, useEffect, memo, useCallback } from "react";
+import { useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   FiSend,
   FiImage,
@@ -11,18 +11,18 @@ import {
   FiUsers,
   FiSearch,
   FiStar,
-} from 'react-icons/fi';
-import ChatBubble from './ChatBubble';
-import AuthenticationModal from './AuthenticationModal';
-import { useAppStore } from '../store';
-import { useTheme } from '../contexts/ThemeContext';
-import { useChat, type EnhancedChatResponse } from '../hooks/useChat';
-import { useAuth } from '../contexts/AuthContext';
-import { getPersonalizedGreeting } from '../utils/greetings';
+} from "react-icons/fi";
+import ChatBubble from "./ChatBubble";
+import AuthenticationModal from "./AuthenticationModal";
+import { useAppStore } from "../store";
+import { useTheme } from "../contexts/ThemeContext";
+import { useChat, type EnhancedChatResponse } from "../hooks/useChat";
+import { useAuth } from "../contexts/AuthContext";
+import { getPersonalizedGreeting } from "../utils/greetings";
 import {
   generateConversationTitle,
   shouldUpdateConversationTitle,
-} from '../utils/conversationTitles';
+} from "../utils/conversationTitles";
 
 interface ChatBotProps {
   universityContext?: {
@@ -72,33 +72,44 @@ const ChatBot: React.FC<ChatBotProps> = memo(
     const { user, isGuest, isAuthenticated } = useAuth();
     const location = useLocation();
 
-    const rawUniversityContext = location.state?.universityContext || propUniversityContext;
-    const rawAssessmentData = location.state?.assessmentData || propAssessmentData;
-    const rawInitialMessage = location.state?.initialMessage || propInitialMessage;
+    const rawUniversityContext =
+      location.state?.universityContext || propUniversityContext;
+    const rawAssessmentData =
+      location.state?.assessmentData || propAssessmentData;
+    const rawInitialMessage =
+      location.state?.initialMessage || propInitialMessage;
     const locationForceNewConversation =
       location.state?.forceNewConversation || forceNewConversation;
 
     const [suppressContext, setSuppressContext] = useState(false);
 
     // Effective context used by this component
-    const universityContext = suppressContext ? undefined : rawUniversityContext;
+    const universityContext = suppressContext
+      ? undefined
+      : rawUniversityContext;
     const assessmentData = suppressContext ? undefined : rawAssessmentData;
     const initialMessage = suppressContext ? undefined : rawInitialMessage;
 
     const stableAddMessage = useCallback(addMessage, [addMessage]);
-    const stableCreateConversation = useCallback(createConversation, [createConversation]);
+    const stableCreateConversation = useCallback(createConversation, [
+      createConversation,
+    ]);
     const stableSetCurrentConversation = useCallback(setCurrentConversation, [
       setCurrentConversation,
     ]);
     const stableSaveCurrentConversation = useCallback(saveCurrentConversation, [
       saveCurrentConversation,
     ]);
-    const stableSendChatMessage = useCallback(sendChatMessage, [sendChatMessage]);
+    const stableSendChatMessage = useCallback(sendChatMessage, [
+      sendChatMessage,
+    ]);
 
-    const [processedMessages, setProcessedMessages] = useState<Set<string>>(new Set());
+    const [processedMessages, setProcessedMessages] = useState<Set<string>>(
+      new Set(),
+    );
     const [isInitialized, setIsInitialized] = useState(false);
 
-    const [inputMessage, setInputMessage] = useState('');
+    const [inputMessage, setInputMessage] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -116,15 +127,15 @@ const ChatBot: React.FC<ChatBotProps> = memo(
         try {
           const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
           if (!API_BASE_URL) {
-            console.error('API_BASE_URL is not configured');
+            console.error("API_BASE_URL is not configured");
             return;
           }
 
-          const conversationTitle = resumeConversationTitle || 'Conversation';
+          const conversationTitle = resumeConversationTitle || "Conversation";
           const resumedConversation = {
             id: resumeConversationId,
             title: conversationTitle,
-            lastMessage: '',
+            lastMessage: "",
             timestamp: new Date().toISOString(),
             messageCount: 0,
             unreadCount: 0,
@@ -138,25 +149,32 @@ const ChatBot: React.FC<ChatBotProps> = memo(
           }
           stableSetCurrentConversation(resumedConversation);
 
-          const headers: HeadersInit = { Accept: 'application/json' };
-          const token = localStorage.getItem('token');
-          if (token) headers['Authorization'] = `Bearer ${token}`;
+          const headers: HeadersInit = { Accept: "application/json" };
+          const token = localStorage.getItem("token");
+          if (token) headers["Authorization"] = `Bearer ${token}`;
           const resp = await fetch(
             `${API_BASE_URL}/chat/conversations/${resumeConversationId}/messages`,
             {
-              method: 'GET',
+              method: "GET",
               headers,
-              credentials: 'include',
-            }
+              credentials: "include",
+            },
           );
           if (!resp.ok) {
-            throw new Error(`Failed to load conversation messages (${resp.status})`);
+            throw new Error(
+              `Failed to load conversation messages (${resp.status})`,
+            );
           }
           const messagesPayload = await resp.json();
-          if (messagesPayload.success && Array.isArray(messagesPayload.messages)) {
+          if (
+            messagesPayload.success &&
+            Array.isArray(messagesPayload.messages)
+          ) {
             const existingMessages = useAppStore
               .getState()
-              .messages.filter((m) => m.conversationId === resumeConversationId);
+              .messages.filter(
+                (m) => m.conversationId === resumeConversationId,
+              );
             const existingIds = new Set(existingMessages.map((m) => m.id));
 
             messagesPayload.messages.forEach((msg: any) => {
@@ -167,7 +185,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
 
               const mapped = {
                 id: messageId,
-                text: msg.text ?? msg.message ?? '',
+                text: msg.text ?? msg.message ?? "",
                 isUser: msg.isUser ?? !msg.is_bot,
                 timestamp: msg.timestamp || new Date().toISOString(),
                 conversationId: msg.conversationId || resumeConversationId,
@@ -179,7 +197,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
           }
           setIsInitialized(true);
         } catch (e) {
-          console.error('Failed to resume conversation:', e);
+          console.error("Failed to resume conversation:", e);
           // Fall back to normal init
         }
       };
@@ -196,11 +214,13 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       }
 
       const { greeting } = getPersonalizedGreeting(user?.name);
-      const guestNote = isGuest ? " (You're in guest mode - some features may be limited)" : '';
+      const guestNote = isGuest
+        ? " (You're in guest mode - some features may be limited)"
+        : "";
 
       if (!currentConversation) {
         // Conversation title
-        const conversationTitle = 'New Conversation';
+        const conversationTitle = "New Conversation";
         const newConversationId = stableCreateConversation(conversationTitle);
 
         const newConversation = useAppStore
@@ -211,7 +231,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
           stableSetCurrentConversation(newConversation);
         }
 
-        let welcomeText = '';
+        let welcomeText = "";
         if (assessmentData) {
           welcomeText = `${greeting}! I can see you've completed your assessment. I'm here to help you understand your results and discuss your university options.${guestNote}`;
         } else if (universityContext) {
@@ -221,10 +241,13 @@ const ChatBot: React.FC<ChatBotProps> = memo(
         }
 
         const welcomeMessage = {
-          id: '1',
+          id: "1",
           text: welcomeText,
           isUser: false,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
           conversationId: newConversationId,
         };
 
@@ -249,12 +272,12 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       if (state.currentConversation) {
         useAppStore.setState((prevState) => ({
           messages: prevState.messages.filter(
-            (msg) => msg.conversationId !== state.currentConversation!.id
+            (msg) => msg.conversationId !== state.currentConversation!.id,
           ),
         }));
       }
 
-      const conversationTitle = 'New Conversation';
+      const conversationTitle = "New Conversation";
       const newConversationId = stableCreateConversation(conversationTitle);
 
       const newConversation = useAppStore
@@ -267,7 +290,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
         stableSetCurrentConversation(newConversation);
       }
 
-      let welcomeText = '';
+      let welcomeText = "";
       if (universityContext) {
         welcomeText = `${greeting}! I'm now focused on ${universityContext.name}. How can I help you with their admissions and information?`;
       } else {
@@ -275,10 +298,13 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       }
 
       const welcomeMessage = {
-        id: '1',
+        id: "1",
         text: welcomeText,
         isUser: false,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
         conversationId: newConversationId,
       };
       stableAddMessage(welcomeMessage);
@@ -299,28 +325,37 @@ const ChatBot: React.FC<ChatBotProps> = memo(
         const isFirstUserMessage =
           useAppStore
             .getState()
-            .messages.filter((m) => m.conversationId === currentConversation.id && m.isUser)
-            .length === 0;
+            .messages.filter(
+              (m) => m.conversationId === currentConversation.id && m.isUser,
+            ).length === 0;
 
         const userMessage = {
           id: `user-${Date.now()}`,
           text: initialMessage,
           isUser: true,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
           conversationId: currentConversation.id,
         };
         stableAddMessage(userMessage);
 
         if (
           isFirstUserMessage &&
-          shouldUpdateConversationTitle(currentConversation.title, initialMessage)
+          shouldUpdateConversationTitle(
+            currentConversation.title,
+            initialMessage,
+          )
         ) {
           const newTitle = generateConversationTitle(
             initialMessage,
             universityContext?.name,
-            assessmentData
+            assessmentData,
           );
-          useAppStore.getState().updateConversation(currentConversation.id, { title: newTitle });
+          useAppStore
+            .getState()
+            .updateConversation(currentConversation.id, { title: newTitle });
         }
 
         handleInitialMessageResponse(initialMessage, currentConversation.id);
@@ -332,7 +367,8 @@ const ChatBot: React.FC<ChatBotProps> = memo(
     useEffect(() => {
       if (!universityContext || !currentConversation || !isInitialized) return;
 
-      const contextChanged = currentConversation.universityContext !== universityContext.name;
+      const contextChanged =
+        currentConversation.universityContext !== universityContext.name;
       if (contextChanged) {
         const updatedConversation = {
           ...currentConversation,
@@ -387,7 +423,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
             message,
             conversationId,
             universityContext?.name,
-            context
+            context,
           );
 
           if (response && response.success && response.message) {
@@ -395,7 +431,10 @@ const ChatBot: React.FC<ChatBotProps> = memo(
               id: `bot-${Date.now()}`,
               text: response.message,
               isUser: false,
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              timestamp: new Date().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
               conversationId: conversationId,
               sources: response.sources || [],
               confidence: response.confidence || 0.0,
@@ -411,7 +450,10 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                 ? `I'm here to help you with ${universityContext.name}! Feel free to ask about their programs, admission requirements, or any other questions.`
                 : `I'm here to help you with university admissions in Ghana. What would you like to know?`,
             isUser: false,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
             conversationId: conversationId,
           };
           stableAddMessage(errorMessage);
@@ -425,7 +467,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
         stableSendChatMessage,
         stableAddMessage,
         currentMessages.length,
-      ]
+      ],
     );
 
     // quickActions removed due to TS6133
@@ -433,9 +475,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(
     const scrollToBottom = useCallback(() => {
       if (messagesEndRef.current) {
         messagesEndRef.current.scrollIntoView({
-          behavior: 'smooth',
-          block: 'end',
-          inline: 'nearest',
+          behavior: "smooth",
+          block: "end",
+          inline: "nearest",
         });
       }
     }, []);
@@ -450,7 +492,8 @@ const ChatBot: React.FC<ChatBotProps> = memo(
     const checkScrollPosition = useCallback(() => {
       if (!messagesContainerRef.current) return;
 
-      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      const { scrollTop, scrollHeight, clientHeight } =
+        messagesContainerRef.current;
       const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
       const isAtBottom = distanceFromBottom < 100; // 100px threshold
 
@@ -463,14 +506,15 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       const container = messagesContainerRef.current;
       if (!container) return;
 
-      container.addEventListener('scroll', checkScrollPosition);
-      return () => container.removeEventListener('scroll', checkScrollPosition);
+      container.addEventListener("scroll", checkScrollPosition);
+      return () => container.removeEventListener("scroll", checkScrollPosition);
     }, [checkScrollPosition]);
 
     // Auto-scroll only when USER messages are added and user is at bottom
     // Bot messages will NOT trigger auto-scroll to respect user's reading position
     useEffect(() => {
-      const hasNewMessages = currentMessages.length > lastMessageCountRef.current;
+      const hasNewMessages =
+        currentMessages.length > lastMessageCountRef.current;
 
       if (hasNewMessages) {
         const latestMessage = currentMessages[currentMessages.length - 1];
@@ -484,10 +528,19 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       }
 
       lastMessageCountRef.current = currentMessages.length;
-    }, [currentMessages.length, isUserAtBottom, scrollToBottom, currentMessages]);
+    }, [
+      currentMessages.length,
+      isUserAtBottom,
+      scrollToBottom,
+      currentMessages,
+    ]);
 
     const handleSendMessage = async () => {
-      if ((!inputMessage.trim() && attachedFiles.length === 0) || !currentConversation) return;
+      if (
+        (!inputMessage.trim() && attachedFiles.length === 0) ||
+        !currentConversation
+      )
+        return;
 
       if (!isAuthenticated && !isGuest && attachedFiles.length > 0) {
         setShowAuthModal(true);
@@ -497,10 +550,11 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       const messageText = inputMessage.trim();
       const filesToSend = [...attachedFiles];
 
-      const isFirstUserMessage = currentMessages.filter((m) => m.isUser).length === 0;
+      const isFirstUserMessage =
+        currentMessages.filter((m) => m.isUser).length === 0;
 
       // Clear input and attachments immediately
-      setInputMessage('');
+      setInputMessage("");
       setAttachedFiles([]);
       setIsTyping(true);
       setError(null);
@@ -509,7 +563,10 @@ const ChatBot: React.FC<ChatBotProps> = memo(
         id: Date.now().toString(),
         text: messageText || `Sent ${filesToSend.length} file(s)`,
         isUser: true,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
         conversationId: currentConversation.id,
         attachments: filesToSend.map((file) => ({
           name: file.name,
@@ -528,9 +585,11 @@ const ChatBot: React.FC<ChatBotProps> = memo(
         const newTitle = generateConversationTitle(
           messageText,
           universityContext?.name,
-          assessmentData
+          assessmentData,
         );
-        useAppStore.getState().updateConversation(currentConversation.id, { title: newTitle });
+        useAppStore
+          .getState()
+          .updateConversation(currentConversation.id, { title: newTitle });
       }
 
       setTimeout(() => scrollToBottom(), 50);
@@ -543,7 +602,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
             messageText,
             filesToSend,
             currentConversation.id,
-            universityContext?.name
+            universityContext?.name,
           );
         } else {
           response = await stableSendChatMessage(
@@ -557,7 +616,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                 timestamp: new Date().toISOString(),
               },
               is_coach_mode: forceCoachMode,
-            }
+            },
           );
         }
 
@@ -566,7 +625,10 @@ const ChatBot: React.FC<ChatBotProps> = memo(
             id: (Date.now() + 1).toString(),
             text: response.message,
             isUser: false,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
             conversationId: currentConversation.id,
             sources: response.sources || [],
             confidence: response.confidence || 0.0,
@@ -577,9 +639,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(
           if (
             response.conversation_title &&
             response.conversation_title !== currentConversation.id &&
-            !response.conversation_title.startsWith('conv_') &&
-            response.conversation_title !== 'New Conversation' &&
-            response.conversation_title !== 'Untitled' &&
+            !response.conversation_title.startsWith("conv_") &&
+            response.conversation_title !== "New Conversation" &&
+            response.conversation_title !== "Untitled" &&
             response.conversation_title.trim().length > 0
           ) {
             useAppStore.getState().updateConversation(currentConversation.id, {
@@ -590,36 +652,46 @@ const ChatBot: React.FC<ChatBotProps> = memo(
           if (isFirstUserMessage && currentMessages.length <= 2) {
             setTimeout(() => {
               stableSaveCurrentConversation().catch((err) => {
-                console.warn('Failed to auto-save for title generation:', err);
+                console.warn("Failed to auto-save for title generation:", err);
               });
             }, 1000);
           }
-        } else if (response && (response as any).error === 'AUTHENTICATION_REQUIRED') {
+        } else if (
+          response &&
+          (response as any).error === "AUTHENTICATION_REQUIRED"
+        ) {
           setShowAuthModal(true);
           setError(null);
         } else if (response && !response.success) {
-          const errorMsg = response.message || 'Unable to get response. Please try again.';
+          const errorMsg =
+            response.message || "Unable to get response. Please try again.";
           setError(errorMsg);
 
           const errorBotMessage = {
             id: (Date.now() + 1).toString(),
             text: errorMsg,
             isUser: false,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
             conversationId: currentConversation.id,
             sources: [],
             confidence: 0.0,
           };
           stableAddMessage(errorBotMessage);
         } else {
-          const fallbackError = 'Unable to get response. Please try again.';
+          const fallbackError = "Unable to get response. Please try again.";
           setError(fallbackError);
 
           const errorBotMessage = {
             id: (Date.now() + 1).toString(),
             text: fallbackError,
             isUser: false,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
             conversationId: currentConversation.id,
             sources: [],
             confidence: 0.0,
@@ -629,10 +701,10 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       } catch (error) {
         const errorMsg =
           filesToSend.length > 0
-            ? 'Failed to send files. Please try again.'
+            ? "Failed to send files. Please try again."
             : error instanceof Error && error.message
               ? error.message
-              : 'Unable to get response. Please try again.';
+              : "Unable to get response. Please try again.";
 
         setError(errorMsg);
 
@@ -640,7 +712,10 @@ const ChatBot: React.FC<ChatBotProps> = memo(
           id: (Date.now() + 1).toString(),
           text: errorMsg,
           isUser: false,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
           conversationId: currentConversation.id,
           sources: [],
           confidence: 0.0,
@@ -655,60 +730,62 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       message: string,
       files: File[],
       conversationId: string,
-      universityName?: string
+      universityName?: string,
     ): Promise<EnhancedChatResponse> => {
       try {
         const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
         if (!API_BASE_URL) {
-          console.error('API_BASE_URL is not configured');
-          throw new Error('API configuration is missing');
+          console.error("API_BASE_URL is not configured");
+          throw new Error("API configuration is missing");
         }
 
         const maxFileSize = 10 * 1024 * 1024;
         const allowedTypes = [
-          'image/jpeg',
-          'image/jpg',
-          'image/png',
-          'image/gif',
-          'image/webp',
-          'application/pdf',
-          'application/msword',
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          'text/plain',
-          'text/csv',
-          'application/vnd.ms-excel',
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "image/gif",
+          "image/webp",
+          "application/pdf",
+          "application/msword",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "text/plain",
+          "text/csv",
+          "application/vnd.ms-excel",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         ];
 
         for (const file of files) {
           if (file.size > maxFileSize) {
-            throw new Error(`File "${file.name}" is too large. Maximum size is 10MB.`);
+            throw new Error(
+              `File "${file.name}" is too large. Maximum size is 10MB.`,
+            );
           }
           if (!allowedTypes.includes(file.type)) {
             throw new Error(
-              `File type "${file.type}" is not supported. Please use images, PDFs, Word documents, Excel files, or text files.`
+              `File type "${file.type}" is not supported. Please use images, PDFs, Word documents, Excel files, or text files.`,
             );
           }
         }
 
         const formData = new FormData();
-        formData.append('message', message || '');
-        formData.append('conversation_id', conversationId);
-        formData.append('university_name', universityName || '');
+        formData.append("message", message || "");
+        formData.append("conversation_id", conversationId);
+        formData.append("university_name", universityName || "");
 
         files.forEach((file) => {
-          formData.append('files', file, file.name);
+          formData.append("files", file, file.name);
         });
 
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         const headers: HeadersInit = {};
 
         if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
+          headers["Authorization"] = `Bearer ${token}`;
         }
 
         const response = await fetch(`${API_BASE_URL}/chat/upload`, {
-          method: 'POST',
+          method: "POST",
           headers,
           body: formData,
         });
@@ -721,30 +798,44 @@ const ChatBot: React.FC<ChatBotProps> = memo(
           } catch {
             errorData = { message: `Server error: ${response.status}` };
           }
-          throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+          throw new Error(
+            errorData.message || `HTTP error! status: ${response.status}`,
+          );
         }
 
         const fileResponsePayload = await response.json();
 
         return {
           success: true,
-          message: fileResponsePayload.reply || fileResponsePayload.message || 'Files processed successfully',
+          message:
+            fileResponsePayload.reply ||
+            fileResponsePayload.message ||
+            "Files processed successfully",
           conversation_title: fileResponsePayload.conversation_title,
           sources: fileResponsePayload.sources || [],
           confidence: fileResponsePayload.confidence || 0.0,
           metadata: fileResponsePayload.metadata || {},
         };
       } catch (error: any) {
-        if (error?.message?.includes('too large')) {
-          throw new Error('One or more files are too large. Please use files under 10MB.');
-        } else if (error?.message?.includes('not supported')) {
+        if (error?.message?.includes("too large")) {
           throw new Error(
-            'Please use supported file types: images, PDFs, Word documents, Excel files, or text files.'
+            "One or more files are too large. Please use files under 10MB.",
           );
-        } else if (error?.message?.includes('Network') || error?.message?.includes('fetch')) {
-          throw new Error('Network error. Please check your connection and try again.');
+        } else if (error?.message?.includes("not supported")) {
+          throw new Error(
+            "Please use supported file types: images, PDFs, Word documents, Excel files, or text files.",
+          );
+        } else if (
+          error?.message?.includes("Network") ||
+          error?.message?.includes("fetch")
+        ) {
+          throw new Error(
+            "Network error. Please check your connection and try again.",
+          );
         } else {
-          throw new Error('Failed to upload files. Please try again or contact support.');
+          throw new Error(
+            "Failed to upload files. Please try again or contact support.",
+          );
         }
       }
     };
@@ -760,15 +851,15 @@ const ChatBot: React.FC<ChatBotProps> = memo(
 
       const validFiles = files.filter((file) => {
         const validTypes = [
-          'application/pdf',
-          'image/jpeg',
-          'image/jpg',
-          'image/png',
-          'image/gif',
-          'image/webp',
-          'text/plain',
-          'application/msword',
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          "application/pdf",
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "image/gif",
+          "image/webp",
+          "text/plain",
+          "application/msword",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         ];
         const maxSize = 10 * 1024 * 1024;
 
@@ -787,7 +878,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       setShowAttachMenu(false);
 
       if (event.target) {
-        event.target.value = '';
+        event.target.value = "";
       }
     };
 
@@ -801,7 +892,13 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       }
 
       const validImages = files.filter((file) => {
-        const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        const validImageTypes = [
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "image/gif",
+          "image/webp",
+        ];
         const maxSize = 10 * 1024 * 1024;
 
         if (!validImageTypes.includes(file.type)) {
@@ -819,21 +916,23 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       setShowAttachMenu(false);
 
       if (event.target) {
-        event.target.value = '';
+        event.target.value = "";
       }
     };
 
     const handleCameraCapture = () => {
       setShowAttachMenu(false);
 
-      const cameraInput = document.createElement('input');
-      cameraInput.type = 'file';
-      cameraInput.accept = 'image/*';
-      cameraInput.capture = 'environment';
-      cameraInput.style.display = 'none';
+      const cameraInput = document.createElement("input");
+      cameraInput.type = "file";
+      cameraInput.accept = "image/*";
+      cameraInput.capture = "environment";
+      cameraInput.style.display = "none";
 
       cameraInput.onchange = (event) => {
-        const files = Array.from((event.target as HTMLInputElement).files || []);
+        const files = Array.from(
+          (event.target as HTMLInputElement).files || [],
+        );
         if (files.length > 0) {
           setAttachedFiles((prev) => [...prev, ...files]);
         }
@@ -850,7 +949,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
 
     const handleBuyForms = () => {
       setShowAttachMenu(false);
-      window.location.href = '/forms';
+      window.location.href = "/forms";
     };
 
     const handleStartNewConversation = useCallback(() => {
@@ -861,7 +960,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       setSuppressContext(true);
 
       setProcessedMessages(new Set());
-      setInputMessage('');
+      setInputMessage("");
       setAttachedFiles([]);
       setError(null);
       setIsTyping(false);
@@ -878,12 +977,17 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       setIsInitialized(true);
 
       const { greeting } = getPersonalizedGreeting(user?.name);
-      const guestNote = isGuest ? " (You're in guest mode - some features may be limited)" : '';
+      const guestNote = isGuest
+        ? " (You're in guest mode - some features may be limited)"
+        : "";
       stableAddMessage({
         id: `welcome-${Date.now()}`,
         text: `${greeting}! This is a new chat. Ask me anything about Ghanaian universities.${guestNote}`,
         isUser: false,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
         conversationId: newConversationId,
       });
     }, [
@@ -898,8 +1002,8 @@ const ChatBot: React.FC<ChatBotProps> = memo(
 
     useEffect(() => {
       const handleEvent = () => handleStartNewConversation();
-      window.addEventListener('triggerNewChat', handleEvent);
-      return () => window.removeEventListener('triggerNewChat', handleEvent);
+      window.addEventListener("triggerNewChat", handleEvent);
+      return () => window.removeEventListener("triggerNewChat", handleEvent);
     }, [handleStartNewConversation]);
 
     return (
@@ -908,7 +1012,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(
         {currentMessages.length > 1 && (
           <div
             className={`p-4 border-b transition-colors duration-200 ${
-              theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
+              theme === "dark"
+                ? "border-gray-700 bg-gray-800"
+                : "border-gray-200 bg-white"
             }`}
           >
             <div className="flex items-center justify-between">
@@ -916,10 +1022,12 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span
                   className={`text-sm font-medium transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                    theme === "dark" ? "text-gray-300" : "text-gray-700"
                   }`}
                 >
-                  {universityContext ? `${universityContext.name} Chat` : 'Active Chat'}
+                  {universityContext
+                    ? `${universityContext.name} Chat`
+                    : "Active Chat"}
                 </span>
               </div>
               <motion.button
@@ -927,9 +1035,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                 whileTap={{ scale: 0.95 }}
                 onClick={handleStartNewConversation}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  theme === 'dark'
-                    ? 'bg-primary-600 hover:bg-primary-700 text-white'
-                    : 'bg-primary-500 hover:bg-primary-600 text-white'
+                  theme === "dark"
+                    ? "bg-primary-600 hover:bg-primary-700 text-white"
+                    : "bg-primary-500 hover:bg-primary-600 text-white"
                 }`}
                 title="Save current chat and start new conversation"
               >
@@ -947,8 +1055,10 @@ const ChatBot: React.FC<ChatBotProps> = memo(
             {currentMessages.length <= 1 ? (
               <div className="flex flex-col items-center justify-center text-center w-full min-h-[60vh]">
                 <h1 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900 dark:text-white">
-                  Thinking about your future?,{' '}
-                  <span className="text-blue-500">{user?.name?.split(' ')[0] || 'Guest'}</span>
+                  Thinking about your future?,{" "}
+                  <span className="text-blue-500">
+                    {user?.name?.split(" ")[0] || "Guest"}
+                  </span>
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400 mb-12 text-lg">
                   Ask me anything about universities and admissions.
@@ -958,7 +1068,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                   {/* Explore Programs */}
                   <button
                     onClick={() => {
-                      setInputMessage('I want to explore university programs');
+                      setInputMessage("I want to explore university programs");
                       handleSendMessage();
                     }}
                     className="flex flex-col items-center p-6 bg-white dark:bg-gray-800/40 hover:bg-gray-50 dark:hover:bg-gray-800/80 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm dark:shadow-none transition-all duration-200"
@@ -973,7 +1083,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                   {/* Admission Requirements */}
                   <button
                     onClick={() => {
-                      setInputMessage('What are the admission requirements?');
+                      setInputMessage("What are the admission requirements?");
                       handleSendMessage();
                     }}
                     className="flex flex-col items-center p-6 bg-white dark:bg-gray-800/40 hover:bg-gray-50 dark:hover:bg-gray-800/80 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm dark:shadow-none transition-all duration-200"
@@ -988,7 +1098,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                   {/* Compare Universities */}
                   <button
                     onClick={() => {
-                      setInputMessage('Compare KNUST and UG');
+                      setInputMessage("Compare KNUST and UG");
                       handleSendMessage();
                     }}
                     className="flex flex-col items-center p-6 bg-white dark:bg-gray-800/40 hover:bg-gray-50 dark:hover:bg-gray-800/80 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm dark:shadow-none transition-all duration-200"
@@ -1004,7 +1114,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                   <button
                     onClick={() => {
                       setInputMessage(
-                        "I am confused about my career path and need help finding out what I'm good at."
+                        "I am confused about my career path and need help finding out what I'm good at.",
                       );
                       handleSendMessage();
                     }}
@@ -1040,23 +1150,23 @@ const ChatBot: React.FC<ChatBotProps> = memo(
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className={`flex items-center space-x-2 transition-colors duration-200 ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                theme === "dark" ? "text-gray-400" : "text-gray-500"
               }`}
             >
               <div className="flex space-x-1">
                 <div
                   className={`w-2 h-2 rounded-full animate-bounce ${
-                    theme === 'dark' ? 'bg-gray-500' : 'bg-gray-400'
+                    theme === "dark" ? "bg-gray-500" : "bg-gray-400"
                   }`}
                 ></div>
                 <div
                   className={`w-2 h-2 rounded-full animate-bounce animate-delay-100 ${
-                    theme === 'dark' ? 'bg-gray-500' : 'bg-gray-400'
+                    theme === "dark" ? "bg-gray-500" : "bg-gray-400"
                   }`}
                 ></div>
                 <div
                   className={`w-2 h-2 rounded-full animate-bounce animate-delay-200 ${
-                    theme === 'dark' ? 'bg-gray-500' : 'bg-gray-400'
+                    theme === "dark" ? "bg-gray-500" : "bg-gray-400"
                   }`}
                 ></div>
               </div>
@@ -1070,9 +1180,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className={`px-3 py-2 rounded-lg text-sm transition-colors duration-200 ${
-                theme === 'dark'
-                  ? 'bg-yellow-900/50 border border-yellow-700 text-yellow-300'
-                  : 'bg-yellow-100 border border-yellow-300 text-yellow-800'
+                theme === "dark"
+                  ? "bg-yellow-900/50 border border-yellow-700 text-yellow-300"
+                  : "bg-yellow-100 border border-yellow-300 text-yellow-800"
               }`}
             >
               {error}
@@ -1094,9 +1204,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                   setShowJumpToLatest(false);
                 }}
                 className={`fixed bottom-24 right-8 z-10 px-4 py-2 rounded-full shadow-lg transition-all duration-200 flex items-center gap-2 ${
-                  theme === 'dark'
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                  theme === "dark"
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    : "bg-blue-500 hover:bg-blue-600 text-white"
                 }`}
                 title="Jump to latest message"
               >
@@ -1112,7 +1222,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(
         {attachedFiles.length > 0 && (
           <div
             className={`px-4 py-2 border-t transition-colors duration-200 ${
-              theme === 'dark' ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'
+              theme === "dark"
+                ? "border-gray-700 bg-gray-800/50"
+                : "border-gray-200 bg-gray-50"
             }`}
           >
             <div className="flex flex-wrap gap-2">
@@ -1122,9 +1234,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className={`flex items-center space-x-2 px-3 py-2 rounded-lg border transition-colors duration-200 ${
-                    theme === 'dark'
-                      ? 'bg-gray-700 border-gray-600 text-gray-300'
-                      : 'bg-white border-gray-300 text-gray-700'
+                    theme === "dark"
+                      ? "bg-gray-700 border-gray-600 text-gray-300"
+                      : "bg-white border-gray-300 text-gray-700"
                   }`}
                 >
                   <FiFile className="w-4 h-4" />
@@ -1133,9 +1245,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                     onClick={() => removeAttachedFile(index)}
                     title="Remove file"
                     className={`p-1 rounded-full transition-colors duration-200 ${
-                      theme === 'dark'
-                        ? 'hover:bg-gray-600 text-gray-400 hover:text-gray-300'
-                        : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+                      theme === "dark"
+                        ? "hover:bg-gray-600 text-gray-400 hover:text-gray-300"
+                        : "hover:bg-gray-200 text-gray-500 hover:text-gray-700"
                     }`}
                   >
                     <FiX className="w-3 h-3" />
@@ -1149,12 +1261,16 @@ const ChatBot: React.FC<ChatBotProps> = memo(
         {/* Styled Input Area */}
         <div
           className={`p-4 transition-colors duration-200 flex flex-col items-center ${
-            theme === 'dark' ? 'bg-[#0f1115] border-t border-gray-800' : 'bg-gray-50'
+            theme === "dark"
+              ? "bg-[#0f1115] border-t border-gray-800"
+              : "bg-gray-50"
           }`}
         >
           <div
             className={`w-full max-w-4xl flex items-center space-x-3 rounded-full px-3 py-2 transition-all duration-200 ${
-              theme === 'dark' ? 'bg-[#1e2329]' : 'bg-white shadow-lg border border-gray-200'
+              theme === "dark"
+                ? "bg-[#1e2329]"
+                : "bg-white shadow-lg border border-gray-200"
             }`}
           >
             {/* Attach Button (+) */}
@@ -1164,14 +1280,14 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                   if (!isGuest) setShowAttachMenu(!showAttachMenu);
                 }}
                 className={`p-1 rounded-full transition-all duration-200 ${
-                  theme === 'dark'
-                    ? 'text-gray-400 hover:text-white'
-                    : 'text-gray-500 hover:text-black'
+                  theme === "dark"
+                    ? "text-gray-400 hover:text-white"
+                    : "text-gray-500 hover:text-black"
                 }`}
               >
                 <div
                   className={`w-7 h-7 rounded-full flex items-center justify-center border border-dashed ${
-                    theme === 'dark' ? 'border-gray-500' : 'border-gray-400'
+                    theme === "dark" ? "border-gray-500" : "border-gray-400"
                   }`}
                 >
                   <span className="text-lg leading-none mb-0.5">+</span>
@@ -1185,11 +1301,12 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                 onChange={(e) => {
                   setInputMessage(e.target.value);
                   const target = e.target as HTMLTextAreaElement;
-                  target.style.height = 'auto';
-                  target.style.height = Math.min(target.scrollHeight, 120) + 'px';
+                  target.style.height = "auto";
+                  target.style.height =
+                    Math.min(target.scrollHeight, 120) + "px";
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     if (
                       (inputMessage.trim() || attachedFiles.length > 0) &&
@@ -1198,34 +1315,40 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                     ) {
                       handleSendMessage();
                       const target = e.target as HTMLTextAreaElement;
-                      target.style.height = 'auto';
+                      target.style.height = "auto";
                     }
                   }
                 }}
                 placeholder="Message CERKYL..."
                 rows={1}
                 className={`w-full px-2 bg-transparent focus:outline-none transition-all duration-200 resize-none max-h-[120px] scrollbar-hide py-1 ${
-                  theme === 'dark'
-                    ? 'text-white placeholder-gray-500'
-                    : 'text-gray-900 placeholder-gray-400'
-                } ${isGuest ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  theme === "dark"
+                    ? "text-white placeholder-gray-500"
+                    : "text-gray-900 placeholder-gray-400"
+                } ${isGuest ? "opacity-50 cursor-not-allowed" : ""}`}
                 disabled={isTyping || isGuest}
-                style={{ minHeight: '24px' }}
+                style={{ minHeight: "24px" }}
               />
             </div>
 
             <div className="flex items-center space-x-2 pr-1">
               <button
                 onClick={handleSendMessage}
-                disabled={!(inputMessage.trim() || attachedFiles.length > 0) || isTyping || isGuest}
+                disabled={
+                  !(inputMessage.trim() || attachedFiles.length > 0) ||
+                  isTyping ||
+                  isGuest
+                }
                 className={`p-2 rounded-full transition-all duration-200 ${
-                  (inputMessage.trim() || attachedFiles.length > 0) && !isTyping && !isGuest
-                    ? theme === 'dark'
-                      ? 'text-white bg-gray-700'
-                      : 'text-black bg-gray-200'
-                    : theme === 'dark'
-                      ? 'text-gray-600'
-                      : 'text-gray-300'
+                  (inputMessage.trim() || attachedFiles.length > 0) &&
+                  !isTyping &&
+                  !isGuest
+                    ? theme === "dark"
+                      ? "text-white bg-gray-700"
+                      : "text-black bg-gray-200"
+                    : theme === "dark"
+                      ? "text-gray-600"
+                      : "text-gray-300"
                 }`}
               >
                 <FiSend className="w-4 h-4" />
@@ -1233,7 +1356,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(
             </div>
           </div>
 
-          <p className={`text-xs mt-3 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
+          <p
+            className={`text-xs mt-3 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}
+          >
             CERKYL can make mistakes. Please verify important information.
           </p>
         </div>
@@ -1249,28 +1374,28 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                 exit={{ opacity: 0 }}
                 onClick={() => setShowAttachMenu(false)}
                 className={`fixed inset-0 backdrop-blur-sm z-40 ${
-                  theme === 'dark' ? 'bg-black/60' : 'bg-black/50'
+                  theme === "dark" ? "bg-black/60" : "bg-black/50"
                 }`}
               />
 
               {/* Attach Menu - Bottom Sheet Style */}
               <motion.div
                 key="attach-menu"
-                initial={{ y: '100%' }}
+                initial={{ y: "100%" }}
                 animate={{ y: 0 }}
-                exit={{ y: '100%' }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
                 className={`fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl shadow-2xl ${
-                  theme === 'dark'
-                    ? 'bg-gray-800 border-t border-gray-700'
-                    : 'bg-white border-t border-gray-200'
+                  theme === "dark"
+                    ? "bg-gray-800 border-t border-gray-700"
+                    : "bg-white border-t border-gray-200"
                 }`}
               >
                 {/* Handle Bar */}
                 <div className="flex justify-center pt-3 pb-2">
                   <div
                     className={`w-12 h-1 rounded-full ${
-                      theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
+                      theme === "dark" ? "bg-gray-600" : "bg-gray-300"
                     }`}
                   />
                 </div>
@@ -1284,19 +1409,19 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                       whileTap={{ scale: 0.98 }}
                       onClick={() => imageInputRef.current?.click()}
                       className={`flex flex-col items-center p-2.5 rounded-3xl transition-all duration-200 ${
-                        theme === 'dark'
-                          ? 'bg-gray-700/50 hover:bg-gray-700 text-gray-300'
-                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                        theme === "dark"
+                          ? "bg-gray-700/50 hover:bg-gray-700 text-gray-300"
+                          : "bg-gray-50 hover:bg-gray-100 text-gray-700"
                       }`}
                     >
                       <div
                         className={`p-2 rounded-full mb-1.5 ${
-                          theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-100'
+                          theme === "dark" ? "bg-blue-500/20" : "bg-blue-100"
                         }`}
                       >
                         <FiImage
                           className={`w-4 h-4 ${
-                            theme === 'dark' ? 'text-blue-400' : 'text-blue-600'
+                            theme === "dark" ? "text-blue-400" : "text-blue-600"
                           }`}
                         />
                       </div>
@@ -1309,19 +1434,21 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                       whileTap={{ scale: 0.98 }}
                       onClick={() => fileInputRef.current?.click()}
                       className={`flex flex-col items-center p-2.5 rounded-3xl transition-all duration-200 ${
-                        theme === 'dark'
-                          ? 'bg-gray-700/50 hover:bg-gray-700 text-gray-300'
-                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                        theme === "dark"
+                          ? "bg-gray-700/50 hover:bg-gray-700 text-gray-300"
+                          : "bg-gray-50 hover:bg-gray-100 text-gray-700"
                       }`}
                     >
                       <div
                         className={`p-2 rounded-full mb-1.5 ${
-                          theme === 'dark' ? 'bg-green-500/20' : 'bg-green-100'
+                          theme === "dark" ? "bg-green-500/20" : "bg-green-100"
                         }`}
                       >
                         <FiFile
                           className={`w-4 h-4 ${
-                            theme === 'dark' ? 'text-green-400' : 'text-green-600'
+                            theme === "dark"
+                              ? "text-green-400"
+                              : "text-green-600"
                           }`}
                         />
                       </div>
@@ -1334,19 +1461,23 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                       whileTap={{ scale: 0.98 }}
                       onClick={handleCameraCapture}
                       className={`flex flex-col items-center p-2.5 rounded-3xl transition-all duration-200 ${
-                        theme === 'dark'
-                          ? 'bg-gray-700/50 hover:bg-gray-700 text-gray-300'
-                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                        theme === "dark"
+                          ? "bg-gray-700/50 hover:bg-gray-700 text-gray-300"
+                          : "bg-gray-50 hover:bg-gray-100 text-gray-700"
                       }`}
                     >
                       <div
                         className={`p-2 rounded-full mb-1.5 ${
-                          theme === 'dark' ? 'bg-purple-500/20' : 'bg-purple-100'
+                          theme === "dark"
+                            ? "bg-purple-500/20"
+                            : "bg-purple-100"
                         }`}
                       >
                         <FiCamera
                           className={`w-4 h-4 ${
-                            theme === 'dark' ? 'text-purple-400' : 'text-purple-600'
+                            theme === "dark"
+                              ? "text-purple-400"
+                              : "text-purple-600"
                           }`}
                         />
                       </div>
@@ -1359,23 +1490,29 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                       whileTap={{ scale: 0.98 }}
                       onClick={handleBuyForms}
                       className={`flex flex-col items-center p-2.5 rounded-3xl transition-all duration-200 ${
-                        theme === 'dark'
-                          ? 'bg-gray-700/50 hover:bg-gray-700 text-gray-300'
-                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                        theme === "dark"
+                          ? "bg-gray-700/50 hover:bg-gray-700 text-gray-300"
+                          : "bg-gray-50 hover:bg-gray-100 text-gray-700"
                       }`}
                     >
                       <div
                         className={`p-2 rounded-full mb-1.5 ${
-                          theme === 'dark' ? 'bg-orange-500/20' : 'bg-orange-100'
+                          theme === "dark"
+                            ? "bg-orange-500/20"
+                            : "bg-orange-100"
                         }`}
                       >
                         <FiShoppingCart
                           className={`w-4 h-4 ${
-                            theme === 'dark' ? 'text-orange-400' : 'text-orange-600'
+                            theme === "dark"
+                              ? "text-orange-400"
+                              : "text-orange-600"
                           }`}
                         />
                       </div>
-                      <span className="text-xs font-medium">Buy University Forms</span>
+                      <span className="text-xs font-medium">
+                        Buy University Forms
+                      </span>
                     </motion.button>
                   </div>
                 </div>
@@ -1411,9 +1548,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(
         />
       </div>
     );
-  }
+  },
 );
 
-ChatBot.displayName = 'ChatBot';
+ChatBot.displayName = "ChatBot";
 
 export default ChatBot;

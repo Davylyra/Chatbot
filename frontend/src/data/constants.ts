@@ -328,7 +328,7 @@ export const FAQS: FAQItem[] = [
     id: 'faq-payment',
     question: 'How do I pay for application forms?',
     answer:
-      'Payment for university application forms in Ghana can be made through mobile money, bank deposits, online card payments, or physical vouchers. Mobile money is the most common option, using services like MTN, Vodafone, or AirtelTigo. Applicants can also pay at designated banks and keep the deposit slip as proof. Some universities accept Visa or Mastercard payments through secure online gateways. Alternatively, vouchers with unique serial numbers and PINs can be purchased from accredited outlets such as banks, educational centers, or campus bookshops. Fees typically range from GHS 150–300 for undergraduate programmes and GHS 200–500 for postgraduate programmes. After payment, applicants should securely keep their transaction reference, receipt, or voucher details for verification. Since fees are non-refundable, it’s important to confirm eligibility before making payment and contact the admissions office promptly if any issues arise.',
+      'Payment for university application forms in Ghana can be made directly and securely through our platform. Simply head to the [BUY_FORM] section on the menu to browse available university forms. We support mobile money (MTN Mobile Money, Telecel Cash, AT Money) and card payments. Once your payment is successful, your forms and serial numbers will be instantly available in your profile. Fees typically range from GHS 250–300 for undergraduate programmes and GHS 200–500 for postgraduate programmes. After payment, securely keep your transaction reference. Since fees are non-refundable, confirm your eligibility before making payment and contact our support team promptly if any issues arise.',
   },
   {
     id: 'faq-deadlines',
@@ -340,7 +340,7 @@ export const FAQS: FAQItem[] = [
     id: 'faq-track',
     question: 'How do I track my application status?',
     answer:
-      'Tracking your university application status in Ghana is done mainly through online portals.After submission, you receive a unique reference number or application ID, which is used to log in and check updates.On the admissions portal, you can view statuses such as Received,Under Review, Pending Documentation, Shortlisted, Admitted, or Not Successful.Some universities provide detailed progress updates, including document checks and evaluations.Updates are also sent via SMS or email, so ensure your contact details are correct and monitored.For programmes with entrance exams or interviews, schedules and requirements are posted on the portal.If admitted, you can download your admission letter with details on fees, registration, and required documents.Universities also publish admission lists online and on notice boards. If your status doesn’t change or you face technical issues, contact the admissions office with your reference number.Keep all documents and receipts organized, and check your status regularly, especially during peak admission periods between July and September.',
+      'Tracking your university application status in Ghana is done mainly through online portals. After submission, you receive a unique reference number or application ID, which is used to log in and check updates. On the admissions portal, you can view statuses such as Received, Under Review, Pending Documentation, Shortlisted, Admitted, or Not Successful. Some universities provide detailed progress updates, including document checks and evaluations. Updates are also sent via SMS or email, so ensure your contact details are correct and monitored. For programmes with entrance exams or interviews, schedules and requirements are posted on the portal. If admitted, you can download your admission letter with details on fees, registration, and required documents. Universities also publish admission lists online and on notice boards. If your status doesn’t change or you face technical issues, contact the admissions office with your reference number. Keep all documents and receipts organized, and check your status regularly, especially during peak admission periods between July and September.',
   },
 ];
 
@@ -384,7 +384,7 @@ export const MOCK_TRANSACTIONS = [
     date: new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleDateString(),
     time: new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleTimeString(),
     status: 'pending' as const,
-    paymentMethod: 'Vodafone Cash',
+    paymentMethod: 'Telecel Cash',
     amount: '₵240',
     currency: '₵',
     reference: 'TXN002',
@@ -397,7 +397,7 @@ export const MOCK_TRANSACTIONS = [
     date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
     time: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toLocaleTimeString(),
     status: 'completed' as const,
-    paymentMethod: 'AirtelTigo Money',
+    paymentMethod: 'AT Money',
     amount: '₵220',
     currency: '₵',
     reference: 'TXN003',
@@ -437,11 +437,11 @@ export const MOCK_RECENT_CHATS = [
 // App configuration constants - Now managed by configService
 // These are fallback values only, actual values come from dynamic configuration
 export const APP_CONFIG = {
-  name: 'CERKYL',
-  version: '2.0.0',
-  description: 'AI-powered university admission assistant for Ghana',
-  supportEmail: 'glinaxtechinnovations@gmail.com',
-  supportPhone: '+233 123 456 789',
+  name: import.meta.env.VITE_APP_NAME as string,
+  version: import.meta.env.VITE_APP_VERSION as string,
+  description: import.meta.env.VITE_APP_DESCRIPTION as string,
+  supportEmail: import.meta.env.VITE_CONTACT_EMAIL as string,
+  supportPhone: import.meta.env.VITE_CONTACT_PHONE as string,
   website: 'https://glinax.com',
   socialMedia: {
     twitter: '@glinax_gh',

@@ -1,8 +1,8 @@
-import { useState, useCallback } from 'react';
-import { type ToastProps } from '../components/Toast';
+import { useState, useCallback } from "react";
+import { type ToastProps } from "../components/Toast";
 
 interface ToastOptions {
-  type: 'success' | 'error' | 'info' | 'warning';
+  type: "success" | "error" | "info" | "warning";
   title: string;
   message?: string;
   duration?: number;
@@ -26,7 +26,7 @@ export const useToast = () => {
 
       setToasts((prev) => [...prev, newToast]);
     },
-    [removeToast]
+    [removeToast],
   );
 
   const clearAllToasts = useCallback(() => {
@@ -35,30 +35,30 @@ export const useToast = () => {
 
   const showSuccess = useCallback(
     (title: string, message?: string, duration?: number) => {
-      addToast({ type: 'success', title, message, duration });
+      addToast({ type: "success", title, message, duration });
     },
-    [addToast]
+    [addToast],
   );
 
   const showError = useCallback(
     (title: string, message?: string, duration?: number) => {
-      addToast({ type: 'error', title, message, duration });
+      addToast({ type: "error", title, message, duration });
     },
-    [addToast]
+    [addToast],
   );
 
   const showInfo = useCallback(
     (title: string, message?: string, duration?: number) => {
-      addToast({ type: 'info', title, message, duration });
+      addToast({ type: "info", title, message, duration });
     },
-    [addToast]
+    [addToast],
   );
 
   const showWarning = useCallback(
     (title: string, message?: string, duration?: number) => {
-      addToast({ type: 'warning', title, message, duration });
+      addToast({ type: "warning", title, message, duration });
     },
-    [addToast]
+    [addToast],
   );
 
   return {

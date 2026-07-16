@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useState, useCallback } from "react";
+import { useAuth } from "../contexts/AuthContext";
 
 interface GuestLimitation {
   feature: string;
@@ -10,89 +10,97 @@ interface GuestLimitation {
 export const useGuestLimitations = () => {
   const { isGuest } = useAuth();
   const [showLimitationModal, setShowLimitationModal] = useState(false);
-  const [limitationData, setLimitationData] = useState<GuestLimitation | null>(null);
+  const [limitationData, setLimitationData] = useState<GuestLimitation | null>(
+    null,
+  );
 
   const limitationConfigs: Record<string, GuestLimitation> = {
     profile: {
-      feature: 'Profile Management',
+      feature: "Profile Management",
       description:
-        'Access your personal profile, edit information, and manage your account settings.',
+        "Access your personal profile, edit information, and manage your account settings.",
       benefits: [
-        'Save and edit your personal information',
-        'Manage your academic preferences',
-        'Track your application history',
-        'Customize your dashboard',
+        "Save and edit your personal information",
+        "Manage your academic preferences",
+        "Track your application history",
+        "Customize your dashboard",
       ],
     },
     transactions: {
-      feature: 'Transaction History',
-      description: 'View your complete purchase history and transaction details.',
+      feature: "Transaction History",
+      description:
+        "View your complete purchase history and transaction details.",
       benefits: [
-        'View all your form purchases',
-        'Download receipts and invoices',
-        'Track payment history',
-        'Manage subscription plans',
+        "View all your form purchases",
+        "Download receipts and invoices",
+        "Track payment history",
+        "Manage subscription plans",
       ],
     },
     settings: {
-      feature: 'Account Settings',
-      description: 'Customize your app experience and manage your account preferences.',
+      feature: "Account Settings",
+      description:
+        "Customize your app experience and manage your account preferences.",
       benefits: [
-        'Change password and security settings',
-        'Manage notification preferences',
-        'Customize app appearance',
-        'Export your data',
+        "Change password and security settings",
+        "Manage notification preferences",
+        "Customize app appearance",
+        "Export your data",
       ],
     },
     notifications: {
-      feature: 'Notifications',
+      feature: "Notifications",
       description:
-        'Get personalized notifications about deadlines, updates, and important information.',
+        "Get personalized notifications about deadlines, updates, and important information.",
       benefits: [
-        'Receive deadline reminders',
-        'Get application updates',
-        'University news and announcements',
-        'Personalized recommendations',
+        "Receive deadline reminders",
+        "Get application updates",
+        "University news and announcements",
+        "Personalized recommendations",
       ],
     },
     chat: {
-      feature: 'Chat Access',
-      description: 'Start new chat sessions and use the full AI assistant experience.',
+      feature: "Chat Access",
+      description:
+        "Start new chat sessions and use the full AI assistant experience.",
       benefits: [
-        'Send unlimited messages',
-        'Attach files and documents',
-        'Save conversation history',
-        'Resume chats anytime',
+        "Send unlimited messages",
+        "Attach files and documents",
+        "Save conversation history",
+        "Resume chats anytime",
       ],
     },
     recentChats: {
-      feature: 'Chat History',
-      description: 'Access your complete chat history and continue previous conversations.',
+      feature: "Chat History",
+      description:
+        "Access your complete chat history and continue previous conversations.",
       benefits: [
-        'View all your previous chats',
-        'Continue interrupted conversations',
-        'Search through chat history',
-        'Export chat transcripts',
+        "View all your previous chats",
+        "Continue interrupted conversations",
+        "Search through chat history",
+        "Export chat transcripts",
       ],
     },
     assessment: {
-      feature: 'Program Assessment',
-      description: 'Take our comprehensive assessment to discover the best programs for you.',
+      feature: "Program Assessment",
+      description:
+        "Take our comprehensive assessment to discover the best programs for you.",
       benefits: [
-        'Take personalized program assessments',
-        'Get AI-powered recommendations',
-        'Save assessment results permanently',
-        'Track your academic progress',
+        "Take personalized program assessments",
+        "Get AI-powered recommendations",
+        "Save assessment results permanently",
+        "Track your academic progress",
       ],
     },
     universities: {
-      feature: 'University Directory',
-      description: 'Browse our complete database of universities and their programs.',
+      feature: "University Directory",
+      description:
+        "Browse our complete database of universities and their programs.",
       benefits: [
-        'Access full university database',
-        'View detailed program information',
-        'Compare universities side-by-side',
-        'Get admission requirements',
+        "Access full university database",
+        "View detailed program information",
+        "Compare universities side-by-side",
+        "Get admission requirements",
       ],
     },
   };
@@ -109,7 +117,7 @@ export const useGuestLimitations = () => {
 
       return false;
     },
-    [isGuest]
+    [isGuest],
   );
 
   const closeLimitationModal = useCallback(() => {

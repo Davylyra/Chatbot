@@ -4,11 +4,18 @@
  * Integration: Used across the app to encourage sign-up
  */
 
-import React, { memo } from 'react';
-import { motion } from 'framer-motion';
-import { FiLock, FiUserPlus, FiLogIn, FiX, FiStar, FiShield } from 'react-icons/fi';
-import { useTheme } from '../contexts/ThemeContext';
-import { useNavigate } from 'react-router-dom';
+import React, { memo } from "react";
+import { motion } from "framer-motion";
+import {
+  FiLock,
+  FiUserPlus,
+  FiLogIn,
+  FiX,
+  FiStar,
+  FiShield,
+} from "react-icons/fi";
+import { useTheme } from "../contexts/ThemeContext";
+import { useNavigate } from "react-router-dom";
 
 interface GuestLimitationModalProps {
   isOpen: boolean;
@@ -25,12 +32,12 @@ const GuestLimitationModal: React.FC<GuestLimitationModalProps> = memo(
 
     const handleSignUp = () => {
       onClose();
-      navigate('/signup');
+      navigate("/signup");
     };
 
     const handleSignIn = () => {
       onClose();
-      navigate('/login');
+      navigate("/login");
     };
 
     if (!isOpen) return null;
@@ -48,7 +55,7 @@ const GuestLimitationModal: React.FC<GuestLimitationModalProps> = memo(
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           className={`max-w-md w-full p-6 rounded-2xl shadow-2xl ${
-            theme === 'dark' ? 'glass-modal-dark' : 'glass-modal'
+            theme === "dark" ? "glass-modal-dark" : "glass-modal"
           }`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -57,9 +64,9 @@ const GuestLimitationModal: React.FC<GuestLimitationModalProps> = memo(
             <div className="flex items-center space-x-3">
               <div
                 className={`p-3 rounded-full ${
-                  theme === 'dark'
-                    ? 'bg-orange-500/20 text-orange-400'
-                    : 'bg-orange-100 text-orange-600'
+                  theme === "dark"
+                    ? "bg-orange-500/20 text-orange-400"
+                    : "bg-orange-100 text-orange-600"
                 }`}
               >
                 <FiLock className="w-6 h-6" />
@@ -67,14 +74,14 @@ const GuestLimitationModal: React.FC<GuestLimitationModalProps> = memo(
               <div>
                 <h3
                   className={`text-lg font-bold transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-white' : 'text-gray-800'
+                    theme === "dark" ? "text-white" : "text-gray-800"
                   }`}
                 >
                   Premium Feature
                 </h3>
                 <p
                   className={`text-sm transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
                   }`}
                 >
                   {feature}
@@ -85,9 +92,9 @@ const GuestLimitationModal: React.FC<GuestLimitationModalProps> = memo(
               onClick={onClose}
               title="Close modal"
               className={`p-2 rounded-full transition-colors duration-200 ${
-                theme === 'dark'
-                  ? 'hover:bg-white/10 text-gray-400 hover:text-white'
-                  : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
+                theme === "dark"
+                  ? "hover:bg-white/10 text-gray-400 hover:text-white"
+                  : "hover:bg-gray-100 text-gray-500 hover:text-gray-700"
               }`}
             >
               <FiX className="w-5 h-5" />
@@ -98,7 +105,7 @@ const GuestLimitationModal: React.FC<GuestLimitationModalProps> = memo(
           <div className="mb-6">
             <p
               className={`text-sm leading-relaxed mb-4 transition-colors duration-200 ${
-                theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                theme === "dark" ? "text-gray-300" : "text-gray-600"
               }`}
             >
               {description}
@@ -107,14 +114,14 @@ const GuestLimitationModal: React.FC<GuestLimitationModalProps> = memo(
             {benefits.length > 0 && (
               <div
                 className={`p-4 rounded-xl mb-4 ${
-                  theme === 'dark'
-                    ? 'bg-blue-900/20 border border-blue-700/30'
-                    : 'bg-blue-50 border border-blue-200'
+                  theme === "dark"
+                    ? "bg-blue-900/20 border border-blue-700/30"
+                    : "bg-blue-50 border border-blue-200"
                 }`}
               >
                 <h4
                   className={`font-semibold mb-3 flex items-center ${
-                    theme === 'dark' ? 'text-blue-300' : 'text-blue-700'
+                    theme === "dark" ? "text-blue-300" : "text-blue-700"
                   }`}
                 >
                   <FiStar className="w-4 h-4 mr-2" />
@@ -125,7 +132,7 @@ const GuestLimitationModal: React.FC<GuestLimitationModalProps> = memo(
                     <li
                       key={index}
                       className={`text-sm flex items-start ${
-                        theme === 'dark' ? 'text-blue-200' : 'text-blue-600'
+                        theme === "dark" ? "text-blue-200" : "text-blue-600"
                       }`}
                     >
                       <FiShield className="w-3 h-3 mr-2 mt-0.5 flex-shrink-0" />
@@ -154,9 +161,9 @@ const GuestLimitationModal: React.FC<GuestLimitationModalProps> = memo(
               whileTap={{ scale: 0.98 }}
               onClick={handleSignIn}
               className={`w-full py-3 px-4 rounded-xl font-semibold transition-colors duration-200 flex items-center justify-center space-x-2 ${
-                theme === 'dark'
-                  ? 'border border-white/20 text-white hover:bg-white/10'
-                  : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                theme === "dark"
+                  ? "border border-white/20 text-white hover:bg-white/10"
+                  : "border border-gray-300 text-gray-700 hover:bg-gray-50"
               }`}
             >
               <FiLogIn className="w-5 h-5" />
@@ -168,7 +175,7 @@ const GuestLimitationModal: React.FC<GuestLimitationModalProps> = memo(
           <div className="mt-4 text-center">
             <p
               className={`text-xs transition-colors duration-200 ${
-                theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                theme === "dark" ? "text-gray-500" : "text-gray-400"
               }`}
             >
               Creating an account is free and takes less than 2 minutes
@@ -177,7 +184,7 @@ const GuestLimitationModal: React.FC<GuestLimitationModalProps> = memo(
         </motion.div>
       </motion.div>
     );
-  }
+  },
 );
 
 export default GuestLimitationModal;

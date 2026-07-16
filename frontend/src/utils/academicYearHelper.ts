@@ -35,7 +35,7 @@ export const AcademicYearCycle = {
    */
   getPreviousYear(): string {
     const currentYear = this.getCurrentYear();
-    const [start, end] = currentYear.split('/').map(Number);
+    const [start, end] = currentYear.split("/").map(Number);
     return `${start - 1}/${end - 1}`;
   },
 
@@ -44,7 +44,7 @@ export const AcademicYearCycle = {
    */
   getNextYear(): string {
     const currentYear = this.getCurrentYear();
-    const [start, end] = currentYear.split('/').map(Number);
+    const [start, end] = currentYear.split("/").map(Number);
     return `${start + 1}/${end + 1}`;
   },
 
@@ -128,47 +128,51 @@ export const AcademicYearCycle = {
     return {
       cycle,
       universities: {
-        'University of Ghana': {
-          code: 'UG',
+        "University of Ghana": {
+          code: "UG",
           applicationDeadline: keyDates.applicationDeadline,
           admissionListsRelease: keyDates.admissionListsRelease,
-          healthSciencesDeadline: new Date(keyDates.applicationDeadline.getFullYear(), 9, 31), // Early deadline
-          website: 'https://www.ug.edu.gh',
-          admissionPortal: 'https://apply.ug.edu.gh',
+          healthSciencesDeadline: new Date(
+            keyDates.applicationDeadline.getFullYear(),
+            9,
+            31,
+          ), // Early deadline
+          website: "https://www.ug.edu.gh",
+          admissionPortal: "https://apply.ug.edu.gh",
         },
-        'Kwame Nkrumah University of Science and Technology': {
-          code: 'KNUST',
+        "Kwame Nkrumah University of Science and Technology": {
+          code: "KNUST",
           applicationDeadline: keyDates.applicationDeadline,
           admissionListsRelease: keyDates.admissionListsRelease,
-          website: 'https://www.knust.edu.gh',
-          admissionPortal: 'https://admissions.knust.edu.gh',
+          website: "https://www.knust.edu.gh",
+          admissionPortal: "https://admissions.knust.edu.gh",
         },
-        'University of Cape Coast': {
-          code: 'UCC',
+        "University of Cape Coast": {
+          code: "UCC",
           applicationDeadline: keyDates.applicationDeadline,
           admissionListsRelease: keyDates.admissionListsRelease,
-          website: 'https://www.ucc.edu.gh',
-          admissionPortal: 'https://admissions.ucc.edu.gh',
+          website: "https://www.ucc.edu.gh",
+          admissionPortal: "https://admissions.ucc.edu.gh",
         },
-        'University of Development Studies': {
-          code: 'UDS',
+        "University of Development Studies": {
+          code: "UDS",
           applicationDeadline: keyDates.applicationDeadline,
           admissionListsRelease: keyDates.admissionListsRelease,
-          website: 'https://www.uds.edu.gh',
-          admissionPortal: 'https://admissions.uds.edu.gh',
+          website: "https://www.uds.edu.gh",
+          admissionPortal: "https://admissions.uds.edu.gh",
         },
-        'University of Professional Studies': {
-          code: 'UPSA',
+        "University of Professional Studies": {
+          code: "UPSA",
           applicationDeadline: keyDates.applicationDeadline,
           admissionListsRelease: keyDates.admissionListsRelease,
-          website: 'https://www.upsa.edu.gh',
-          admissionPortal: 'https://admissions.upsa.edu.gh',
+          website: "https://www.upsa.edu.gh",
+          admissionPortal: "https://admissions.upsa.edu.gh",
         },
-        'Ghana Institute of Management and Public Administration': {
-          code: 'GIMPA',
+        "Ghana Institute of Management and Public Administration": {
+          code: "GIMPA",
           applicationDeadline: keyDates.applicationDeadline,
           admissionListsRelease: keyDates.admissionListsRelease,
-          website: 'https://www.gimpa.edu.gh',
+          website: "https://www.gimpa.edu.gh",
         },
       },
     };
@@ -178,11 +182,11 @@ export const AcademicYearCycle = {
    * Format date in Ghanaian English style
    */
   formatDate(date: Date): string {
-    return new Intl.DateTimeFormat('en-GH', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    return new Intl.DateTimeFormat("en-GH", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     }).format(date);
   },
 
@@ -193,7 +197,7 @@ export const AcademicYearCycle = {
     const now = new Date();
     const diff = deadline.getTime() - now.getTime();
 
-    if (diff < 0) return 'Deadline passed';
+    if (diff < 0) return "Deadline passed";
 
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
@@ -205,7 +209,7 @@ export const AcademicYearCycle = {
     } else if (hours > 0) {
       return `${hours} hours remaining`;
     } else {
-      return 'Less than 1 hour remaining';
+      return "Less than 1 hour remaining";
     }
   },
 };

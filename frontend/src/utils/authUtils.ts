@@ -7,7 +7,7 @@ export const isTokenValid = (token: string | null): boolean => {
 
   try {
     // Basic JWT validation - check if it has 3 parts
-    const parts = token.split('.');
+    const parts = token.split(".");
     if (parts.length !== 3) return false;
 
     const payload = JSON.parse(atob(parts[1]));
@@ -19,23 +19,23 @@ export const isTokenValid = (token: string | null): boolean => {
 
     return true;
   } catch (error) {
-    console.error('Token validation error:', error);
+    console.error("Token validation error:", error);
     return false;
   }
 };
 
 export const clearExpiredToken = (): void => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   if (token && !isTokenValid(token)) {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
 
-    window.dispatchEvent(new CustomEvent('tokenExpired'));
+    window.dispatchEvent(new CustomEvent("tokenExpired"));
   }
 };
 
 export const getValidToken = (): string | null => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   if (isTokenValid(token)) {
     return token;
   }
@@ -49,10 +49,10 @@ export const setupTokenValidation = (): void => {
     () => {
       clearExpiredToken();
     },
-    5 * 60 * 1000
+    5 * 60 * 1000,
   );
 
-  window.addEventListener('focus', () => {
+  window.addEventListener("focus", () => {
     clearExpiredToken();
   });
 };

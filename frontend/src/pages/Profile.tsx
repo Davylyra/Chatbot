@@ -1,12 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { FiUser, FiEdit3, FiMail, FiMapPin, FiCalendar, FiShield } from 'react-icons/fi';
-import Navbar from '../components/Navbar';
-import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
-import { useToast } from '../hooks/useToast';
-import ToastContainer from '../components/ToastContainer';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+  FiUser,
+  FiEdit3,
+  FiMail,
+  FiMapPin,
+  FiCalendar,
+  FiShield,
+} from "react-icons/fi";
+import Navbar from "../components/Navbar";
+import { useAuth } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
+import { useToast } from "../hooks/useToast";
+import ToastContainer from "../components/ToastContainer";
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
@@ -15,10 +22,10 @@ const Profile: React.FC = () => {
   const { user, updateProfile } = useAuth();
   const { toasts, showSuccess, removeToast } = useToast();
   const [formData, setFormData] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
-    location: '',
-    bio: '',
+    name: user?.name || "",
+    email: user?.email || "",
+    location: "",
+    bio: "",
     interests: [] as string[],
     preferredUniversities: [] as string[],
   });
@@ -33,7 +40,7 @@ const Profile: React.FC = () => {
     const fetchProfile = async () => {
       try {
         const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
 
         if (!token) {
           setIsLoading(false);
@@ -41,10 +48,10 @@ const Profile: React.FC = () => {
         }
 
         const response = await fetch(`${API_BASE_URL}/profile/me`, {
-          method: 'GET',
+          method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         });
 
@@ -52,12 +59,13 @@ const Profile: React.FC = () => {
         if (profilePayload.success && profilePayload.user) {
           setProfileData(profilePayload.user);
           setFormData({
-            name: profilePayload.user.name || '',
-            email: profilePayload.user.email || '',
-            location: profilePayload.user.location || '',
-            bio: profilePayload.user.bio || '',
+            name: profilePayload.user.name || "",
+            email: profilePayload.user.email || "",
+            location: profilePayload.user.location || "",
+            bio: profilePayload.user.bio || "",
             interests: profilePayload.user.interests || [],
-            preferredUniversities: profilePayload.user.preferredUniversities || [],
+            preferredUniversities:
+              profilePayload.user.preferredUniversities || [],
           });
           updateProfile({
             name: profilePayload.user.name,
@@ -67,7 +75,7 @@ const Profile: React.FC = () => {
           });
         }
       } catch (error) {
-        console.error('Failed to fetch profile:', error);
+        console.error("Failed to fetch profile:", error);
       } finally {
         setIsLoading(false);
       }
@@ -83,20 +91,20 @@ const Profile: React.FC = () => {
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [isLoading]);
 
   useEffect(() => {
     if (user && !profileData) {
       setFormData({
-        name: user.name || '',
-        email: user.email || '',
-        location: '',
-        bio: '',
+        name: user.name || "",
+        email: user.email || "",
+        location: "",
+        bio: "",
         interests: [],
         preferredUniversities: [],
       });
@@ -107,13 +115,13 @@ const Profile: React.FC = () => {
     const newErrors: { [key: string]: string } = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = "Name is required";
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+      newErrors.email = "Email is invalid";
     }
 
     setErrors(newErrors);
@@ -126,19 +134,19 @@ const Profile: React.FC = () => {
     setIsSaving(true);
     try {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
 
       if (!token) {
-        setErrors({ submit: 'Please log in to update your profile' });
+        setErrors({ submit: "Please log in to update your profile" });
         setIsSaving(false);
         return;
       }
 
       const response = await fetch(`${API_BASE_URL}/profile/update`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           name: formData.name,
@@ -151,19 +159,21 @@ const Profile: React.FC = () => {
       const updatePayload = await response.json();
 
       if (!response.ok) {
-        throw new Error(updatePayload.message || 'Failed to update profile');
+        throw new Error(updatePayload.message || "Failed to update profile");
       }
 
       if (updatePayload.success) {
         setProfileData(updatePayload.user);
 
         setFormData({
-          name: updatePayload.user.name || '',
-          email: updatePayload.user.email || '',
-          location: updatePayload.user.location || '',
-          bio: updatePayload.user.bio || '',
+          name: updatePayload.user.name || "",
+          email: updatePayload.user.email || "",
+          location: updatePayload.user.location || "",
+          bio: updatePayload.user.bio || "",
           interests: updatePayload.user.interests || formData.interests,
-          preferredUniversities: updatePayload.user.preferredUniversities || formData.preferredUniversities,
+          preferredUniversities:
+            updatePayload.user.preferredUniversities ||
+            formData.preferredUniversities,
         });
 
         updateProfile({
@@ -172,22 +182,26 @@ const Profile: React.FC = () => {
           createdAt: updatePayload.user.createdAt,
         });
 
-        const storedUser = localStorage.getItem('user');
+        const storedUser = localStorage.getItem("user");
         if (storedUser) {
           const userData = JSON.parse(storedUser);
           userData.name = updatePayload.user.name;
           userData.email = updatePayload.user.email;
-          localStorage.setItem('user', JSON.stringify(userData));
+          localStorage.setItem("user", JSON.stringify(userData));
         }
 
         setIsEditing(false);
         setErrors({});
 
-        showSuccess('Profile Updated', 'Your profile has been saved successfully', 3000);
+        showSuccess(
+          "Profile Updated",
+          "Your profile has been saved successfully",
+          3000,
+        );
       }
     } catch (error: any) {
-      console.error('Profile update error:', error);
-      setErrors({ submit: error.message || 'Failed to update profile' });
+      console.error("Profile update error:", error);
+      setErrors({ submit: error.message || "Failed to update profile" });
     } finally {
       setIsSaving(false);
     }
@@ -199,19 +213,19 @@ const Profile: React.FC = () => {
 
     if (profileData) {
       setFormData({
-        name: profileData.name || '',
-        email: profileData.email || '',
-        location: profileData.location || '',
-        bio: profileData.bio || '',
+        name: profileData.name || "",
+        email: profileData.email || "",
+        location: profileData.location || "",
+        bio: profileData.bio || "",
         interests: profileData.interests || [],
         preferredUniversities: profileData.preferredUniversities || [],
       });
     } else if (user) {
       setFormData({
-        name: user.name || '',
-        email: user.email || '',
-        location: '',
-        bio: '',
+        name: user.name || "",
+        email: user.email || "",
+        location: "",
+        bio: "",
         interests: [],
         preferredUniversities: [],
       });
@@ -221,16 +235,16 @@ const Profile: React.FC = () => {
   return (
     <div
       className={`min-h-screen ${
-        theme === 'dark'
-          ? 'bg-gradient-to-b from-transparent via-gray-800/50 to-gray-800'
-          : 'bg-gradient-to-b from-transparent via-white/50 to-white'
+        theme === "dark"
+          ? "bg-gradient-to-b from-transparent via-gray-800/50 to-gray-800"
+          : "bg-gradient-to-b from-transparent via-white/50 to-white"
       }`}
     >
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
       <Navbar
         title="PROFILE OVERVIEW"
         showBackButton={true}
-        onBackClick={() => navigate('/')}
+        onBackClick={() => navigate("/")}
         showMenuButton={false}
       />
 
@@ -241,7 +255,9 @@ const Profile: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className={`backdrop-blur-md rounded-2xl p-6 mb-6 border transition-all duration-200 ${
-            theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-white/80 border-white/30'
+            theme === "dark"
+              ? "bg-white/10 border-white/20"
+              : "bg-white/80 border-white/30"
           }`}
         >
           <div className="flex items-center space-x-4">
@@ -254,31 +270,37 @@ const Profile: React.FC = () => {
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                     className={`w-full bg-transparent border-b-2 outline-none font-bold text-xl transition-colors duration-200 ${
-                      theme === 'dark'
-                        ? 'text-white border-gray-600 focus:border-primary-400'
-                        : 'text-gray-800 border-gray-300 focus:border-primary-500'
-                    } ${errors.name ? 'border-red-500' : ''}`}
+                      theme === "dark"
+                        ? "text-white border-gray-600 focus:border-primary-400"
+                        : "text-gray-800 border-gray-300 focus:border-primary-500"
+                    } ${errors.name ? "border-red-500" : ""}`}
                     placeholder="Enter your name"
                   />
-                  {errors.name && <p className="text-red-500 text-sm truncate">{errors.name}</p>}
+                  {errors.name && (
+                    <p className="text-red-500 text-sm truncate">
+                      {errors.name}
+                    </p>
+                  )}
                 </div>
               ) : (
                 <h2
                   className={`text-xl font-bold truncate transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-white' : 'text-gray-800'
+                    theme === "dark" ? "text-white" : "text-gray-800"
                   }`}
                 >
-                  {user?.name || 'User'}
+                  {user?.name || "User"}
                 </h2>
               )}
               <p
                 className={`text-sm truncate transition-colors duration-200 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                  theme === "dark" ? "text-gray-400" : "text-gray-500"
                 }`}
               >
-                {user?.email || 'user@example.com'}
+                {user?.email || "user@example.com"}
               </p>
             </div>
             <motion.button
@@ -286,9 +308,9 @@ const Profile: React.FC = () => {
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsEditing(!isEditing)}
               className={`p-2 rounded-full transition-colors ${
-                theme === 'dark'
-                  ? 'bg-primary-600/20 text-primary-400 hover:bg-primary-600/30'
-                  : 'bg-primary-100 text-primary-600 hover:bg-primary-200'
+                theme === "dark"
+                  ? "bg-primary-600/20 text-primary-400 hover:bg-primary-600/30"
+                  : "bg-primary-100 text-primary-600 hover:bg-primary-200"
               }`}
             >
               <FiEdit3 className="w-5 h-5" />
@@ -302,12 +324,14 @@ const Profile: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className={`backdrop-blur-md rounded-2xl p-6 border transition-all duration-200 ${
-            theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-white/80 border-white/30'
+            theme === "dark"
+              ? "bg-white/10 border-white/20"
+              : "bg-white/80 border-white/30"
           }`}
         >
           <h3
             className={`text-lg font-bold mb-4 transition-colors duration-200 ${
-              theme === 'dark' ? 'text-white' : 'text-gray-800'
+              theme === "dark" ? "text-white" : "text-gray-800"
             }`}
           >
             Personal Information
@@ -318,12 +342,12 @@ const Profile: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <FiMail
                   className={`w-5 h-5 transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                    theme === "dark" ? "text-gray-400" : "text-gray-500"
                   }`}
                 />
                 <label
                   className={`text-sm font-medium transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                    theme === "dark" ? "text-gray-300" : "text-gray-600"
                   }`}
                 >
                   Email Address
@@ -332,32 +356,36 @@ const Profile: React.FC = () => {
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 disabled={!isEditing}
                 className={`w-full px-4 py-3 rounded-xl border transition-all duration-200 ${
                   isEditing
-                    ? theme === 'dark'
-                      ? 'bg-gray-800/50 border-gray-600 text-white focus:border-primary-400 focus:bg-gray-700/50'
-                      : 'bg-gray-50 border-gray-300 text-gray-800 focus:border-primary-500 focus:bg-white'
-                    : theme === 'dark'
-                      ? 'bg-transparent border-transparent text-gray-300'
-                      : 'bg-transparent border-transparent text-gray-600'
-                } ${errors.email ? 'border-red-500' : ''}`}
+                    ? theme === "dark"
+                      ? "bg-gray-800/50 border-gray-600 text-white focus:border-primary-400 focus:bg-gray-700/50"
+                      : "bg-gray-50 border-gray-300 text-gray-800 focus:border-primary-500 focus:bg-white"
+                    : theme === "dark"
+                      ? "bg-transparent border-transparent text-gray-300"
+                      : "bg-transparent border-transparent text-gray-600"
+                } ${errors.email ? "border-red-500" : ""}`}
                 placeholder="Enter your email"
               />
-              {errors.email && <p className="text-red-500 text-sm ml-8">{errors.email}</p>}
+              {errors.email && (
+                <p className="text-red-500 text-sm ml-8">{errors.email}</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center space-x-3">
                 <FiMapPin
                   className={`w-5 h-5 transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                    theme === "dark" ? "text-gray-400" : "text-gray-500"
                   }`}
                 />
                 <label
                   className={`text-sm font-medium transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                    theme === "dark" ? "text-gray-300" : "text-gray-600"
                   }`}
                 >
                   Location
@@ -366,32 +394,36 @@ const Profile: React.FC = () => {
               <input
                 type="text"
                 value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, location: e.target.value })
+                }
                 disabled={!isEditing}
                 className={`w-full px-4 py-3 rounded-xl border transition-all duration-200 ${
                   isEditing
-                    ? theme === 'dark'
-                      ? 'bg-gray-800/50 border-gray-600 text-white focus:border-primary-400 focus:bg-gray-700/50'
-                      : 'bg-gray-50 border-gray-300 text-gray-800 focus:border-primary-500 focus:bg-white'
-                    : theme === 'dark'
-                      ? 'bg-transparent border-transparent text-gray-300'
-                      : 'bg-transparent border-transparent text-gray-600'
-                } ${errors.location ? 'border-red-500' : ''}`}
+                    ? theme === "dark"
+                      ? "bg-gray-800/50 border-gray-600 text-white focus:border-primary-400 focus:bg-gray-700/50"
+                      : "bg-gray-50 border-gray-300 text-gray-800 focus:border-primary-500 focus:bg-white"
+                    : theme === "dark"
+                      ? "bg-transparent border-transparent text-gray-300"
+                      : "bg-transparent border-transparent text-gray-600"
+                } ${errors.location ? "border-red-500" : ""}`}
                 placeholder="Enter your location"
               />
-              {errors.location && <p className="text-red-500 text-sm ml-8">{errors.location}</p>}
+              {errors.location && (
+                <p className="text-red-500 text-sm ml-8">{errors.location}</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center space-x-3">
                 <FiUser
                   className={`w-5 h-5 transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                    theme === "dark" ? "text-gray-400" : "text-gray-500"
                   }`}
                 />
                 <label
                   className={`text-sm font-medium transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                    theme === "dark" ? "text-gray-300" : "text-gray-600"
                   }`}
                 >
                   Bio
@@ -399,17 +431,19 @@ const Profile: React.FC = () => {
               </div>
               <textarea
                 value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, bio: e.target.value })
+                }
                 disabled={!isEditing}
                 rows={3}
                 className={`w-full px-4 py-3 rounded-xl border transition-all duration-200 resize-none ${
                   isEditing
-                    ? theme === 'dark'
-                      ? 'bg-gray-800/50 border-gray-600 text-white focus:border-primary-400 focus:bg-gray-700/50'
-                      : 'bg-gray-50 border-gray-300 text-gray-800 focus:border-primary-500 focus:bg-white'
-                    : theme === 'dark'
-                      ? 'bg-transparent border-transparent text-gray-300'
-                      : 'bg-transparent border-transparent text-gray-600'
+                    ? theme === "dark"
+                      ? "bg-gray-800/50 border-gray-600 text-white focus:border-primary-400 focus:bg-gray-700/50"
+                      : "bg-gray-50 border-gray-300 text-gray-800 focus:border-primary-500 focus:bg-white"
+                    : theme === "dark"
+                      ? "bg-transparent border-transparent text-gray-300"
+                      : "bg-transparent border-transparent text-gray-600"
                 }`}
                 placeholder="Tell us about yourself..."
               />
@@ -434,9 +468,9 @@ const Profile: React.FC = () => {
                   onClick={handleCancel}
                   disabled={isSaving}
                   className={`flex-1 py-3 px-4 border rounded-xl font-medium transition-colors ${
-                    theme === 'dark'
-                      ? 'border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50'
+                    theme === "dark"
+                      ? "border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+                      : "border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                   }`}
                 >
                   Cancel
@@ -468,12 +502,14 @@ const Profile: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           className={`backdrop-blur-md rounded-2xl p-6 border transition-all duration-200 ${
-            theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-white/80 border-white/30'
+            theme === "dark"
+              ? "bg-white/10 border-white/20"
+              : "bg-white/80 border-white/30"
           }`}
         >
           <h3
             className={`text-lg font-bold mb-4 transition-colors duration-200 ${
-              theme === 'dark' ? 'text-white' : 'text-gray-800'
+              theme === "dark" ? "text-white" : "text-gray-800"
             }`}
           >
             Account Information
@@ -484,35 +520,38 @@ const Profile: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <FiCalendar
                   className={`w-5 h-5 transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                    theme === "dark" ? "text-gray-400" : "text-gray-500"
                   }`}
                 />
                 <div>
                   <p
                     className={`font-medium transition-colors duration-200 ${
-                      theme === 'dark' ? 'text-white' : 'text-gray-800'
+                      theme === "dark" ? "text-white" : "text-gray-800"
                     }`}
                   >
                     Member Since
                   </p>
                   <p
                     className={`text-sm transition-colors duration-200 ${
-                      theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                      theme === "dark" ? "text-gray-300" : "text-gray-600"
                     }`}
                   >
                     {profileData?.createdAt
-                      ? new Date(profileData.createdAt).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })
+                      ? new Date(profileData.createdAt).toLocaleDateString(
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          },
+                        )
                       : user?.createdAt
-                        ? new Date(user.createdAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
+                        ? new Date(user.createdAt).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
                           })
-                        : 'January 18, 2025'}
+                        : "January 18, 2025"}
                   </p>
                 </div>
               </div>
@@ -522,20 +561,20 @@ const Profile: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <FiShield
                   className={`w-5 h-5 transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                    theme === "dark" ? "text-gray-400" : "text-gray-500"
                   }`}
                 />
                 <div>
                   <p
                     className={`font-medium transition-colors duration-200 ${
-                      theme === 'dark' ? 'text-white' : 'text-gray-800'
+                      theme === "dark" ? "text-white" : "text-gray-800"
                     }`}
                   >
                     Account Status
                   </p>
                   <p
                     className={`text-sm transition-colors duration-200 ${
-                      theme === 'dark' ? 'text-green-400' : 'text-green-600'
+                      theme === "dark" ? "text-green-400" : "text-green-600"
                     }`}
                   >
                     Verified
@@ -552,12 +591,14 @@ const Profile: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
           className={`backdrop-blur-md rounded-2xl p-6 border transition-all duration-200 ${
-            theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-white/80 border-white/30'
+            theme === "dark"
+              ? "bg-white/10 border-white/20"
+              : "bg-white/80 border-white/30"
           }`}
         >
           <h3
             className={`text-lg font-bold mb-4 transition-colors duration-200 ${
-              theme === 'dark' ? 'text-white' : 'text-gray-800'
+              theme === "dark" ? "text-white" : "text-gray-800"
             }`}
           >
             Interests & Preferences
@@ -565,7 +606,9 @@ const Profile: React.FC = () => {
 
           {isLoading ? (
             <div className="text-center py-4">
-              <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+              <p
+                className={theme === "dark" ? "text-gray-400" : "text-gray-500"}
+              >
                 Loading preferences...
               </p>
             </div>
@@ -574,30 +617,32 @@ const Profile: React.FC = () => {
               <div>
                 <p
                   className={`text-sm font-medium mb-2 transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                    theme === "dark" ? "text-gray-300" : "text-gray-600"
                   }`}
                 >
                   Areas of Interest
                 </p>
                 {profileData?.interests && profileData.interests.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {profileData.interests.map((interest: string, index: number) => (
-                      <span
-                        key={index}
-                        className={`px-3 py-1 rounded-full text-sm transition-colors duration-200 ${
-                          theme === 'dark'
-                            ? 'bg-primary-600/20 text-primary-300'
-                            : 'bg-primary-100 text-primary-700'
-                        }`}
-                      >
-                        {interest}
-                      </span>
-                    ))}
+                    {profileData.interests.map(
+                      (interest: string, index: number) => (
+                        <span
+                          key={index}
+                          className={`px-3 py-1 rounded-full text-sm transition-colors duration-200 ${
+                            theme === "dark"
+                              ? "bg-primary-600/20 text-primary-300"
+                              : "bg-primary-100 text-primary-700"
+                          }`}
+                        >
+                          {interest}
+                        </span>
+                      ),
+                    )}
                   </div>
                 ) : (
                   <p
                     className={`text-sm italic ${
-                      theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                      theme === "dark" ? "text-gray-500" : "text-gray-400"
                     }`}
                   >
                     Complete an assessment to see your interests
@@ -608,7 +653,7 @@ const Profile: React.FC = () => {
               <div>
                 <p
                   className={`text-sm font-medium mb-2 transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                    theme === "dark" ? "text-gray-300" : "text-gray-600"
                   }`}
                 >
                   Preferred Universities
@@ -616,23 +661,25 @@ const Profile: React.FC = () => {
                 {profileData?.preferredUniversities &&
                 profileData.preferredUniversities.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {profileData.preferredUniversities.map((university: string, index: number) => (
-                      <span
-                        key={index}
-                        className={`px-3 py-1 rounded-full text-sm transition-colors duration-200 ${
-                          theme === 'dark'
-                            ? 'bg-blue-600/20 text-blue-300'
-                            : 'bg-blue-100 text-blue-700'
-                        }`}
-                      >
-                        {university}
-                      </span>
-                    ))}
+                    {profileData.preferredUniversities.map(
+                      (university: string, index: number) => (
+                        <span
+                          key={index}
+                          className={`px-3 py-1 rounded-full text-sm transition-colors duration-200 ${
+                            theme === "dark"
+                              ? "bg-blue-600/20 text-blue-300"
+                              : "bg-blue-100 text-blue-700"
+                          }`}
+                        >
+                          {university}
+                        </span>
+                      ),
+                    )}
                   </div>
                 ) : (
                   <p
                     className={`text-sm italic ${
-                      theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                      theme === "dark" ? "text-gray-500" : "text-gray-400"
                     }`}
                   >
                     Complete an assessment to see university recommendations
@@ -641,12 +688,12 @@ const Profile: React.FC = () => {
               </div>
 
               <div
-                className={`mt-6 pt-6 border-t transition-colors duration-200 ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}
+                className={`mt-6 pt-6 border-t transition-colors duration-200 ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}
               >
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate('/assessment')}
+                  onClick={() => navigate("/assessment")}
                   className="w-full sm:w-auto px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
                 >
                   <FiEdit3 className="w-4 h-4" />

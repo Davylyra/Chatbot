@@ -8,7 +8,7 @@ const DEFAULT_TIMEOUT = 10000;
 
 interface ApiCallOptions {
   endpoint: string;
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   body?: any;
   headers?: Record<string, string>;
   timeout?: number;
@@ -25,10 +25,12 @@ interface ApiResponse<T = any> {
 /**
  * Centralized API call handler with auth, timeout, and error handling
  */
-export async function apiCall<T = any>(options: ApiCallOptions): Promise<ApiResponse<T>> {
+export async function apiCall<T = any>(
+  options: ApiCallOptions,
+): Promise<ApiResponse<T>> {
   const {
     endpoint,
-    method = 'GET',
+    method = "GET",
     body,
     headers = {},
     timeout = DEFAULT_TIMEOUT,
@@ -40,19 +42,21 @@ export async function apiCall<T = any>(options: ApiCallOptions): Promise<ApiResp
 
   try {
     const requestHeaders: HeadersInit = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
+      "Content-Type": "application/json",
+      Accept: "application/json",
       ...headers,
     };
 
     if (requiresAuth) {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (token) {
-        requestHeaders['Authorization'] = `Bearer ${token}`;
+        requestHeaders["Authorization"] = `Bearer ${token}`;
       }
     }
 
-    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+    const url = endpoint.startsWith("http")
+      ? endpoint
+      : `${API_BASE_URL}${endpoint}`;
 
     const response = await fetch(url, {
       method,
@@ -67,7 +71,8 @@ export async function apiCall<T = any>(options: ApiCallOptions): Promise<ApiResp
       const errorData = await response.json().catch(() => ({}));
       return {
         success: false,
-        error: errorData.message || errorData.error || `HTTP ${response.status}`,
+        error:
+          errorData.message || errorData.error || `HTTP ${response.status}`,
       };
     }
 
@@ -81,21 +86,24 @@ export async function apiCall<T = any>(options: ApiCallOptions): Promise<ApiResp
     clearTimeout(timeoutId);
 
     if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        return { success: false, error: 'Request timeout' };
+      if (error.name === "AbortError") {
+        return { success: false, error: "Request timeout" };
       }
       return { success: false, error: error.message };
     }
 
-    return { success: false, error: 'Unknown error occurred' };
+    return { success: false, error: "Unknown error occurred" };
   }
 }
 
 /**
  * Centralized error handler with user-friendly messages
  */
-export function handleApiError(error: unknown, fallbackMessage = 'An error occurred'): string {
-  if (typeof error === 'string') return error;
+export function handleApiError(
+  error: unknown,
+  fallbackMessage = "An error occurred",
+): string {
+  if (typeof error === "string") return error;
   if (error instanceof Error) return error.message;
   return fallbackMessage;
 }
@@ -137,10 +145,10 @@ export class CacheManager<T> {
         JSON.stringify({
           data,
           timestamp: Date.now(),
-        })
+        }),
       );
     } catch (error) {
-      console.warn('Failed to cache data:', error);
+      console.warn("Failed to cache data:", error);
     }
   }
 
@@ -159,9 +167,12 @@ export class CacheManager<T> {
 export async function retryApiCall<T>(
   fn: () => Promise<ApiResponse<T>>,
   maxRetries = 2,
-  delay = 1000
+  delay = 1000,
 ): Promise<ApiResponse<T>> {
-  let lastError: ApiResponse<T> = { success: false, error: 'Max retries exceeded' };
+  let lastError: ApiResponse<T> = {
+    success: false,
+    error: "Max retries exceeded",
+  };
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -170,12 +181,16 @@ export async function retryApiCall<T>(
 
       lastError = result;
       if (attempt < maxRetries) {
-        await new Promise((resolve) => setTimeout(resolve, delay * (attempt + 1)));
+        await new Promise((resolve) =>
+          setTimeout(resolve, delay * (attempt + 1)),
+        );
       }
     } catch (error) {
       lastError = { success: false, error: handleApiError(error) };
       if (attempt < maxRetries) {
-        await new Promise((resolve) => setTimeout(resolve, delay * (attempt + 1)));
+        await new Promise((resolve) =>
+          setTimeout(resolve, delay * (attempt + 1)),
+        );
       }
     }
   }

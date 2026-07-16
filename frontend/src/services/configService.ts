@@ -1,15 +1,15 @@
-import { SmartApiService } from './api';
+import { SmartApiService } from "./api";
 import {
   getDefaultConfig as fetchDefaultConfig,
   getDefaultConfigCategory as fetchDefaultConfigCategory,
-} from '../mocks/defaultConfig';
+} from "../mocks/defaultConfig";
 
 export interface AppConfig {
   id: string;
   key: string;
   value: string;
-  type: 'string' | 'number' | 'boolean' | 'json';
-  category: 'api' | 'contact' | 'social' | 'feature' | 'ui' | 'security';
+  type: "string" | "number" | "boolean" | "json";
+  category: "api" | "contact" | "social" | "feature" | "ui" | "security";
   description?: string;
   isSensitive?: boolean;
   lastUpdated: string;
@@ -40,8 +40,8 @@ class ConfigService {
           id: response.data.id || key,
           key,
           value: response.data.value,
-          type: response.data.type || 'string',
-          category: response.data.category || 'ui',
+          type: response.data.type || "string",
+          category: response.data.category || "ui",
           description: response.data.description,
           isSensitive: response.data.isSensitive || false,
           lastUpdated: new Date().toISOString(),
@@ -53,7 +53,7 @@ class ConfigService {
 
       return this.getDefaultConfig(key);
     } catch (fetchError) {
-      console.error('Failed to fetch config:', fetchError);
+      console.error("Failed to fetch config:", fetchError);
       return this.getDefaultConfig(key);
     }
   }
@@ -84,12 +84,16 @@ class ConfigService {
 
       return this.getDefaultConfigCategory(category);
     } catch (fetchError) {
-      console.error('Failed to fetch config category:', fetchError);
+      console.error("Failed to fetch config category:", fetchError);
       return this.getDefaultConfigCategory(category);
     }
   }
 
-  async updateConfig(key: string, value: string, type: string = 'string'): Promise<boolean> {
+  async updateConfig(
+    key: string,
+    value: string,
+    type: string = "string",
+  ): Promise<boolean> {
     try {
       const response = await SmartApiService.updateConfig(key, { value, type });
 
@@ -100,7 +104,7 @@ class ConfigService {
           key,
           value,
           type: type as any,
-          category: existing?.category || 'ui',
+          category: existing?.category || "ui",
           description: existing?.description,
           isSensitive: existing?.isSensitive || false,
           lastUpdated: new Date().toISOString(),
@@ -111,7 +115,7 @@ class ConfigService {
 
       return false;
     } catch (updateError) {
-      console.error('Failed to update config:', updateError);
+      console.error("Failed to update config:", updateError);
       return false;
     }
   }

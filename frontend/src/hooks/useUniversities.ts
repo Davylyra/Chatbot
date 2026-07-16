@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { SmartApiService } from '../services/api';
-import type { University } from '../services/api';
+import { useState, useEffect, useCallback } from "react";
+import { SmartApiService } from "../services/api";
+import type { University } from "../services/api";
 
 interface UseUniversitiesReturn {
   universities: University[];
@@ -26,10 +26,13 @@ export const useUniversities = (): UseUniversitiesReturn => {
       if (response.success && response.data) {
         setUniversities(response.data);
       } else {
-        throw new Error(response.error || 'Failed to load universities');
+        throw new Error(response.error || "Failed to load universities");
       }
     } catch (loadError) {
-      const errorMessage = loadError instanceof Error ? loadError.message : 'Failed to load universities';
+      const errorMessage =
+        loadError instanceof Error
+          ? loadError.message
+          : "Failed to load universities";
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -51,18 +54,18 @@ export const useUniversities = (): UseUniversitiesReturn => {
           (university) =>
             university.name.toLowerCase().includes(query.toLowerCase()) ||
             university.fullName.toLowerCase().includes(query.toLowerCase()) ||
-            university.location.toLowerCase().includes(query.toLowerCase())
+            university.location.toLowerCase().includes(query.toLowerCase()),
         );
       }
     },
-    [universities]
+    [universities],
   );
 
   const getUniversity = useCallback(
     (id: string): University | undefined => {
       return universities.find((university) => university.id === id);
     },
-    [universities]
+    [universities],
   );
 
   const refreshUniversities = useCallback(async () => {

@@ -3,14 +3,17 @@ let API_TIMEOUT = 10000;
 
 const initializeApiConfig = async () => {
   try {
-    const { configService } = await import('./configService');
-    const baseUrl = await configService.getConfig('api.base_url');
-    const timeout = await configService.getConfig('api.timeout');
+    const { configService } = await import("./configService");
+    const baseUrl = await configService.getConfig("api.base_url");
+    const timeout = await configService.getConfig("api.timeout");
 
     if (baseUrl) API_BASE_URL = baseUrl;
     if (timeout) API_TIMEOUT = parseInt(timeout, 10);
   } catch (configError) {
-    console.warn('Failed to load dynamic API configuration, using defaults:', configError);
+    console.warn(
+      "Failed to load dynamic API configuration, using defaults:",
+      configError,
+    );
   }
 };
 
@@ -30,7 +33,7 @@ export interface University {
   location: string;
   established: number;
   studentCount: string;
-  type: 'public' | 'private';
+  type: "public" | "private";
   programs: string[];
   logo: string;
   formPrice: string;
@@ -77,7 +80,7 @@ export interface ChatResponse {
 export interface AssessmentQuestion {
   id: string;
   question: string;
-  type: 'text' | 'single' | 'multiple';
+  type: "text" | "single" | "multiple";
   options?: string[];
   placeholder?: string;
   required: boolean;
@@ -132,7 +135,10 @@ class HttpClient {
     this.timeout = timeout;
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {},
+  ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
@@ -142,7 +148,7 @@ class HttpClient {
         ...options,
         signal: controller.signal,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           ...options.headers,
         },
       });
@@ -159,36 +165,44 @@ class HttpClient {
       clearTimeout(timeoutId);
 
       if (requestError instanceof Error) {
-        if (requestError.name === 'AbortError') {
-          return { success: false, data: null as T, error: 'Request timeout. Please try again.' };
+        if (requestError.name === "AbortError") {
+          return {
+            success: false,
+            data: null as T,
+            error: "Request timeout. Please try again.",
+          };
         }
         return { success: false, data: null as T, error: requestError.message };
       }
 
-      return { success: false, data: null as T, error: 'An unexpected error occurred.' };
+      return {
+        success: false,
+        data: null as T,
+        error: "An unexpected error occurred.",
+      };
     }
   }
 
   async get<T>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: 'GET' });
+    return this.request<T>(endpoint, { method: "GET" });
   }
 
   async post<T>(endpoint: string, payload: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(payload),
     });
   }
 
   async put<T>(endpoint: string, payload: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(payload),
     });
   }
 
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
+    return this.request<T>(endpoint, { method: "DELETE" });
   }
 }
 
@@ -196,19 +210,23 @@ const httpClient = new HttpClient(API_BASE_URL, API_TIMEOUT);
 
 export class ApiService {
   static async getUniversities(): Promise<ApiResponse<University[]>> {
-    return httpClient.get<University[]>('/universities');
+    return httpClient.get<University[]>("/universities");
   }
 
   static async getUniversity(id: string): Promise<ApiResponse<University>> {
     return httpClient.get<University>(`/universities/${id}`);
   }
 
-  static async searchUniversities(query: string): Promise<ApiResponse<University[]>> {
-    return httpClient.get<University[]>(`/universities/search?q=${encodeURIComponent(query)}`);
+  static async searchUniversities(
+    query: string,
+  ): Promise<ApiResponse<University[]>> {
+    return httpClient.get<University[]>(
+      `/universities/search?q=${encodeURIComponent(query)}`,
+    );
   }
 
   static async getForms(): Promise<ApiResponse<FormData[]>> {
-    return httpClient.get<FormData[]>('/forms');
+    return httpClient.get<FormData[]>("/forms");
   }
 
   static async getForm(id: string): Promise<ApiResponse<FormData>> {
@@ -217,16 +235,16 @@ export class ApiService {
 
   static async purchaseForm(
     formId: string,
-    paymentData: any
+    paymentData: any,
   ): Promise<ApiResponse<{ transactionId: string; status: string }>> {
     return httpClient.post(`/forms/${formId}/purchase`, paymentData);
   }
 
   static async sendMessage(
     message: string,
-    universityContext?: string
+    universityContext?: string,
   ): Promise<ApiResponse<ChatResponse>> {
-    return httpClient.post<ChatResponse>('/chat/message', {
+    return httpClient.post<ChatResponse>("/chat/message", {
       message,
       universityContext,
       timestamp: new Date().toISOString(),
@@ -234,10 +252,12 @@ export class ApiService {
   }
 
   static async getConversations(): Promise<ApiResponse<any[]>> {
-    return httpClient.get<any[]>('/chat/conversations');
+    return httpClient.get<any[]>("/chat/conversations");
   }
 
-  static async deleteConversation(conversationId: string): Promise<ApiResponse<void>> {
+  static async deleteConversation(
+    conversationId: string,
+  ): Promise<ApiResponse<void>> {
     return httpClient.delete<void>(`/chat/conversations/${conversationId}`);
   }
 
@@ -246,7 +266,7 @@ export class ApiService {
     firstUserMessage: string,
     firstBotReply?: string,
     universityContext?: string,
-    fallbackTitle?: string
+    fallbackTitle?: string,
   ): Promise<ApiResponse<{ title: string; method: string }>> {
     return httpClient.post<{ title: string; method: string }>(
       `/chat/conversations/${conversationId}/generate-title`,
@@ -255,27 +275,34 @@ export class ApiService {
         firstBotReply,
         universityContext,
         fallbackTitle,
-      }
+      },
     );
   }
 
-  static async getAssessmentQuestions(): Promise<ApiResponse<AssessmentQuestion[]>> {
-    return httpClient.get<AssessmentQuestion[]>('/assessment/questions');
+  static async getAssessmentQuestions(): Promise<
+    ApiResponse<AssessmentQuestion[]>
+  > {
+    return httpClient.get<AssessmentQuestion[]>("/assessment/questions");
   }
 
   static async submitAssessment(answers: any): Promise<ApiResponse<any>> {
-    return httpClient.post('/assessment/submit', answers);
+    return httpClient.post("/assessment/submit", answers);
   }
 
-  static async getAIRecommendations(assessmentData: any): Promise<ApiResponse<any>> {
-    return httpClient.post('/assessment/ai-recommendations', assessmentData);
+  static async getAIRecommendations(
+    assessmentData: any,
+  ): Promise<ApiResponse<any>> {
+    return httpClient.post("/assessment/ai-recommendations", assessmentData);
   }
 
   static async getPageContent(pageId: string): Promise<ApiResponse<any>> {
     return httpClient.get(`/content/pages/${pageId}`);
   }
 
-  static async updatePageContent(pageId: string, content: any): Promise<ApiResponse<any>> {
+  static async updatePageContent(
+    pageId: string,
+    content: any,
+  ): Promise<ApiResponse<any>> {
     return httpClient.put(`/content/pages/${pageId}`, content);
   }
 
@@ -287,51 +314,73 @@ export class ApiService {
     return httpClient.get(`/config/category/${category}`);
   }
 
-  static async updateConfig(key: string, config: any): Promise<ApiResponse<any>> {
+  static async updateConfig(
+    key: string,
+    config: any,
+  ): Promise<ApiResponse<any>> {
     return httpClient.put(`/config/${key}`, config);
   }
 
-  static async getDynamicData(type: string, id: string): Promise<ApiResponse<any>> {
+  static async getDynamicData(
+    type: string,
+    id: string,
+  ): Promise<ApiResponse<any>> {
     return httpClient.get(`/data/${type}/${id}`);
   }
 
   static async getDynamicDataCollection(
     type: string,
-    filters?: Record<string, any>
+    filters?: Record<string, any>,
   ): Promise<ApiResponse<any>> {
-    const queryParams = filters ? `?${new URLSearchParams(filters).toString()}` : '';
+    const queryParams = filters
+      ? `?${new URLSearchParams(filters).toString()}`
+      : "";
     return httpClient.get(`/data/${type}${queryParams}`);
   }
 
-  static async createDynamicData(type: string, payload: any): Promise<ApiResponse<any>> {
+  static async createDynamicData(
+    type: string,
+    payload: any,
+  ): Promise<ApiResponse<any>> {
     return httpClient.post(`/data/${type}`, payload);
   }
 
-  static async updateDynamicData(type: string, id: string, payload: any): Promise<ApiResponse<any>> {
+  static async updateDynamicData(
+    type: string,
+    id: string,
+    payload: any,
+  ): Promise<ApiResponse<any>> {
     return httpClient.put(`/data/${type}/${id}`, payload);
   }
 
-  static async deleteDynamicData(type: string, id: string): Promise<ApiResponse<any>> {
+  static async deleteDynamicData(
+    type: string,
+    id: string,
+  ): Promise<ApiResponse<any>> {
     return httpClient.delete(`/data/${type}/${id}`);
   }
 
   static async getPaymentMethods(): Promise<ApiResponse<PaymentMethod[]>> {
-    return httpClient.get<PaymentMethod[]>('/payments/methods');
+    return httpClient.get<PaymentMethod[]>("/payments/methods");
   }
 
   static async getAppConfig(): Promise<ApiResponse<AppConfig>> {
-    return httpClient.get<AppConfig>('/config');
+    return httpClient.get<AppConfig>("/config");
   }
 
-  static async updateAppConfig(config: Partial<AppConfig>): Promise<ApiResponse<AppConfig>> {
-    return httpClient.put<AppConfig>('/config', config);
+  static async updateAppConfig(
+    config: Partial<AppConfig>,
+  ): Promise<ApiResponse<AppConfig>> {
+    return httpClient.put<AppConfig>("/config", config);
   }
 
   static async getNotifications(): Promise<ApiResponse<any[]>> {
-    return httpClient.get<any[]>('/notifications');
+    return httpClient.get<any[]>("/notifications");
   }
 
-  static async markNotificationAsRead(notificationId: string): Promise<ApiResponse<void>> {
+  static async markNotificationAsRead(
+    notificationId: string,
+  ): Promise<ApiResponse<void>> {
     return httpClient.put<void>(`/notifications/${notificationId}/read`, {});
   }
 
@@ -339,18 +388,27 @@ export class ApiService {
     return httpClient.get<any>(`/users/${userId}`);
   }
 
-  static async updateUserProfile(userId: string, updates: any): Promise<ApiResponse<any>> {
+  static async updateUserProfile(
+    userId: string,
+    updates: any,
+  ): Promise<ApiResponse<any>> {
     return httpClient.put<any>(`/users/${userId}`, updates);
   }
 
-  static async trackEvent(event: string, eventData: any): Promise<ApiResponse<void>> {
-    return httpClient.post<void>('/analytics/track', { event, data: eventData });
+  static async trackEvent(
+    event: string,
+    eventData: any,
+  ): Promise<ApiResponse<void>> {
+    return httpClient.post<void>("/analytics/track", {
+      event,
+      data: eventData,
+    });
   }
 }
 
 export class FallbackService {
   static async getUniversities(): Promise<ApiResponse<University[]>> {
-    const { UNIVERSITIES_DATA } = await import('../data/constants');
+    const { UNIVERSITIES_DATA } = await import("../data/constants");
     return {
       success: true,
       data: UNIVERSITIES_DATA.map((university) => ({
@@ -374,7 +432,7 @@ export class FallbackService {
   }
 
   static async getForms(): Promise<ApiResponse<FormData[]>> {
-    const { UNIVERSITIES_DATA } = await import('../data/constants');
+    const { UNIVERSITIES_DATA } = await import("../data/constants");
     const forms = UNIVERSITIES_DATA.map((university) => ({
       id: university.id,
       universityId: university.id,
@@ -391,10 +449,13 @@ export class FallbackService {
 
   static async sendMessage(
     message: string,
-    universityContext?: string
+    universityContext?: string,
   ): Promise<ApiResponse<ChatResponse>> {
-    const { MockApiService } = await import('./mockData');
-    const chatReply = await MockApiService.getChatResponse(message, universityContext);
+    const { MockApiService } = await import("./mockData");
+    const chatReply = await MockApiService.getChatResponse(
+      message,
+      universityContext,
+    );
     return { success: true, data: chatReply };
   }
 }
@@ -412,7 +473,7 @@ export class SmartApiService {
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       const healthCheck = await fetch(`${API_BASE_URL}/health`, {
-        method: 'GET',
+        method: "GET",
         signal: controller.signal,
       });
 
@@ -427,7 +488,9 @@ export class SmartApiService {
 
   static async getUniversities(): Promise<ApiResponse<University[]>> {
     const isAvailable = await this.checkApiAvailability();
-    return isAvailable ? ApiService.getUniversities() : FallbackService.getUniversities();
+    return isAvailable
+      ? ApiService.getUniversities()
+      : FallbackService.getUniversities();
   }
 
   static async getForms(): Promise<ApiResponse<FormData[]>> {
@@ -437,7 +500,7 @@ export class SmartApiService {
 
   static async sendMessage(
     message: string,
-    universityContext?: string
+    universityContext?: string,
   ): Promise<ApiResponse<ChatResponse>> {
     const isAvailable = await this.checkApiAvailability();
     return isAvailable
@@ -450,7 +513,7 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.getUniversity(id);
     }
-    const { UNIVERSITIES_DATA } = await import('../data/constants');
+    const { UNIVERSITIES_DATA } = await import("../data/constants");
     const university = UNIVERSITIES_DATA.find((u) => u.id === id);
     return {
       success: !!university,
@@ -469,12 +532,12 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.searchUniversities(query);
     }
-    const { UNIVERSITIES_DATA } = await import('../data/constants');
+    const { UNIVERSITIES_DATA } = await import("../data/constants");
     const filtered = UNIVERSITIES_DATA.filter(
       (university) =>
         university.universityName.toLowerCase().includes(query.toLowerCase()) ||
         university.fullName.toLowerCase().includes(query.toLowerCase()) ||
-        university.location.toLowerCase().includes(query.toLowerCase())
+        university.location.toLowerCase().includes(query.toLowerCase()),
     );
     return {
       success: true,
@@ -495,7 +558,7 @@ export class SmartApiService {
       success: true,
       data: {
         transactionId: `txn_${Date.now()}`,
-        status: 'completed',
+        status: "completed",
       },
     };
   }
@@ -505,7 +568,7 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.getAppConfig();
     }
-    const { APP_CONFIG } = await import('../data/constants');
+    const { APP_CONFIG } = await import("../data/constants");
     return { success: true, data: APP_CONFIG as AppConfig };
   }
 
@@ -514,7 +577,7 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.getConfig(key);
     }
-    return { success: false, data: null, error: 'API not available' };
+    return { success: false, data: null, error: "API not available" };
   }
 
   static async getConfigCategory(category: string) {
@@ -522,7 +585,7 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.getConfigCategory(category);
     }
-    return { success: false, data: null, error: 'API not available' };
+    return { success: false, data: null, error: "API not available" };
   }
 
   static async updateConfig(key: string, config: any) {
@@ -530,7 +593,7 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.updateConfig(key, config);
     }
-    return { success: false, data: null, error: 'API not available' };
+    return { success: false, data: null, error: "API not available" };
   }
 
   static async getPageContent(pageId: string) {
@@ -538,7 +601,7 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.getPageContent(pageId);
     }
-    return { success: false, data: null, error: 'API not available' };
+    return { success: false, data: null, error: "API not available" };
   }
 
   static async updatePageContent(pageId: string, content: any) {
@@ -546,7 +609,7 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.updatePageContent(pageId, content);
     }
-    return { success: false, data: null, error: 'API not available' };
+    return { success: false, data: null, error: "API not available" };
   }
 
   static async getDynamicData(type: string, id: string) {
@@ -554,15 +617,18 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.getDynamicData(type, id);
     }
-    return { success: false, data: null, error: 'API not available' };
+    return { success: false, data: null, error: "API not available" };
   }
 
-  static async getDynamicDataCollection(type: string, filters?: Record<string, any>) {
+  static async getDynamicDataCollection(
+    type: string,
+    filters?: Record<string, any>,
+  ) {
     const isAvailable = await this.checkApiAvailability();
     if (isAvailable) {
       return ApiService.getDynamicDataCollection(type, filters);
     }
-    return { success: false, data: null, error: 'API not available' };
+    return { success: false, data: null, error: "API not available" };
   }
 
   static async createDynamicData(type: string, payload: any) {
@@ -570,7 +636,7 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.createDynamicData(type, payload);
     }
-    return { success: false, data: null, error: 'API not available' };
+    return { success: false, data: null, error: "API not available" };
   }
 
   static async updateDynamicData(type: string, id: string, payload: any) {
@@ -578,7 +644,7 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.updateDynamicData(type, id, payload);
     }
-    return { success: false, data: null, error: 'API not available' };
+    return { success: false, data: null, error: "API not available" };
   }
 
   static async deleteDynamicData(type: string, id: string) {
@@ -586,7 +652,7 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.deleteDynamicData(type, id);
     }
-    return { success: false, data: null, error: 'API not available' };
+    return { success: false, data: null, error: "API not available" };
   }
 
   static async getAIRecommendations(assessmentData: any) {
@@ -594,7 +660,7 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.getAIRecommendations(assessmentData);
     }
-    return { success: false, data: null, error: 'API not available' };
+    return { success: false, data: null, error: "API not available" };
   }
 }
 

@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import type { ReactNode } from "react";
 
-type Theme = 'light' | 'dark';
-type ThemeMode = 'light' | 'dark' | 'auto';
+type Theme = "light" | "dark";
+type ThemeMode = "light" | "dark" | "auto";
 
 interface ThemeContextType {
   theme: Theme;
@@ -18,39 +18,39 @@ interface ThemeProviderProps {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
-    const savedMode = localStorage.getItem('theme-mode');
-    return (savedMode as ThemeMode) || 'light';
+    const savedMode = localStorage.getItem("theme-mode");
+    return (savedMode as ThemeMode) || "light";
   });
 
-  const [theme, setTheme] = useState<Theme>('light');
+  const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
-      if (themeMode === 'auto') {
-        setTheme(e.matches ? 'dark' : 'light');
+      if (themeMode === "auto") {
+        setTheme(e.matches ? "dark" : "light");
       }
     };
 
     // Initial check
-    if (themeMode === 'auto') {
-      setTheme(mediaQuery.matches ? 'dark' : 'light');
+    if (themeMode === "auto") {
+      setTheme(mediaQuery.matches ? "dark" : "light");
     }
 
-    mediaQuery.addEventListener('change', handleChange);
+    mediaQuery.addEventListener("change", handleChange);
 
     return () => {
-      mediaQuery.removeEventListener('change', handleChange);
+      mediaQuery.removeEventListener("change", handleChange);
     };
   }, [themeMode]);
 
   useEffect(() => {
-    localStorage.setItem('theme-mode', themeMode);
+    localStorage.setItem("theme-mode", themeMode);
 
-    if (themeMode === 'auto') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      setTheme(mediaQuery.matches ? 'dark' : 'light');
+    if (themeMode === "auto") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      setTheme(mediaQuery.matches ? "dark" : "light");
     } else {
       setTheme(themeMode);
     }
@@ -59,10 +59,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   useEffect(() => {
     const root = document.documentElement;
 
-    if (theme === 'dark') {
-      root.classList.add('dark');
+    if (theme === "dark") {
+      root.classList.add("dark");
     } else {
-      root.classList.remove('dark');
+      root.classList.remove("dark");
     }
   }, [theme]);
 
@@ -72,13 +72,15 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     setThemeMode,
   };
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+  );
 };
 
 export const useTheme = (): ThemeContextType => {
   const context = useContext(ThemeContext);
   if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
+    throw new Error("useTheme must be used within a ThemeProvider");
   }
   return context;
 };

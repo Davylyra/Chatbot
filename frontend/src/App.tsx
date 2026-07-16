@@ -1,13 +1,13 @@
-import React, { memo } from 'react';
-import AppRoutes from './pages/routes/AppRoutes';
-import { AuthProvider } from './contexts/AuthContext';
-import { ThemeProvider, useTheme } from './contexts/ThemeContext';
-import { ConfigProvider } from './contexts/ConfigContext';
-import ErrorBoundary from './components/ErrorBoundary';
-import ToastContainer from './components/ToastContainer';
-import { useAccessibility } from './hooks/useAccessibility';
-import { useToast } from './hooks/useToast';
-import { useSocket } from './hooks/useSocket';
+import React, { memo } from "react";
+import AppRoutes from "./pages/routes/AppRoutes";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
+import { ConfigProvider } from "./contexts/ConfigContext";
+import ErrorBoundary from "./components/ErrorBoundary";
+import ToastContainer from "./components/ToastContainer";
+import { useAccessibility } from "./hooks/useAccessibility";
+import { useToast } from "./hooks/useToast";
+import { useSocket } from "./hooks/useSocket";
 
 const AppContent = memo(() => {
   const { theme } = useTheme();
@@ -33,18 +33,21 @@ const AppContent = memo(() => {
     >
       <div
         className={`absolute inset-0 transition-colors duration-200 ${
-          theme === 'dark'
-            ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900'
-            : 'bg-gradient-to-br from-white via-[#e0f2ff] to-[#d6ecff]'
+          theme === "dark"
+            ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
+            : "bg-gradient-to-br from-white via-[#e0f2ff] to-[#d6ecff]"
         }`}
       />
 
       <div
         className="absolute inset-0 backdrop-blur-xl pointer-events-none"
         style={{
-          background: theme === 'dark' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.3)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          background:
+            theme === "dark"
+              ? "rgba(0, 0, 0, 0.1)"
+              : "rgba(255, 255, 255, 0.3)",
+          backdropFilter: "blur(24px) saturate(180%)",
+          WebkitBackdropFilter: "blur(24px) saturate(180%)",
         }}
       />
 
@@ -57,7 +60,7 @@ const AppContent = memo(() => {
   );
 });
 
-AppContent.displayName = 'AppContent';
+AppContent.displayName = "AppContent";
 
 const App = memo(() => {
   return (
@@ -73,6 +76,6 @@ const App = memo(() => {
   );
 });
 
-App.displayName = 'App';
+App.displayName = "App";
 
 export default App;

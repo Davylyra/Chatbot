@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { SmartApiService } from '../services/api';
-import type { FormData } from '../services/api';
+import { useState, useEffect, useCallback } from "react";
+import { SmartApiService } from "../services/api";
+import type { FormData } from "../services/api";
 
 interface UseFormsReturn {
   forms: FormData[];
@@ -10,7 +10,7 @@ interface UseFormsReturn {
   getFormsByUniversity: (universityId: string) => FormData[];
   purchaseForm: (
     formId: string,
-    paymentData: any
+    paymentData: any,
   ) => Promise<{ success: boolean; transactionId?: string; error?: string }>;
   refreshForms: () => Promise<void>;
 }
@@ -30,10 +30,11 @@ export const useForms = (): UseFormsReturn => {
       if (response.success && response.data) {
         setForms(response.data);
       } else {
-        throw new Error(response.error || 'Failed to load forms');
+        throw new Error(response.error || "Failed to load forms");
       }
     } catch (loadError) {
-      const errorMessage = loadError instanceof Error ? loadError.message : 'Failed to load forms';
+      const errorMessage =
+        loadError instanceof Error ? loadError.message : "Failed to load forms";
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -44,14 +45,14 @@ export const useForms = (): UseFormsReturn => {
     (id: string): FormData | undefined => {
       return forms.find((form) => form.id === id);
     },
-    [forms]
+    [forms],
   );
 
   const getFormsByUniversity = useCallback(
     (universityId: string): FormData[] => {
       return forms.filter((form) => form.universityId === universityId);
     },
-    [forms]
+    [forms],
   );
 
   const purchaseForm = useCallback(async (formId: string, paymentData: any) => {
@@ -66,11 +67,14 @@ export const useForms = (): UseFormsReturn => {
       } else {
         return {
           success: false,
-          error: response.error || 'Purchase failed',
+          error: response.error || "Purchase failed",
         };
       }
     } catch (purchaseError) {
-      const errorMessage = purchaseError instanceof Error ? purchaseError.message : 'Purchase failed';
+      const errorMessage =
+        purchaseError instanceof Error
+          ? purchaseError.message
+          : "Purchase failed";
       return {
         success: false,
         error: errorMessage,

@@ -1,7 +1,7 @@
-import { Component } from 'react';
-import type { ErrorInfo, ReactNode } from 'react';
-import { motion } from 'framer-motion';
-import { FiAlertTriangle, FiRefreshCw, FiHome } from 'react-icons/fi';
+import { Component } from "react";
+import type { ErrorInfo, ReactNode } from "react";
+import { motion } from "framer-motion";
+import { FiAlertTriangle, FiRefreshCw, FiHome } from "react-icons/fi";
 
 interface Props {
   children: ReactNode;
@@ -39,7 +39,7 @@ class ErrorBoundary extends Component<Props, State> {
     });
 
     if (import.meta.env.DEV) {
-      console.error('ErrorBoundary caught an error:', error, errorInfo);
+      console.error("ErrorBoundary caught an error:", error, errorInfo);
     }
 
     this.logErrorToService();
@@ -56,7 +56,7 @@ class ErrorBoundary extends Component<Props, State> {
   };
 
   private handleGoHome = () => {
-    window.location.href = '/';
+    window.location.href = "/";
   };
 
   render() {
@@ -75,7 +75,7 @@ class ErrorBoundary extends Component<Props, State> {
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
               className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6"
             >
               <FiAlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
@@ -86,8 +86,8 @@ class ErrorBoundary extends Component<Props, State> {
             </h1>
 
             <p className="text-gray-600 dark:text-gray-300 mb-6">
-              We're sorry, but something unexpected happened. Don't worry, our team has been
-              notified.
+              We're sorry, but something unexpected happened. Don't worry, our
+              team has been notified.
             </p>
 
             {import.meta.env.DEV && this.state.error && (

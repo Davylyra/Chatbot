@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import Navbar from '../components/Navbar';
-import ChatBot from '../components/ChatBot';
-import ChatSidebar from '../components/ChatSidebar';
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import ChatBot from "../components/ChatBot";
+import ChatSidebar from "../components/ChatSidebar";
 
 const Chat: React.FC = () => {
   const navigate = useNavigate();
@@ -13,14 +13,14 @@ const Chat: React.FC = () => {
 
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth >= 768);
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
 
     const handleToggle = () => setIsSidebarOpen((prev) => !prev);
-    window.addEventListener('toggleSidebar', handleToggle);
+    window.addEventListener("toggleSidebar", handleToggle);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('toggleSidebar', handleToggle);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("toggleSidebar", handleToggle);
     };
   }, []);
 
@@ -48,10 +48,10 @@ const Chat: React.FC = () => {
               ? `${resumeConversationTitle}`
               : universityContext
                 ? `${universityContext.name} CHAT`
-                : 'CHAT'
+                : "CHAT"
           }
           showBackButton={true}
-          onBackClick={() => navigate('/')}
+          onBackClick={() => navigate("/")}
           showMenuButton={true}
           onMenuClick={() => setIsSidebarOpen((prev) => !prev)}
           showThemeToggle={true}

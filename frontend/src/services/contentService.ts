@@ -1,11 +1,11 @@
-import { CacheManager } from '../utils/apiHelpers';
-import { getDefaultContent as fetchDefaultContent } from '../mocks/defaultContent';
+import { CacheManager } from "../utils/apiHelpers";
+import { getDefaultContent as fetchDefaultContent } from "../mocks/defaultContent";
 
 export interface ContentSection {
   id: string;
   title: string;
   content: string;
-  type: 'text' | 'list' | 'html';
+  type: "text" | "list" | "html";
   metadata?: Record<string, any>;
 }
 
@@ -23,7 +23,7 @@ class ContentService {
     if (!this.contentCache.has(pageId)) {
       this.contentCache.set(
         pageId,
-        new CacheManager<PageContent>(`content-${pageId}`, this.CACHE_DURATION)
+        new CacheManager<PageContent>(`content-${pageId}`, this.CACHE_DURATION),
       );
     }
     return this.contentCache.get(pageId)!;
@@ -39,12 +39,20 @@ class ContentService {
     return await this.getDefaultContentWithConfig(pageId);
   }
 
-  async getSectionContent(pageId: string, sectionId: string): Promise<ContentSection | null> {
+  async getSectionContent(
+    pageId: string,
+    sectionId: string,
+  ): Promise<ContentSection | null> {
     const pageContent = await this.getPageContent(pageId);
-    return pageContent.sections.find((section) => section.id === sectionId) || null;
+    return (
+      pageContent.sections.find((section) => section.id === sectionId) || null
+    );
   }
 
-  async updateContent(pageId: string, sections: ContentSection[]): Promise<boolean> {
+  async updateContent(
+    pageId: string,
+    sections: ContentSection[],
+  ): Promise<boolean> {
     try {
       const content: PageContent = {
         pageId,
@@ -55,7 +63,7 @@ class ContentService {
       cacheManager.set(content);
       return true;
     } catch (updateError) {
-      console.error('Failed to update content:', updateError);
+      console.error("Failed to update content:", updateError);
       return false;
     }
   }
@@ -65,17 +73,27 @@ class ContentService {
     this.contentCache.clear();
   }
 
-  private async getDefaultContentWithConfig(pageId: string): Promise<PageContent> {
+  private async getDefaultContentWithConfig(
+    pageId: string,
+  ): Promise<PageContent> {
     const defaultContent = this.getDefaultContent(pageId);
 
-    if (pageId === 'help-support') {
+    if (pageId === "help-support") {
       try {
-        const { configService } = await import('./configService');
-        const supportEmail = await configService.getConfig('contact.support_email');
-        const supportPhone = await configService.getConfig('contact.support_phone');
+        const { configService } = await import("./configService");
+        const supportEmail = await configService.getConfig(
+          "contact.support_email",
+        );
+        const supportPhone = await configService.getConfig(
+          "contact.support_phone",
+        );
 
-        const emailSection = defaultContent.sections.find((s) => s.id === 'email-support');
-        const phoneSection = defaultContent.sections.find((s) => s.id === 'phone-support');
+        const emailSection = defaultContent.sections.find(
+          (s) => s.id === "email-support",
+        );
+        const phoneSection = defaultContent.sections.find(
+          (s) => s.id === "phone-support",
+        );
 
         if (emailSection && supportEmail) {
           emailSection.content = supportEmail;
@@ -84,7 +102,10 @@ class ContentService {
           phoneSection.content = supportPhone;
         }
       } catch (configError) {
-        console.warn('Failed to load dynamic contact configuration:', configError);
+        console.warn(
+          "Failed to load dynamic contact configuration:",
+          configError,
+        );
       }
     }
 

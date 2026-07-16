@@ -151,7 +151,7 @@ export const validateChatPayload = (req, res, next) => {
 };
 
 export const validatePaymentPayload = (req, res, next) => {
-  const { amount, mobileMoneyNumber, mobileMoneyProvider, email } = req.body;
+  const { amount, email } = req.body;
 
   const errors = [];
 
@@ -162,17 +162,6 @@ export const validatePaymentPayload = (req, res, next) => {
     if (!amountValidation.valid) {
       errors.push(amountValidation.error);
     }
-  }
-
-  if (mobileMoneyNumber) {
-    const phoneValidation = validateGhanaPhoneNumber(mobileMoneyNumber);
-    if (!phoneValidation.valid) {
-      errors.push(phoneValidation.error);
-    }
-  }
-
-  if (mobileMoneyProvider && !['mtn', 'vod', 'tgo'].includes(mobileMoneyProvider.toLowerCase())) {
-    errors.push('Invalid mobile money provider. Use: mtn, vod, or tgo');
   }
 
   if (email && !validateEmail(email)) {

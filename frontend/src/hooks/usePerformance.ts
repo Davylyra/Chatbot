@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from "react";
 
 interface PerformanceMetrics {
   loadTime: number;
@@ -22,7 +22,7 @@ export const usePerformance = (): UsePerformanceReturn => {
     renderTime: 0,
     memoryUsage: 0,
     isLowEndDevice: false,
-    connectionSpeed: 'unknown',
+    connectionSpeed: "unknown",
   });
 
   const [isLowEndDevice, setIsLowEndDevice] = useState(false);
@@ -37,12 +37,17 @@ export const usePerformance = (): UsePerformanceReturn => {
     const memory = (navigator as any).deviceMemory || 4;
 
     const connection = (navigator as any).connection;
-    const connectionSpeed = connection ? connection.effectiveType : 'unknown';
+    const connectionSpeed = connection ? connection.effectiveType : "unknown";
 
     const isLowEnd =
-      cores <= 2 || memory <= 2 || connectionSpeed === 'slow-2g' || connectionSpeed === '2g';
+      cores <= 2 ||
+      memory <= 2 ||
+      connectionSpeed === "slow-2g" ||
+      connectionSpeed === "2g";
 
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
 
     const endTime = performance.now();
     const renderTime = endTime - startTime;
@@ -59,20 +64,26 @@ export const usePerformance = (): UsePerformanceReturn => {
 
     setIsLowEndDevice(isLowEnd);
     setShouldReduceAnimations(prefersReducedMotion || isLowEnd);
-    setShouldLazyLoad(isLowEnd || connectionSpeed === 'slow-2g' || connectionSpeed === '2g');
+    setShouldLazyLoad(
+      isLowEnd || connectionSpeed === "slow-2g" || connectionSpeed === "2g",
+    );
   }, []);
 
   const optimizeForPerformance = useCallback(() => {
     if (isLowEndDevice) {
-      document.documentElement.style.setProperty('--animation-duration', '0.1s');
+      document.documentElement.style.setProperty(
+        "--animation-duration",
+        "0.1s",
+      );
 
-      const images = document.querySelectorAll('img[data-src]');
+      const images = document.querySelectorAll("img[data-src]");
       images.forEach((img) => {
-        (img as HTMLImageElement).src = (img as HTMLImageElement).dataset.src || '';
+        (img as HTMLImageElement).src =
+          (img as HTMLImageElement).dataset.src || "";
       });
 
       if (shouldReduceAnimations) {
-        document.documentElement.classList.add('reduce-motion');
+        document.documentElement.classList.add("reduce-motion");
       }
     }
   }, [isLowEndDevice, shouldReduceAnimations]);
@@ -81,7 +92,7 @@ export const usePerformance = (): UsePerformanceReturn => {
     detectDeviceCapabilities();
 
     const monitorMemory = () => {
-      if ('memory' in performance) {
+      if ("memory" in performance) {
         const heapInfo = (performance as any).memory;
         setMetrics((prev) => ({
           ...prev,
@@ -100,11 +111,11 @@ export const usePerformance = (): UsePerformanceReturn => {
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [detectDeviceCapabilities]);
 

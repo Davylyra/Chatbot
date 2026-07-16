@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { io, Socket } from 'socket.io-client';
-import { useAuth } from '../contexts/AuthContext';
-import type { Notification } from '../types';
+import { useEffect, useRef, useState, useCallback } from "react";
+import { io, Socket } from "socket.io-client";
+import { useAuth } from "../contexts/AuthContext";
+import type { Notification } from "../types";
 
 export type NotificationData = Notification;
 
@@ -22,17 +22,17 @@ export const useSocket = () => {
 
     try {
       const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL;
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) {
         return;
       }
       const response = await fetch(`${API_BASE_URL}/notifications?limit=10`, {
-        method: 'GET',
+        method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        credentials: 'include',
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -40,29 +40,37 @@ export const useSocket = () => {
       }
 
       const notificationsPayload = await response.json();
-      if (notificationsPayload.success && Array.isArray(notificationsPayload.notifications)) {
-        const loadedNotifications: NotificationData[] = notificationsPayload.notifications.map((notif: any) => ({
-          id: notif.id,
-          title: notif.title,
-          message: notif.message,
-          type: notif.type || 'info',
-          category: notif.category || 'general',
-          priority: notif.priority || 'normal',
-          actionUrl: notif.actionUrl,
-          link: notif.link || notif.actionUrl,
-          linkText: notif.linkText || 'Learn more',
-          metadata: notif.metadata,
-          createdAt: new Date(notif.createdAt || notif.fetchedAt),
-          timestamp: notif.timestamp || new Date(notif.createdAt || notif.fetchedAt).toISOString(),
-          isRead: notif.isRead || false,
-          readAt: notif.readAt ? new Date(notif.readAt) : undefined,
-          readNowUrl: notif.readNowUrl,
-          readNowExpiresAt: notif.readNowExpiresAt ? new Date(notif.readNowExpiresAt) : undefined,
-          scheduledDeletionAt: notif.scheduledDeletionAt
-            ? new Date(notif.scheduledDeletionAt)
-            : undefined,
-          isRealTime: false,
-        }));
+      if (
+        notificationsPayload.success &&
+        Array.isArray(notificationsPayload.notifications)
+      ) {
+        const loadedNotifications: NotificationData[] =
+          notificationsPayload.notifications.map((notif: any) => ({
+            id: notif.id,
+            title: notif.title,
+            message: notif.message,
+            type: notif.type || "info",
+            category: notif.category || "general",
+            priority: notif.priority || "normal",
+            actionUrl: notif.actionUrl,
+            link: notif.link || notif.actionUrl,
+            linkText: notif.linkText || "Learn more",
+            metadata: notif.metadata,
+            createdAt: new Date(notif.createdAt || notif.fetchedAt),
+            timestamp:
+              notif.timestamp ||
+              new Date(notif.createdAt || notif.fetchedAt).toISOString(),
+            isRead: notif.isRead || false,
+            readAt: notif.readAt ? new Date(notif.readAt) : undefined,
+            readNowUrl: notif.readNowUrl,
+            readNowExpiresAt: notif.readNowExpiresAt
+              ? new Date(notif.readNowExpiresAt)
+              : undefined,
+            scheduledDeletionAt: notif.scheduledDeletionAt
+              ? new Date(notif.scheduledDeletionAt)
+              : undefined,
+            isRealTime: false,
+          }));
 
         setNotifications(loadedNotifications);
         const unread = loadedNotifications.filter((n) => !n.isRead).length;
@@ -70,7 +78,7 @@ export const useSocket = () => {
         hasLoadedInitial.current = true;
       }
     } catch (error) {
-      console.error('Failed to load initial notifications:', error);
+      console.error("Failed to load initial notifications:", error);
     }
   }, []);
 
@@ -79,14 +87,17 @@ export const useSocket = () => {
       return;
     }
 
-    if (isConnectingRef.current || (socketRef.current && socketRef.current.connected)) {
+    if (
+      isConnectingRef.current ||
+      (socketRef.current && socketRef.current.connected)
+    ) {
       return;
     }
 
     isConnectingRef.current = true;
     // Remove /api path from base URL for Socket.io connection
     const apiUrl = import.meta.env.VITE_API_BASE_URL;
-    const API_BASE_URL = apiUrl.replace(/\/api$/, '');
+    const API_BASE_URL = apiUrl.replace(/\/api$/, "");
 
     if (socketRef.current) {
       socketRef.current.removeAllListeners();
@@ -96,15 +107,18 @@ export const useSocket = () => {
 
     try {
       socketRef.current = io(API_BASE_URL, {
-        path: '/socket.io/',
-        transports: ['websocket', 'polling'],
+        path: "/socket.io/",
+        transports: ["websocket", "polling"],
         upgrade: true,
         rememberUpgrade: true,
         timeout: 20000,
         forceNew: false,
         reconnection: true,
         reconnectionAttempts: 10,
-        reconnectionDelay: Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 10000),
+        reconnectionDelay: Math.min(
+          1000 * Math.pow(2, reconnectAttemptsRef.current),
+          10000,
+        ),
         reconnectionDelayMax: 10000,
         autoConnect: true,
       });
@@ -112,85 +126,85 @@ export const useSocket = () => {
       const socket = socketRef.current;
 
       // Connection events
-      socket.on('connect', () => {
+      socket.on("connect", () => {
         setIsConnected(true);
         isConnectingRef.current = false;
         reconnectAttemptsRef.current = 0;
 
         // Join user-specific room for notifications
-        socket.emit('join-user-room', user.id);
+        socket.emit("join-user-room", user.id);
 
         loadInitialNotifications();
       });
 
       // New: Handle connection success confirmation from server
-      socket.on('connection-success', (data: any) => {
+      socket.on("connection-success", (data: any) => {
         if (data.dbConnected === false) {
-          console.warn('Server running in limited mode (DB not connected)');
+          console.warn("Server running in limited mode (DB not connected)");
         }
       });
 
-      socket.on('room-joined', (_data: any) => {});
+      socket.on("room-joined", (_data: any) => {});
 
-      socket.on('disconnect', (reason: string) => {
+      socket.on("disconnect", (reason: string) => {
         setIsConnected(false);
         isConnectingRef.current = false;
 
         // Don't attempt reconnection if disconnected by client
-        if (reason === 'io client disconnect') {
+        if (reason === "io client disconnect") {
           reconnectAttemptsRef.current = 0;
         }
       });
 
-      socket.on('connect_error', (error: Error) => {
-        console.error('Socket connection error:', error.message || error);
+      socket.on("connect_error", (error: Error) => {
+        console.error("Socket connection error:", error.message || error);
         setIsConnected(false);
         isConnectingRef.current = false;
         reconnectAttemptsRef.current++;
 
         if (reconnectAttemptsRef.current >= 10) {
-          console.error('Max reconnection attempts reached');
+          console.error("Max reconnection attempts reached");
           if (socketRef.current) {
             socketRef.current.disconnect();
           }
         }
       });
 
-      socket.on('reconnect', (_attemptNumber: number) => {
+      socket.on("reconnect", (_attemptNumber: number) => {
         setIsConnected(true);
         isConnectingRef.current = false;
         reconnectAttemptsRef.current = 0;
 
         // Re-join user room after reconnect
         if (user?.id) {
-          socket.emit('join-user-room', user.id);
+          socket.emit("join-user-room", user.id);
         }
 
         hasLoadedInitial.current = false;
         loadInitialNotifications();
       });
 
-      socket.on('reconnect_attempt', (_attemptNumber: number) => {});
+      socket.on("reconnect_attempt", (_attemptNumber: number) => {});
 
-      socket.on('reconnect_failed', () => {
-        console.error('Socket reconnection failed after all attempts');
+      socket.on("reconnect_failed", () => {
+        console.error("Socket reconnection failed after all attempts");
         setIsConnected(false);
         isConnectingRef.current = false;
       });
 
-      socket.on('error', (error: Error) => {
-        console.error('Socket error:', error);
+      socket.on("error", (error: Error) => {
+        console.error("Socket error:", error);
       });
 
       // User-specific notification events
-      socket.on('notification', (notificationData: any) => {
+      socket.on("notification", (notificationData: any) => {
         const notification: NotificationData = {
           id: notificationData.id || `notif_${Date.now()}`,
           title: notificationData.title,
           message: notificationData.message,
-          type: notificationData.type || 'info',
-          category: notificationData.category || 'general',
-          priority: notificationData.priority || 'normal',
+          type: notificationData.type || "info",
+          category: notificationData.category || "general",
+          priority: notificationData.priority || "normal",
           actionUrl: notificationData.actionUrl,
           link: notificationData.link || notificationData.actionUrl, // Only real URLs, no fake links
           linkText: notificationData.linkText,
@@ -207,7 +221,8 @@ export const useSocket = () => {
           const exists = prev.some(
             (n) =>
               n.id === notification.id ||
-              (n.title === notification.title && n.message === notification.message)
+              (n.title === notification.title &&
+                n.message === notification.message),
           );
 
           if (exists) {
@@ -219,24 +234,24 @@ export const useSocket = () => {
 
         setUnreadCount((prev) => prev + 1);
 
-        if ('Notification' in window && Notification.permission === 'granted') {
+        if ("Notification" in window && Notification.permission === "granted") {
           new Notification(notification.title, {
             body: notification.message,
-            icon: '/glinax-icon.png',
+            icon: "/glinax-icon.png",
             tag: notification.category,
-            requireInteraction: notification.priority === 'urgent',
+            requireInteraction: notification.priority === "urgent",
           });
         }
       });
 
-      socket.on('broadcast-notification', (notificationData: any) => {
+      socket.on("broadcast-notification", (notificationData: any) => {
         const notification: NotificationData = {
           id: notificationData.id || `broadcast_${Date.now()}`,
           title: notificationData.title,
           message: notificationData.message,
-          type: notificationData.type || 'info',
-          category: notificationData.category || 'general',
-          priority: notificationData.priority || 'normal',
+          type: notificationData.type || "info",
+          category: notificationData.category || "general",
+          priority: notificationData.priority || "normal",
           actionUrl: notificationData.actionUrl,
           link: notificationData.link || notificationData.actionUrl,
           linkText: notificationData.linkText,
@@ -253,7 +268,8 @@ export const useSocket = () => {
           const exists = prev.some(
             (n) =>
               n.id === notification.id ||
-              (n.title === notification.title && n.message === notification.message)
+              (n.title === notification.title &&
+                n.message === notification.message),
           );
 
           if (exists) {
@@ -265,16 +281,16 @@ export const useSocket = () => {
 
         setUnreadCount((prev) => prev + 1);
 
-        if ('Notification' in window && Notification.permission === 'granted') {
+        if ("Notification" in window && Notification.permission === "granted") {
           new Notification(notification.title, {
             body: notification.message,
-            icon: '/glinax-icon.png',
-            badge: '/glinax-badge.png',
+            icon: "/glinax-icon.png",
+            badge: "/glinax-badge.png",
           });
         }
       });
 
-      socket.on('notification_deleted', async (data: any) => {
+      socket.on("notification_deleted", async (data: any) => {
         const { notificationId } = data;
 
         setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
@@ -282,7 +298,7 @@ export const useSocket = () => {
         await fetchReplacementNotification();
       });
     } catch (error) {
-      console.error('Failed to create Socket.io connection:', error);
+      console.error("Failed to create Socket.io connection:", error);
       isConnectingRef.current = false;
       setIsConnected(false);
     }
@@ -291,22 +307,28 @@ export const useSocket = () => {
   const fetchReplacementNotification = useCallback(async () => {
     try {
       const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL;
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) return;
 
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      headers['Authorization'] = `Bearer ${token}`;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      headers["Authorization"] = `Bearer ${token}`;
 
       const resp = await fetch(`${API_BASE_URL}/notifications?limit=5`, {
-        method: 'GET',
+        method: "GET",
         headers,
-        credentials: 'include',
+        credentials: "include",
       });
 
       if (!resp.ok) return;
 
       const replacementPayload = await resp.json();
-      if (replacementPayload.success && replacementPayload.notifications && replacementPayload.notifications.length > 0) {
+      if (
+        replacementPayload.success &&
+        replacementPayload.notifications &&
+        replacementPayload.notifications.length > 0
+      ) {
         setNotifications((prev) => {
           const currentIds = new Set(prev.map((n) => n.id));
           const newNotifications: NotificationData[] = [];
@@ -327,7 +349,9 @@ export const useSocket = () => {
                 createdAt: new Date(newNotif.createdAt || newNotif.fetchedAt),
                 timestamp:
                   newNotif.timestamp ||
-                  new Date(newNotif.createdAt || newNotif.fetchedAt).toISOString(),
+                  new Date(
+                    newNotif.createdAt || newNotif.fetchedAt,
+                  ).toISOString(),
                 isRead: newNotif.isRead || false,
                 readNowUrl: newNotif.readNowUrl,
                 readNowExpiresAt: newNotif.readNowExpiresAt
@@ -350,7 +374,7 @@ export const useSocket = () => {
         });
       }
     } catch (err) {
-      console.error('Failed to fetch replacement notification:', err);
+      console.error("Failed to fetch replacement notification:", err);
     }
   }, []);
 
@@ -370,22 +394,27 @@ export const useSocket = () => {
                 scheduledDeletionAt: optimisticDeletion,
                 metadata: { ...n.metadata, read: true },
               }
-            : n
-        )
+            : n,
+        ),
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
 
       try {
         const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL;
-        const token = localStorage.getItem('token');
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const token = localStorage.getItem("token");
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
 
-        const resp = await fetch(`${API_BASE_URL}/notifications/${notificationId}/read`, {
-          method: 'PUT',
-          headers,
-          credentials: 'include',
-        });
+        const resp = await fetch(
+          `${API_BASE_URL}/notifications/${notificationId}/read`,
+          {
+            method: "PUT",
+            headers,
+            credentials: "include",
+          },
+        );
 
         if (!resp.ok) throw new Error(`Failed to mark as read: ${resp.status}`);
 
@@ -397,13 +426,19 @@ export const useSocket = () => {
         // Sync scheduledDeletionAt with server's value
         setNotifications((prev) =>
           prev.map((n) =>
-            n.id === notificationId ? { ...n, scheduledDeletionAt: serverDeletionAt } : n
-          )
+            n.id === notificationId
+              ? { ...n, scheduledDeletionAt: serverDeletionAt }
+              : n,
+          ),
         );
       } catch (err) {
-        console.error('Mark-as-read API failed:', err);
+        console.error("Mark-as-read API failed:", err);
         setNotifications((prev) =>
-          prev.map((n) => (n.id === notificationId ? { ...n, scheduledDeletionAt: undefined } : n))
+          prev.map((n) =>
+            n.id === notificationId
+              ? { ...n, scheduledDeletionAt: undefined }
+              : n,
+          ),
         );
       }
 
@@ -413,7 +448,7 @@ export const useSocket = () => {
         await fetchReplacementNotification();
       }, 2 * 1000); // Changed from 5 to 2 seconds
     },
-    [fetchReplacementNotification]
+    [fetchReplacementNotification],
   );
 
   const removeNotification = useCallback((notificationId: string) => {
@@ -424,13 +459,15 @@ export const useSocket = () => {
   const markAllAsRead = useCallback(async () => {
     try {
       const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL;
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) {
         return { success: false };
       }
 
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      headers['Authorization'] = `Bearer ${token}`;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      headers["Authorization"] = `Bearer ${token}`;
 
       const unreadCount = notifications.filter((n) => !n.isRead).length;
 
@@ -443,17 +480,18 @@ export const useSocket = () => {
           readAt: now,
           scheduledDeletionAt: optimisticDeletion,
           metadata: { ...n.metadata, read: true },
-        }))
+        })),
       );
       setUnreadCount(0);
 
       const resp = await fetch(`${API_BASE_URL}/notifications/read-all`, {
-        method: 'PUT',
+        method: "PUT",
         headers,
-        credentials: 'include',
+        credentials: "include",
       });
 
-      if (!resp.ok) throw new Error(`Failed to mark all as read: ${resp.status}`);
+      if (!resp.ok)
+        throw new Error(`Failed to mark all as read: ${resp.status}`);
 
       setTimeout(async () => {
         setNotifications([]);
@@ -466,7 +504,7 @@ export const useSocket = () => {
 
       return { success: true };
     } catch (err) {
-      console.error('Failed to mark all as read:', err);
+      console.error("Failed to mark all as read:", err);
       return { success: false, error: err };
     }
   }, [notifications, fetchReplacementNotification]);
@@ -479,21 +517,24 @@ export const useSocket = () => {
   const accessReadMessage = useCallback(async (notificationId: string) => {
     try {
       const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL;
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) {
-        throw new Error('Not authenticated');
+        throw new Error("Not authenticated");
       }
 
       const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       };
 
-      const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}/read-message`, {
-        method: 'GET',
-        headers,
-        credentials: 'include',
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/notifications/${notificationId}/read-message`,
+        {
+          method: "GET",
+          headers,
+          credentials: "include",
+        },
+      );
 
       if (!response.ok) {
         if (response.status === 403) {
@@ -501,7 +542,8 @@ export const useSocket = () => {
           return {
             success: false,
             expired: true,
-            message: errorPayload.message || '24-hour access window has expired',
+            message:
+              errorPayload.message || "24-hour access window has expired",
           };
         }
         throw new Error(`Failed to access read message: ${response.status}`);
@@ -515,13 +557,16 @@ export const useSocket = () => {
             ? {
                 ...n,
                 firstAccessedAt: new Date(
-                  new Date(accessPayload.accessibleUntil).getTime() - 24 * 60 * 60 * 1000
+                  new Date(accessPayload.accessibleUntil).getTime() -
+                    24 * 60 * 60 * 1000,
                 ),
-                readMessageAccessibleUntil: new Date(accessPayload.accessibleUntil),
+                readMessageAccessibleUntil: new Date(
+                  accessPayload.accessibleUntil,
+                ),
                 readMessageAvailable: true,
               }
-            : n
-        )
+            : n,
+        ),
       );
 
       return {
@@ -535,10 +580,10 @@ export const useSocket = () => {
         link: accessPayload.link,
       };
     } catch (error) {
-      console.error('Failed to access read message:', error);
+      console.error("Failed to access read message:", error);
       return {
         success: false,
-        error: (error as Error).message || 'Failed to access message',
+        error: (error as Error).message || "Failed to access message",
       };
     }
   }, []);
@@ -566,17 +611,22 @@ export const useSocket = () => {
   const fetchReadMessages = useCallback(async () => {
     try {
       const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL;
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) return;
 
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      headers['Authorization'] = `Bearer ${token}`;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      headers["Authorization"] = `Bearer ${token}`;
 
-      const resp = await fetch(`${API_BASE_URL}/notifications/read-messages?limit=20`, {
-        method: 'GET',
-        headers,
-        credentials: 'include',
-      });
+      const resp = await fetch(
+        `${API_BASE_URL}/notifications/read-messages?limit=20`,
+        {
+          method: "GET",
+          headers,
+          credentials: "include",
+        },
+      );
 
       if (!resp.ok) return;
 
@@ -603,7 +653,7 @@ export const useSocket = () => {
         setReadMessagesCount(messagesPayload.total || messages.length);
       }
     } catch (err) {
-      console.error('Failed to fetch read messages:', err);
+      console.error("Failed to fetch read messages:", err);
     }
   }, []);
 
@@ -611,10 +661,14 @@ export const useSocket = () => {
     const cleanupInterval = setInterval(() => {
       const now = new Date();
       setNotifications((prev) => {
-        const toDelete = prev.filter((n) => n.scheduledDeletionAt && n.scheduledDeletionAt <= now);
+        const toDelete = prev.filter(
+          (n) => n.scheduledDeletionAt && n.scheduledDeletionAt <= now,
+        );
 
         if (toDelete.length > 0) {
-          return prev.filter((n) => !n.scheduledDeletionAt || n.scheduledDeletionAt > now);
+          return prev.filter(
+            (n) => !n.scheduledDeletionAt || n.scheduledDeletionAt > now,
+          );
         }
 
         return prev;
@@ -637,7 +691,7 @@ export const useSocket = () => {
     clearAllNotifications,
     accessReadMessage,
     requestNotificationPermission: () => {
-      if ('Notification' in window && Notification.permission === 'default') {
+      if ("Notification" in window && Notification.permission === "default") {
         Notification.requestPermission();
       }
     },

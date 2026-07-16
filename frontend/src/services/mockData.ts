@@ -1,4 +1,4 @@
-import { UNIVERSITIES_DATA, ASSESSMENT_QUESTIONS } from '../data/constants';
+import { UNIVERSITIES_DATA, ASSESSMENT_QUESTIONS } from "../data/constants";
 
 export interface MockUser {
   id: string;
@@ -35,49 +35,54 @@ export interface MockAssessmentResult {
 
 export const mockUsers: MockUser[] = [
   {
-    id: '1',
-    name: 'User',
-    email: 'user@example.com',
-    phone: '+233123456789',
-    createdAt: '2025-01-15T10:00:00Z',
-    location: 'Accra, Ghana',
-    bio: 'Passionate about technology and education',
-    interests: ['Computer Science', 'Engineering', 'Technology'],
-    preferredUniversities: ['KNUST', 'UG', 'Ashesi'],
+    id: "1",
+    name: "User",
+    email: "user@example.com",
+    phone: "+233123456789",
+    createdAt: "2025-01-15T10:00:00Z",
+    location: "Accra, Ghana",
+    bio: "Passionate about technology and education",
+    interests: ["Computer Science", "Engineering", "Technology"],
+    preferredUniversities: ["KNUST", "UG", "Ashesi"],
   },
   {
-    id: '2',
-    name: 'Student',
-    email: 'student@example.com',
-    phone: '+233987654321',
-    createdAt: '2025-01-10T14:30:00Z',
-    location: 'Kumasi, Ghana',
-    bio: 'Interested in medicine and healthcare',
-    interests: ['Medicine', 'Health Sciences', 'Biology'],
-    preferredUniversities: ['UG', 'KNUST', 'UHA'],
+    id: "2",
+    name: "Student",
+    email: "student@example.com",
+    phone: "+233987654321",
+    createdAt: "2025-01-10T14:30:00Z",
+    location: "Kumasi, Ghana",
+    bio: "Interested in medicine and healthcare",
+    interests: ["Medicine", "Health Sciences", "Biology"],
+    preferredUniversities: ["UG", "KNUST", "UHA"],
   },
 ];
 
 export class MockApiService {
   static async getChatResponse(
     message: string,
-    universityContext?: string
+    universityContext?: string,
   ): Promise<MockChatResponse> {
-    await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 1000));
+    await new Promise((resolve) =>
+      setTimeout(resolve, 1000 + Math.random() * 1000),
+    );
 
     return {
-      message: `I received your message about ${universityContext || 'universities'}: "${message}".`,
+      message: `I received your message about ${universityContext || "universities"}: "${message}".`,
       suggestions: [
-        'Compare universities',
-        'Find programs by interest',
-        'Check admission requirements',
-        'View application deadlines',
+        "Compare universities",
+        "Find programs by interest",
+        "Check admission requirements",
+        "View application deadlines",
       ],
       universityContext,
     };
   }
 
-  static async authenticateUser(email: string, _password: string): Promise<MockUser | null> {
+  static async authenticateUser(
+    email: string,
+    _password: string,
+  ): Promise<MockUser | null> {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const matchedUser = mockUsers.find((u) => u.email === email);
@@ -91,7 +96,7 @@ export class MockApiService {
 
   static async updateUserProfile(
     userId: string,
-    updates: Partial<MockUser>
+    updates: Partial<MockUser>,
   ): Promise<MockUser | null> {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -113,31 +118,37 @@ export class MockApiService {
     return ASSESSMENT_QUESTIONS;
   }
 
-  static async submitAssessment(assessmentData: any): Promise<MockAssessmentResult> {
+  static async submitAssessment(
+    assessmentData: any,
+  ): Promise<MockAssessmentResult> {
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     const recommendations = [
       {
-        university: 'KNUST',
-        program: 'Computer Science',
+        university: "KNUST",
+        program: "Computer Science",
         matchScore: 95,
         reasons: [
-          'Strong in mathematics',
-          'Interest in technology',
-          'Good grades in science subjects',
+          "Strong in mathematics",
+          "Interest in technology",
+          "Good grades in science subjects",
         ],
       },
       {
-        university: 'UG',
-        program: 'Business Administration',
+        university: "UG",
+        program: "Business Administration",
         matchScore: 88,
-        reasons: ['Interest in business', 'Good communication skills', 'Leadership potential'],
+        reasons: [
+          "Interest in business",
+          "Good communication skills",
+          "Leadership potential",
+        ],
       },
     ];
 
     return {
       id: `assessment_${Date.now()}`,
-      userId: assessmentData.userId || '1',
+      userId: assessmentData.userId || "1",
       recommendations,
       submittedAt: new Date().toISOString(),
     };
@@ -145,7 +156,7 @@ export class MockApiService {
 
   static async purchaseForm(
     _formId: string,
-    _paymentData: any
+    _paymentData: any,
   ): Promise<{ success: boolean; transactionId: string }> {
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
@@ -160,12 +171,14 @@ export class MockApiService {
 
     return [
       {
-        id: '1',
-        universityName: 'KNUST',
-        fullName: 'Kwame Nkrumah University of Science & Technology',
-        formPrice: '₵200',
-        purchaseDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'completed',
+        id: "1",
+        universityName: "KNUST",
+        fullName: "Kwame Nkrumah University of Science & Technology",
+        formPrice: "₵200",
+        purchaseDate: new Date(
+          Date.now() - 7 * 24 * 60 * 60 * 1000,
+        ).toISOString(),
+        status: "completed",
       },
     ];
   }

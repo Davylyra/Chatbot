@@ -1,7 +1,10 @@
 /**
  * Format currency amount
  */
-export const formatCurrency = (amount: number, currency: string = 'GHC'): string => {
+export const formatCurrency = (
+  amount: number,
+  currency: string = "GHC",
+): string => {
   return `${currency} ${amount.toFixed(2)}`;
 };
 
@@ -9,11 +12,11 @@ export const formatCurrency = (amount: number, currency: string = 'GHC'): string
  * Format date to readable string
  */
 export const formatDate = (date: Date | string): string => {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
+  const d = typeof date === "string" ? new Date(date) : date;
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   });
 };
 
@@ -21,10 +24,10 @@ export const formatDate = (date: Date | string): string => {
  * Format time to readable string
  */
 export const formatTime = (date: Date | string): string => {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleTimeString('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
+  const d = typeof date === "string" ? new Date(date) : date;
+  return d.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
@@ -32,21 +35,21 @@ export const formatTime = (date: Date | string): string => {
  * Get relative time (e.g., "2 hours ago")
  */
 export const getRelativeTime = (date: Date | string): string => {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  const d = typeof date === "string" ? new Date(date) : date;
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - d.getTime()) / 1000);
 
   if (diffInSeconds < 60) {
-    return 'Just now';
+    return "Just now";
   } else if (diffInSeconds < 3600) {
     const minutes = Math.floor(diffInSeconds / 60);
-    return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
   } else if (diffInSeconds < 86400) {
     const hours = Math.floor(diffInSeconds / 3600);
-    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    return `${hours} hour${hours > 1 ? "s" : ""} ago`;
   } else if (diffInSeconds < 2592000) {
     const days = Math.floor(diffInSeconds / 86400);
-    return `${days} day${days > 1 ? 's' : ''} ago`;
+    return `${days} day${days > 1 ? "s" : ""} ago`;
   } else {
     return formatDate(d);
   }
@@ -65,7 +68,7 @@ export const isValidEmail = (email: string): boolean => {
  */
 export const isValidPhoneNumber = (phone: string): boolean => {
   const phoneRegex = /^(\+233|0)[0-9]{9}$/;
-  return phoneRegex.test(phone.replace(/\s/g, ''));
+  return phoneRegex.test(phone.replace(/\s/g, ""));
 };
 
 /**
@@ -80,7 +83,7 @@ export const generateId = (): string => {
  */
 export const debounce = <T extends (...args: any[]) => any>(
   func: T,
-  wait: number
+  wait: number,
 ): ((...args: Parameters<T>) => void) => {
   let timeout: ReturnType<typeof setTimeout>;
   return (...args: Parameters<T>) => {
@@ -94,7 +97,7 @@ export const debounce = <T extends (...args: any[]) => any>(
  */
 export const throttle = <T extends (...args: any[]) => any>(
   func: T,
-  limit: number
+  limit: number,
 ): ((...args: Parameters<T>) => void) => {
   let inThrottle: boolean;
   return (...args: Parameters<T>) => {
@@ -114,13 +117,13 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
     await navigator.clipboard.writeText(text);
     return true;
   } catch {
-    const textArea = document.createElement('textarea');
+    const textArea = document.createElement("textarea");
     textArea.value = text;
     document.body.appendChild(textArea);
     textArea.focus();
     textArea.select();
     try {
-      document.execCommand('copy');
+      document.execCommand("copy");
       document.body.removeChild(textArea);
       return true;
     } catch {
@@ -133,11 +136,11 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
 /**
  * Get user's device type
  */
-export const getDeviceType = (): 'mobile' | 'tablet' | 'desktop' => {
+export const getDeviceType = (): "mobile" | "tablet" | "desktop" => {
   const width = window.innerWidth;
-  if (width < 768) return 'mobile';
-  if (width < 1024) return 'tablet';
-  return 'desktop';
+  if (width < 768) return "mobile";
+  if (width < 1024) return "tablet";
+  return "desktop";
 };
 
 /**
@@ -216,7 +219,7 @@ export const url = {
     try {
       return new URL(url).hostname;
     } catch {
-      return '';
+      return "";
     }
   },
 };
@@ -229,7 +232,7 @@ export const string = {
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
   },
 
-  truncate: (str: string, length: number, suffix: string = '...'): string => {
+  truncate: (str: string, length: number, suffix: string = "..."): string => {
     if (str.length <= length) return str;
     return str.substring(0, length) + suffix;
   },
@@ -237,9 +240,9 @@ export const string = {
   slugify: (str: string): string => {
     return str
       .toLowerCase()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+      .replace(/[^\w\s-]/g, "")
+      .replace(/[\s_-]+/g, "-")
+      .replace(/^-+|-+$/g, "");
   },
 };
 
@@ -248,14 +251,14 @@ export const string = {
  */
 export const number = {
   format: (num: number, decimals: number = 2): string => {
-    return num.toLocaleString('en-GB', {
+    return num.toLocaleString("en-GB", {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
     });
   },
 
   parse: (str: string): number => {
-    return parseFloat(str.replace(/[^\d.-]/g, ''));
+    return parseFloat(str.replace(/[^\d.-]/g, ""));
   },
 };
 
@@ -293,7 +296,10 @@ export const object = {
     return Object.keys(obj).length === 0;
   },
 
-  pick: <T extends Record<string, any>, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> => {
+  pick: <T extends Record<string, any>, K extends keyof T>(
+    obj: T,
+    keys: K[],
+  ): Pick<T, K> => {
     const result = {} as Pick<T, K>;
     keys.forEach((key) => {
       if (key in obj) {
@@ -303,7 +309,10 @@ export const object = {
     return result;
   },
 
-  omit: <T extends Record<string, any>, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> => {
+  omit: <T extends Record<string, any>, K extends keyof T>(
+    obj: T,
+    keys: K[],
+  ): Omit<T, K> => {
     const result = { ...obj };
     keys.forEach((key) => {
       delete result[key];

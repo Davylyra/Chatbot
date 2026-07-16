@@ -2,10 +2,10 @@
  * Conversation History Page
  */
 
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import Navbar from '../components/Navbar';
-import ConversationHistory from '../components/ConversationHistory';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import ConversationHistory from "../components/ConversationHistory";
 
 const ConversationHistoryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -15,7 +15,7 @@ const ConversationHistoryPage: React.FC = () => {
       <Navbar
         title="CONVERSATION HISTORY"
         showBackButton={true}
-        onBackClick={() => navigate('/')}
+        onBackClick={() => navigate("/")}
         showMenuButton={true}
       />
 

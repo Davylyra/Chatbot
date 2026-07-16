@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
-import { SmartApiService } from '../services/api';
-import type { AppConfig } from '../services/api';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { SmartApiService } from "../services/api";
+import type { AppConfig } from "../services/api";
 
 interface ConfigContextType {
   config: AppConfig | null;
@@ -32,10 +32,11 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
       if (response.success && response.data) {
         setConfig(response.data);
       } else {
-        throw new Error(response.error || 'Failed to load configuration');
+        throw new Error(response.error || "Failed to load configuration");
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load configuration';
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load configuration";
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -56,7 +57,8 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
 
       // await SmartApiService.updateAppConfig(updates);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update configuration';
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to update configuration";
       setError(errorMessage);
     }
   };
@@ -73,13 +75,15 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
     updateConfig,
   };
 
-  return <ConfigContext.Provider value={value}>{children}</ConfigContext.Provider>;
+  return (
+    <ConfigContext.Provider value={value}>{children}</ConfigContext.Provider>
+  );
 };
 
 export const useConfig = (): ConfigContextType => {
   const context = useContext(ConfigContext);
   if (context === undefined) {
-    throw new Error('useConfig must be used within a ConfigProvider');
+    throw new Error("useConfig must be used within a ConfigProvider");
   }
   return context;
 };

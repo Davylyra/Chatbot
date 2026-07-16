@@ -1,11 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import type { ReactNode } from "react";
 
 // Decode JWT payload and check if it's still valid — no library needed
 function isTokenValid(token: string | null): boolean {
   if (!token) return false;
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const payload = JSON.parse(atob(token.split(".")[1]));
     return payload.exp * 1000 > Date.now();
   } catch {
     return false;
@@ -13,9 +13,9 @@ function isTokenValid(token: string | null): boolean {
 }
 
 function clearAuthStorage() {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-  localStorage.removeItem('assessmentCompleted');
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  localStorage.removeItem("assessmentCompleted");
 }
 
 interface User {
@@ -33,21 +33,24 @@ interface AuthContextType {
   isGuest: boolean;
   isLoading: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   signup: (
     name: string,
     email: string,
-    password: string
+    password: string,
   ) => Promise<{ success: boolean; message: string; errors?: string[] }>;
   sendSignupVerification: (
-    email: string
+    email: string,
   ) => Promise<{ success: boolean; message: string; errors?: string[] }>;
   verifySignup: (
     email: string,
     verificationCode: string,
     name: string,
-    password: string
+    password: string,
   ) => Promise<{ success: boolean; message: string; errors?: string[] }>;
   loginAsGuest: () => void;
   updateProfile: (updates: Partial<User>) => void;
@@ -63,8 +66,8 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
-    const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    const token = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("user");
     if (isTokenValid(token) && storedUser) {
       try {
         return JSON.parse(storedUser);
@@ -72,8 +75,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return null;
       }
     }
-    const isGuestSession = sessionStorage.getItem('glinax-guest') === 'true';
-    const storedGuestUser = sessionStorage.getItem('guest-user');
+    const isGuestSession = sessionStorage.getItem("glinax-guest") === "true";
+    const storedGuestUser = sessionStorage.getItem("guest-user");
     if (isGuestSession && storedGuestUser) {
       try {
         return JSON.parse(storedGuestUser);
@@ -84,16 +87,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return null;
   });
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return isTokenValid(localStorage.getItem('token'));
+    return isTokenValid(localStorage.getItem("token"));
   });
   const [isGuest, setIsGuest] = useState(() => {
-    return sessionStorage.getItem('glinax-guest') === 'true';
+    return sessionStorage.getItem("glinax-guest") === "true";
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     // Clear stale/expired tokens on mount
     if (token && !isTokenValid(token)) {
       clearAuthStorage();
@@ -104,39 +107,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (
     email: string,
-    password: string
+    password: string,
   ): Promise<{ success: boolean; message: string }> => {
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
       const authResponse = await response.json();
 
       if (!response.ok) {
-        const message = authResponse.message || 'Login failed';
+        const message = authResponse.message || "Login failed";
         setError(message);
         return { success: false, message };
       }
 
-      localStorage.setItem('token', authResponse.token);
-      localStorage.setItem('user', JSON.stringify(authResponse.user));
-      sessionStorage.removeItem('guest-user');
-      sessionStorage.removeItem('glinax-guest');
+      localStorage.setItem("token", authResponse.token);
+      localStorage.setItem("user", JSON.stringify(authResponse.user));
+      sessionStorage.removeItem("guest-user");
+      sessionStorage.removeItem("glinax-guest");
 
       setUser(authResponse.user);
       setIsAuthenticated(true);
       setIsGuest(false);
 
-      return { success: true, message: 'Login successful!' };
+      return { success: true, message: "Login successful!" };
     } catch (loginError) {
-      const message = loginError instanceof Error ? loginError.message : 'Login failed';
-      console.error('Login error:', message);
+      const message =
+        loginError instanceof Error ? loginError.message : "Login failed";
+      console.error("Login error:", message);
       setError(message);
       return { success: false, message };
     } finally {
@@ -147,22 +151,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signup = async (
     name: string,
     email: string,
-    password: string
+    password: string,
   ): Promise<{ success: boolean; message: string; errors?: string[] }> => {
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await fetch(`${API_BASE_URL}/auth/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
       });
 
       const authResponse = await response.json();
 
       if (!response.ok) {
-        const message = authResponse.message || 'Signup failed';
+        const message = authResponse.message || "Signup failed";
         setError(message);
         return {
           success: false,
@@ -173,11 +177,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       return {
         success: true,
-        message: authResponse.message || 'Account created successfully, please log in.',
+        message:
+          authResponse.message ||
+          "Account created successfully, please log in.",
       };
     } catch (signupError) {
-      const message = signupError instanceof Error ? signupError.message : 'Signup failed';
-      console.error('Signup error:', message);
+      const message =
+        signupError instanceof Error ? signupError.message : "Signup failed";
+      console.error("Signup error:", message);
       setError(message);
       return { success: false, message };
     } finally {
@@ -187,16 +194,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const loginAsGuest = () => {
     fetch(`${API_BASE_URL}/auth/guest`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
     })
       .then(async (response) => {
         const authResponse = await response.json();
-        if (!response.ok) throw new Error(authResponse.message || 'Guest login failed');
+        if (!response.ok)
+          throw new Error(authResponse.message || "Guest login failed");
 
         const guestUser = authResponse.user;
-        sessionStorage.setItem('guest-user', JSON.stringify(guestUser));
-        sessionStorage.setItem('glinax-guest', 'true');
+        sessionStorage.setItem("guest-user", JSON.stringify(guestUser));
+        sessionStorage.setItem("glinax-guest", "true");
 
         setUser(guestUser);
         setIsGuest(true);
@@ -204,50 +212,54 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setError(null);
       })
       .catch((guestLoginError) => {
-        console.error('Guest login error:', guestLoginError);
-        setError(guestLoginError.message || 'Unable to enter guest mode');
+        console.error("Guest login error:", guestLoginError);
+        setError(guestLoginError.message || "Unable to enter guest mode");
       });
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    sessionStorage.removeItem('guest-user');
-    sessionStorage.removeItem('glinax-guest');
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    sessionStorage.removeItem("guest-user");
+    sessionStorage.removeItem("glinax-guest");
 
     setUser(null);
     setIsAuthenticated(false);
     setIsGuest(false);
     setError(null);
 
-    window.location.href = '/login';
+    window.location.href = "/login";
   };
 
   const updateProfile = (updates: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...updates };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      localStorage.setItem("user", JSON.stringify(updatedUser));
       setUser(updatedUser);
     }
   };
 
   const sendSignupVerification = async (
-    email: string
+    email: string,
   ): Promise<{ success: boolean; message: string; errors?: string[] }> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/send-signup-verification`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/auth/send-signup-verification`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        },
+      );
 
       const verificationResponse = await response.json();
 
       if (!response.ok) {
-        const message = verificationResponse.message || 'Failed to send verification code';
+        const message =
+          verificationResponse.message || "Failed to send verification code";
         setError(message);
         return {
           success: false,
@@ -258,11 +270,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       return {
         success: true,
-        message: verificationResponse.message || 'Verification code sent to your email',
+        message:
+          verificationResponse.message ||
+          "Verification code sent to your email",
       };
     } catch (verificationRequestError) {
-      const message = verificationRequestError instanceof Error ? verificationRequestError.message : 'Failed to send verification code';
-      console.error('Send verification error:', message);
+      const message =
+        verificationRequestError instanceof Error
+          ? verificationRequestError.message
+          : "Failed to send verification code";
+      console.error("Send verification error:", message);
       setError(message);
       return { success: false, message };
     } finally {
@@ -274,22 +291,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     email: string,
     verificationCode: string,
     name: string,
-    password: string
+    password: string,
   ): Promise<{ success: boolean; message: string; errors?: string[] }> => {
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await fetch(`${API_BASE_URL}/auth/verify-signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, verification_code: verificationCode, name, password }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          verification_code: verificationCode,
+          name,
+          password,
+        }),
       });
 
       const verificationResponse = await response.json();
 
       if (!response.ok) {
-        const message = verificationResponse.message || 'Verification failed';
+        const message = verificationResponse.message || "Verification failed";
         setError(message);
         return {
           success: false,
@@ -300,11 +322,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       return {
         success: true,
-        message: verificationResponse.message || 'Account created successfully! Please log in.',
+        message:
+          verificationResponse.message ||
+          "Account created successfully! Please log in.",
       };
     } catch (signupVerificationError) {
-      const message = signupVerificationError instanceof Error ? signupVerificationError.message : 'Verification failed';
-      console.error('Verify signup error:', message);
+      const message =
+        signupVerificationError instanceof Error
+          ? signupVerificationError.message
+          : "Verification failed";
+      console.error("Verify signup error:", message);
       setError(message);
       return { success: false, message };
     } finally {
@@ -333,7 +360,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

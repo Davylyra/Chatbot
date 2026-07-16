@@ -1,5 +1,5 @@
-import { useNavigate } from 'react-router-dom';
-import { useAppStore } from '../store';
+import { useNavigate } from "react-router-dom";
+import { useAppStore } from "../store";
 
 interface UniversityChatOptions {
   name: string;
@@ -16,7 +16,7 @@ export const useUniversityChat = () => {
       saveCurrentConversation();
     }
 
-    navigate('/chat', {
+    navigate("/chat", {
       state: {
         universityContext: {
           name: university.name,

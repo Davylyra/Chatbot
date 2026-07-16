@@ -4,8 +4,8 @@
  * Integration: Replaces regular img tags for better performance
  */
 
-import React, { useState, useRef, useEffect, memo } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useRef, useEffect, memo } from "react";
+import { motion } from "framer-motion";
 
 interface LazyImageProps {
   src: string;
@@ -22,9 +22,9 @@ const LazyImage: React.FC<LazyImageProps> = memo(
   ({
     src,
     alt,
-    className = '',
-    placeholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyMEg0MFY0MEgyMFYyMFoiIGZpbGw9IiNEMUQ1REIiLz4KPC9zdmc+',
-    fallback = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRkY2QjZCIi8+CjxwYXRoIGQ9Ik0yMCAyMEg0MFY0MEgyMFYyMFoiIGZpbGw9IiNGRkU1RTUiLz4KPC9zdmc+',
+    className = "",
+    placeholder = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyMEg0MFY0MEgyMFYyMFoiIGZpbGw9IiNEMUQ1REIiLz4KPC9zdmc+",
+    fallback = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRkY2QjZCIi8+CjxwYXRoIGQ9Ik0yMCAyMEg0MFY0MEgyMFYyMFoiIGZpbGw9IiNGRkU1RTUiLz4KPC9zdmc+",
     onLoad,
     onError,
     priority = false,
@@ -46,9 +46,9 @@ const LazyImage: React.FC<LazyImageProps> = memo(
           }
         },
         {
-          rootMargin: '50px', // Start loading 50px before the image comes into view
+          rootMargin: "50px", // Start loading 50px before the image comes into view
           threshold: 0.1,
-        }
+        },
       );
 
       if (imgRef.current) {
@@ -86,7 +86,7 @@ const LazyImage: React.FC<LazyImageProps> = memo(
       };
     }, [src, isInView, onLoad, onError]);
 
-    if (isError && fallback && typeof fallback !== 'string') {
+    if (isError && fallback && typeof fallback !== "string") {
       return (
         <div ref={imgRef} className={`relative overflow-hidden ${className}`}>
           {fallback}
@@ -95,7 +95,7 @@ const LazyImage: React.FC<LazyImageProps> = memo(
     }
 
     const imageSrc = isError
-      ? typeof fallback === 'string'
+      ? typeof fallback === "string"
         ? fallback
         : placeholder
       : isLoaded
@@ -117,7 +117,7 @@ const LazyImage: React.FC<LazyImageProps> = memo(
             duration: 0.3,
             ease: [0.4, 0, 0.2, 1],
           }}
-          loading={priority ? 'eager' : 'lazy'}
+          loading={priority ? "eager" : "lazy"}
           decoding="async"
         />
 
@@ -129,16 +129,16 @@ const LazyImage: React.FC<LazyImageProps> = memo(
         )}
 
         {/* Error indicator */}
-        {isError && typeof fallback === 'string' && (
+        {isError && typeof fallback === "string" && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-700">
             <div className="text-gray-400 text-xs">Failed to load</div>
           </div>
         )}
       </div>
     );
-  }
+  },
 );
 
-LazyImage.displayName = 'LazyImage';
+LazyImage.displayName = "LazyImage";
 
 export default LazyImage;

@@ -1,4 +1,4 @@
-import { useToast } from './useToast';
+import { useToast } from "./useToast";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -19,7 +19,7 @@ export interface EnhancedChatResponse {
   timestamp?: string;
   metadata?: {
     university_context?: string;
-    response_type?: 'local_knowledge' | 'hybrid_search';
+    response_type?: "local_knowledge" | "hybrid_search";
     processing_info?: any;
     message_count?: number;
     fallback_mode?: boolean;
@@ -35,10 +35,10 @@ export const useChat = () => {
     message: string,
     conversationId: string,
     universityName?: string,
-    additionalContext?: any
+    additionalContext?: any,
   ): Promise<EnhancedChatResponse> => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
 
       const requestPayload = {
         message,
@@ -52,52 +52,61 @@ export const useChat = () => {
       };
 
       const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
+        "Content-Type": "application/json",
+        Accept: "application/json",
       };
 
       if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+        headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const endpoint = token ? `${API_BASE_URL}/chat/send` : `${API_BASE_URL}/chat/demo`;
+      const endpoint = token
+        ? `${API_BASE_URL}/chat/send`
+        : `${API_BASE_URL}/chat/demo`;
 
       const response = await fetch(endpoint, {
-        method: 'POST',
+        method: "POST",
         headers,
         body: JSON.stringify(requestPayload),
-        credentials: 'include',
+        credentials: "include",
       });
 
       const chatResponse = await response.json().catch(() => {
-        throw new Error('Invalid response format from server');
+        throw new Error("Invalid response format from server");
       });
 
       if (response.status === 401 || response.status === 403) {
-        localStorage.removeItem('token');
+        localStorage.removeItem("token");
 
         if (chatResponse?.requiresAuth) {
-          showError('Authentication Required', chatResponse.message || 'Please log in to continue.');
+          showError(
+            "Authentication Required",
+            chatResponse.message || "Please log in to continue.",
+          );
           return {
             success: false,
-            message: 'Authentication required. Please log in to access this feature.',
-            error: 'AUTHENTICATION_REQUIRED',
+            message:
+              "Authentication required. Please log in to access this feature.",
+            error: "AUTHENTICATION_REQUIRED",
             requiresAuth: true,
           };
         }
 
         const demoResponse = await fetch(`${API_BASE_URL}/chat/demo`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
+            "Content-Type": "application/json",
+            Accept: "application/json",
           },
           body: JSON.stringify(requestPayload),
         });
 
         const demoPayload = await demoResponse.json();
         if (demoResponse.ok && demoPayload.success) {
-          showError('Session Expired', 'Continued in demo mode. Please log in for full features.');
+          showError(
+            "Session Expired",
+            "Continued in demo mode. Please log in for full features.",
+          );
           return {
             success: true,
             message: demoPayload.reply || demoPayload.message,
@@ -110,34 +119,47 @@ export const useChat = () => {
       }
 
       if (!response.ok) {
-        console.error('HTTP error response:', response.status, response.statusText);
-        throw new Error(chatResponse?.message || `HTTP error! status: ${response.status}`);
+        console.error(
+          "HTTP error response:",
+          response.status,
+          response.statusText,
+        );
+        throw new Error(
+          chatResponse?.message || `HTTP error! status: ${response.status}`,
+        );
       }
 
       if (!chatResponse.success) {
-        const errorMessage = chatResponse.message || chatResponse.reply || 'Error sending message';
-        console.warn('Backend returned success=false:', errorMessage);
-        showError('Chat Error', errorMessage);
+        const errorMessage =
+          chatResponse.message || chatResponse.reply || "Error sending message";
+        console.warn("Backend returned success=false:", errorMessage);
+        showError("Chat Error", errorMessage);
 
         return {
           success: false,
           message: errorMessage,
-          error: chatResponse.error || 'BACKEND_ERROR',
+          error: chatResponse.error || "BACKEND_ERROR",
         };
       }
 
       if (chatResponse.fallback_mode) {
         showError(
-          'Limited Response',
-          'AI service temporarily unavailable. Showing cached knowledge.'
+          "Limited Response",
+          "AI service temporarily unavailable. Showing cached knowledge.",
         );
       } else if (chatResponse.confidence && chatResponse.confidence > 0.9) {
-        showSuccess('High Confidence', 'Response generated with high confidence');
+        showSuccess(
+          "High Confidence",
+          "Response generated with high confidence",
+        );
       }
 
       return {
         success: true,
-        message: chatResponse.reply || chatResponse.message || 'Response received from assistant.',
+        message:
+          chatResponse.reply ||
+          chatResponse.message ||
+          "Response received from assistant.",
         conversation_title: chatResponse.conversation_title,
         sources: chatResponse.sources || [],
         confidence: chatResponse.confidence || 0.0,
@@ -149,33 +171,50 @@ export const useChat = () => {
         },
       };
     } catch (networkError) {
-      console.error('Chat send failed:', networkError);
+      console.error("Chat send failed:", networkError);
 
-      let userFriendlyMessage = 'Unable to send message. Please try again.';
-      let errorCategory = 'UNKNOWN_ERROR';
+      let userFriendlyMessage = "Unable to send message. Please try again.";
+      let errorCategory = "UNKNOWN_ERROR";
 
       if (networkError instanceof Error) {
-        if (networkError.message.includes('fetch') || networkError.message.includes('Failed to fetch')) {
-          userFriendlyMessage = 'Connection problem. Please check your internet and try again.';
-          errorCategory = 'NETWORK_ERROR';
-        } else if (networkError.message.includes('timeout') || networkError.message.includes('aborted')) {
+        if (
+          networkError.message.includes("fetch") ||
+          networkError.message.includes("Failed to fetch")
+        ) {
           userFriendlyMessage =
-            'Request timed out. The server is taking too long to respond. Please try again.';
-          errorCategory = 'TIMEOUT_ERROR';
-        } else if (networkError.message.includes('HTTP') || networkError.message.includes('status:')) {
+            "Connection problem. Please check your internet and try again.";
+          errorCategory = "NETWORK_ERROR";
+        } else if (
+          networkError.message.includes("timeout") ||
+          networkError.message.includes("aborted")
+        ) {
+          userFriendlyMessage =
+            "Request timed out. The server is taking too long to respond. Please try again.";
+          errorCategory = "TIMEOUT_ERROR";
+        } else if (
+          networkError.message.includes("HTTP") ||
+          networkError.message.includes("status:")
+        ) {
           userFriendlyMessage = `Server error: ${networkError.message}. Please try again later.`;
-          errorCategory = 'HTTP_ERROR';
-        } else if (networkError.message.includes('JSON') || networkError.message.includes('parse')) {
-          userFriendlyMessage = 'Received invalid response from server. Please try again.';
-          errorCategory = 'PARSE_ERROR';
-        } else if (!networkError.message.includes('TypeError') && !networkError.message.includes('undefined')) {
+          errorCategory = "HTTP_ERROR";
+        } else if (
+          networkError.message.includes("JSON") ||
+          networkError.message.includes("parse")
+        ) {
+          userFriendlyMessage =
+            "Received invalid response from server. Please try again.";
+          errorCategory = "PARSE_ERROR";
+        } else if (
+          !networkError.message.includes("TypeError") &&
+          !networkError.message.includes("undefined")
+        ) {
           userFriendlyMessage = networkError.message;
-          errorCategory = 'CUSTOM_ERROR';
+          errorCategory = "CUSTOM_ERROR";
         }
       }
 
       console.error(`Error category: ${errorCategory}`);
-      showError('Connection Error', userFriendlyMessage);
+      showError("Connection Error", userFriendlyMessage);
 
       return {
         success: false,
@@ -187,16 +226,16 @@ export const useChat = () => {
 
   const searchUniversities = async (query: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
 
       if (!token) {
         return { success: false, universities: [] };
       }
 
       const response = await fetch(`${API_BASE_URL}/universities/search`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ query }),
@@ -210,21 +249,21 @@ export const useChat = () => {
         total: searchPayload.total || 0,
       };
     } catch (searchError) {
-      console.error('University search error:', searchError);
+      console.error("University search error:", searchError);
       return { success: false, universities: [] };
     }
   };
 
   const getScholarships = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
 
       if (!token) {
         return { success: false, scholarships: [] };
       }
 
       const response = await fetch(`${API_BASE_URL}/scholarships`, {
-        method: 'GET',
+        method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -238,7 +277,7 @@ export const useChat = () => {
         total: scholarshipPayload.total || 0,
       };
     } catch (fetchError) {
-      console.error('Scholarships fetch error:', fetchError);
+      console.error("Scholarships fetch error:", fetchError);
       return { success: false, scholarships: [] };
     }
   };

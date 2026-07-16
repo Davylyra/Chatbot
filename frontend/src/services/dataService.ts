@@ -1,12 +1,18 @@
-import { SmartApiService } from './api';
+import { SmartApiService } from "./api";
 import {
   getDefaultData as fetchDefaultData,
   getDefaultDataCollection as fetchDefaultDataCollection,
-} from '../mocks/defaultData';
+} from "../mocks/defaultData";
 
 export interface DynamicData {
   id: string;
-  type: 'user' | 'university' | 'form' | 'notification' | 'transaction' | 'chat';
+  type:
+    | "user"
+    | "university"
+    | "form"
+    | "notification"
+    | "transaction"
+    | "chat";
   data: any;
   metadata?: Record<string, any>;
   lastUpdated: string;
@@ -50,19 +56,25 @@ class DataService {
 
       return this.getDefaultData(type, id);
     } catch (fetchError) {
-      console.error('Failed to fetch dynamic data:', fetchError);
+      console.error("Failed to fetch dynamic data:", fetchError);
       return this.getDefaultData(type, id);
     }
   }
 
-  async getDataCollection(type: string, filters?: Record<string, any>): Promise<DataCollection> {
+  async getDataCollection(
+    type: string,
+    filters?: Record<string, any>,
+  ): Promise<DataCollection> {
     const cached = this.collectionCache.get(type);
     if (cached && this.isCacheValid(cached.lastUpdated)) {
       return cached;
     }
 
     try {
-      const response = await SmartApiService.getDynamicDataCollection(type, filters);
+      const response = await SmartApiService.getDynamicDataCollection(
+        type,
+        filters,
+      );
 
       if (response.success && response.data) {
         const collection: DataCollection = {
@@ -82,7 +94,7 @@ class DataService {
 
       return this.getDefaultDataCollection(type);
     } catch (fetchError) {
-      console.error('Failed to fetch dynamic data collection:', fetchError);
+      console.error("Failed to fetch dynamic data collection:", fetchError);
       return this.getDefaultDataCollection(type);
     }
   }
@@ -108,14 +120,18 @@ class DataService {
 
       return null;
     } catch (createError) {
-      console.error('Failed to create dynamic data:', createError);
+      console.error("Failed to create dynamic data:", createError);
       return null;
     }
   }
 
   async updateData(type: string, id: string, payload: any): Promise<boolean> {
     try {
-      const response = await SmartApiService.updateDynamicData(type, id, payload);
+      const response = await SmartApiService.updateDynamicData(
+        type,
+        id,
+        payload,
+      );
 
       if (response.success) {
         const existing = this.dataCache.get(`${type}:${id}`);
@@ -131,7 +147,7 @@ class DataService {
 
       return false;
     } catch (updateError) {
-      console.error('Failed to update dynamic data:', updateError);
+      console.error("Failed to update dynamic data:", updateError);
       return false;
     }
   }
@@ -148,7 +164,7 @@ class DataService {
 
       return false;
     } catch (deleteError) {
-      console.error('Failed to delete dynamic data:', deleteError);
+      console.error("Failed to delete dynamic data:", deleteError);
       return false;
     }
   }

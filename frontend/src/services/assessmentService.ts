@@ -1,7 +1,7 @@
-import { ASSESSMENT_QUESTIONS } from '../data/constants';
-import { SmartApiService } from './api';
-import { handleApiError } from '../utils/apiHelpers';
-import { generateMockRecommendations as fetchMockRecommendations } from '../mocks/defaultAssessment';
+import { ASSESSMENT_QUESTIONS } from "../data/constants";
+import { SmartApiService } from "./api";
+import { handleApiError } from "../utils/apiHelpers";
+import { generateMockRecommendations as fetchMockRecommendations } from "../mocks/defaultAssessment";
 
 export interface AssessmentData {
   bestSubject: string[];
@@ -27,7 +27,7 @@ export interface RecommendedProgram {
 export interface AssessmentQuestion {
   id: string;
   question: string;
-  type: 'single' | 'multiple' | 'text';
+  type: "single" | "multiple" | "text";
   options?: string[];
   placeholder?: string;
   required?: boolean;
@@ -43,7 +43,9 @@ class AssessmentService {
     }));
   }
 
-  async submitAssessment(assessmentData: AssessmentData): Promise<RecommendedProgram[]> {
+  async submitAssessment(
+    assessmentData: AssessmentData,
+  ): Promise<RecommendedProgram[]> {
     try {
       const aiResponse = await this.sendToAIModel(assessmentData);
 
@@ -53,13 +55,16 @@ class AssessmentService {
 
       return this.generateMockRecommendations(assessmentData);
     } catch (assessmentError) {
-      console.error('AI assessment failed:', handleApiError(assessmentError, 'Assessment processing failed'));
+      console.error(
+        "AI assessment failed:",
+        handleApiError(assessmentError, "Assessment processing failed"),
+      );
       return this.generateMockRecommendations(assessmentData);
     }
   }
 
   private async sendToAIModel(
-    assessmentData: AssessmentData
+    assessmentData: AssessmentData,
   ): Promise<{ recommendations: RecommendedProgram[] } | null> {
     try {
       const assessmentPrompt = this.buildAssessmentPrompt(assessmentData);
@@ -73,9 +78,9 @@ class AssessmentService {
         return response.data;
       }
 
-      throw new Error(response.error || 'AI service unavailable');
+      throw new Error(response.error || "AI service unavailable");
     } catch (modelError) {
-      console.error('AI model request failed:', handleApiError(modelError));
+      console.error("AI model request failed:", handleApiError(modelError));
       return null;
     }
   }
@@ -84,10 +89,10 @@ class AssessmentService {
     return `
       Based on the following student assessment data, provide personalized university program recommendations for Ghanaian universities:
       
-      Strong Subjects: ${assessmentData.bestSubject.join(', ')}
+      Strong Subjects: ${assessmentData.bestSubject.join(", ")}
       SHS Program: ${assessmentData.shsProgram}
       WASSCE Grade: ${assessmentData.wassceGrade}
-      Career Interests: ${assessmentData.interests.join(', ')}
+      Career Interests: ${assessmentData.interests.join(", ")}
       Career Goals: ${assessmentData.careerGoals}
       Preferred Location: ${assessmentData.preferredLocation}
       
@@ -107,7 +112,9 @@ class AssessmentService {
     `;
   }
 
-  private generateMockRecommendations(assessmentData: AssessmentData): RecommendedProgram[] {
+  private generateMockRecommendations(
+    assessmentData: AssessmentData,
+  ): RecommendedProgram[] {
     return fetchMockRecommendations(assessmentData);
   }
 
@@ -116,10 +123,10 @@ class AssessmentService {
   }
 
   private craftPersonalizedMessage(assessmentData: AssessmentData): string {
-    const subjects = assessmentData.bestSubject.join(', ');
+    const subjects = assessmentData.bestSubject.join(", ");
     const shsProgram = assessmentData.shsProgram;
     const wassceGrade = assessmentData.wassceGrade;
-    const interests = assessmentData.interests.join(', ');
+    const interests = assessmentData.interests.join(", ");
     const goals = assessmentData.careerGoals;
     const location = assessmentData.preferredLocation;
 
@@ -164,7 +171,12 @@ class AssessmentService {
     return {
       totalAssessments: 1250,
       averageScore: 82,
-      popularPrograms: ['Computer Science', 'Business Administration', 'Medicine', 'Engineering'],
+      popularPrograms: [
+        "Computer Science",
+        "Business Administration",
+        "Medicine",
+        "Engineering",
+      ],
     };
   }
 }

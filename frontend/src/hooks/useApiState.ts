@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { handleApiError } from '../utils/apiHelpers';
+import { useState, useCallback } from "react";
+import { handleApiError } from "../utils/apiHelpers";
 
 interface UseApiStateOptions<T> {
   initialData?: T;
@@ -11,12 +11,17 @@ interface UseApiStateReturn<T> {
   data: T | null;
   isLoading: boolean;
   error: string | null;
-  execute: <P extends any[]>(apiCall: (...args: P) => Promise<T>, ...args: P) => Promise<T | null>;
+  execute: <P extends any[]>(
+    apiCall: (...args: P) => Promise<T>,
+    ...args: P
+  ) => Promise<T | null>;
   reset: () => void;
   setData: (data: T | null) => void;
 }
 
-export function useApiState<T = any>(options: UseApiStateOptions<T> = {}): UseApiStateReturn<T> {
+export function useApiState<T = any>(
+  options: UseApiStateOptions<T> = {},
+): UseApiStateReturn<T> {
   const { initialData = null, onSuccess, onError } = options;
 
   const [data, setData] = useState<T | null>(initialData as T | null);
@@ -24,7 +29,10 @@ export function useApiState<T = any>(options: UseApiStateOptions<T> = {}): UseAp
   const [error, setError] = useState<string | null>(null);
 
   const execute = useCallback(
-    async <P extends any[]>(apiCall: (...args: P) => Promise<T>, ...args: P): Promise<T | null> => {
+    async <P extends any[]>(
+      apiCall: (...args: P) => Promise<T>,
+      ...args: P
+    ): Promise<T | null> => {
       setIsLoading(true);
       setError(null);
 
@@ -34,7 +42,7 @@ export function useApiState<T = any>(options: UseApiStateOptions<T> = {}): UseAp
         onSuccess?.(apiResult);
         return apiResult;
       } catch (apiError) {
-        const errorMessage = handleApiError(apiError, 'An error occurred');
+        const errorMessage = handleApiError(apiError, "An error occurred");
         setError(errorMessage);
         onError?.(errorMessage);
         return null;
@@ -42,7 +50,7 @@ export function useApiState<T = any>(options: UseApiStateOptions<T> = {}): UseAp
         setIsLoading(false);
       }
     },
-    [onSuccess, onError]
+    [onSuccess, onError],
   );
 
   const reset = useCallback(() => {
@@ -74,7 +82,10 @@ export function useMultiApiState<T extends Record<string, any>>() {
   >({});
 
   const executeFor = useCallback(
-    async <K extends keyof T>(key: K, apiCall: () => Promise<T[K]>): Promise<T[K] | null> => {
+    async <K extends keyof T>(
+      key: K,
+      apiCall: () => Promise<T[K]>,
+    ): Promise<T[K] | null> => {
       setStates((prev) => ({
         ...prev,
         [key]: { ...prev[key as string], isLoading: true, error: null },
@@ -91,19 +102,25 @@ export function useMultiApiState<T extends Record<string, any>>() {
         const errorMessage = handleApiError(apiError);
         setStates((prev) => ({
           ...prev,
-          [key]: { ...prev[key as string], isLoading: false, error: errorMessage },
+          [key]: {
+            ...prev[key as string],
+            isLoading: false,
+            error: errorMessage,
+          },
         }));
         return null;
       }
     },
-    []
+    [],
   );
 
   const getState = useCallback(
     <K extends keyof T>(key: K) => {
-      return states[key as string] || { data: null, isLoading: false, error: null };
+      return (
+        states[key as string] || { data: null, isLoading: false, error: null }
+      );
     },
-    [states]
+    [states],
   );
 
   const resetAll = useCallback(() => {

@@ -142,7 +142,22 @@ const HelpSupport: React.FC = () => {
                                 }`}
                               >
                                 <p className="text-sm leading-relaxed mt-3 text-justify">
-                                  {faq.answer}
+                                  {faq.answer.split('[BUY_FORM]').map((part, index, array) => (
+                                    <React.Fragment key={index}>
+                                      {part}
+                                      {index < array.length - 1 && (
+                                        <button 
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            navigate('/forms');
+                                          }}
+                                          className="text-primary-600 font-semibold underline hover:text-primary-700 focus:outline-none"
+                                        >
+                                          Buy Forms
+                                        </button>
+                                      )}
+                                    </React.Fragment>
+                                  ))}
                                 </p>
                               </div>
                             </motion.div>
@@ -151,13 +166,25 @@ const HelpSupport: React.FC = () => {
                       </motion.div>
                     );
                   })
-                : section.items.map((item, itemIndex) => (
+                : section.items.map((item, itemIndex) => {
+                    const handleSupportClick = () => {
+                      if (item.includes('Email')) {
+                        window.location.href = `mailto:${pageContent?.sections.find((s) => s.id === 'email-support')?.content || 'support@glinax.com'}`;
+                      } else if (item.includes('Phone')) {
+                        window.location.href = `tel:${import.meta.env.VITE_CONTACT_PHONE || pageContent?.sections.find((s) => s.id === 'phone-support')?.content || '+233543167191'}`;
+                      } else if (item.includes('WhatsApp')) {
+                        window.open(`https://wa.me/${String(import.meta.env.VITE_CONTACT_PHONE || pageContent?.sections.find((s) => s.id === 'phone-support')?.content || '+233543167191').replace(/\D/g, '')}`, '_blank');
+                      }
+                    };
+
+                    return (
                     <motion.div
                       key={item}
+                      onClick={handleSupportClick}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: sectionIndex * 0.1 + itemIndex * 0.05 }}
-                      className={`p-4 hover:shadow-lg transition-all duration-300 cursor-pointer ${
+                      className={`p-4 hover:shadow-lg transition-all duration-300 ${!item.includes('Live Chat') ? 'cursor-pointer' : ''} ${
                         theme === 'dark'
                           ? 'glass-card-unified-dark bg-gray-700/80'
                           : 'glass-card-unified bg-white/80'
@@ -174,7 +201,8 @@ const HelpSupport: React.FC = () => {
                         </span>
                       </div>
                     </motion.div>
-                  ))}
+                    );
+                  })}
             </div>
           </motion.div>
         ))}
@@ -221,7 +249,10 @@ const HelpSupport: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center space-x-3">
+            <div 
+              onClick={() => window.location.href = `mailto:${pageContent?.sections.find((s) => s.id === 'email-support')?.content || 'support@glinax.com'}`}
+              className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
+            >
               <FiMail className="w-5 h-5 text-primary-600" />
               <div>
                 <p
@@ -241,7 +272,10 @@ const HelpSupport: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center space-x-3">
+            <div 
+              onClick={() => window.location.href = `tel:${import.meta.env.VITE_CONTACT_PHONE || pageContent?.sections.find((s) => s.id === 'phone-support')?.content || '+233543167191'}`}
+              className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
+            >
               <FiPhone className="w-5 h-5 text-primary-600" />
               <div>
                 <p

@@ -19,10 +19,11 @@
 export function generateConversationTitle(
   firstMessage?: string,
   universityContext?: string,
-  assessmentData?: any
+  assessmentData?: any,
 ): string {
   if (assessmentData) {
-    const interests = assessmentData.interests?.slice(0, 2).join(', ') || 'interests';
+    const interests =
+      assessmentData.interests?.slice(0, 2).join(", ") || "interests";
     return `Assessment: ${interests}`;
   }
 
@@ -44,15 +45,15 @@ export function generateConversationTitle(
   }
 
   const hour = new Date().getHours();
-  let timeOfDay = 'Morning';
-  if (hour >= 12 && hour < 17) timeOfDay = 'Afternoon';
-  else if (hour >= 17) timeOfDay = 'Evening';
+  let timeOfDay = "Morning";
+  if (hour >= 12 && hour < 17) timeOfDay = "Afternoon";
+  else if (hour >= 17) timeOfDay = "Evening";
 
   return `${timeOfDay} Consultation`;
 }
 
 function cleanMessageForTitle(message: string): string {
-  let cleaned = message.replace(/\s+/g, ' ').trim();
+  let cleaned = message.replace(/\s+/g, " ").trim();
 
   const firstSentenceMatch = cleaned.match(/^[^.!?;]+/);
   if (firstSentenceMatch) {
@@ -60,17 +61,17 @@ function cleanMessageForTitle(message: string): string {
   }
 
   const prefixesToRemove = [
-    'tell me about',
-    'i want to know about',
-    'can you help me with',
-    'what is',
-    'what are',
-    'how do i',
-    'how can i',
-    'please tell me',
-    'i need help with',
-    'can you tell me',
-    'i would like to know',
+    "tell me about",
+    "i want to know about",
+    "can you help me with",
+    "what is",
+    "what are",
+    "how do i",
+    "how can i",
+    "please tell me",
+    "i need help with",
+    "can you tell me",
+    "i would like to know",
   ];
 
   const lowerCleaned = cleaned.toLowerCase();
@@ -86,12 +87,12 @@ function cleanMessageForTitle(message: string): string {
 
   const words = cleaned.split(/\s+/);
   if (words.length > 7) {
-    cleaned = words.slice(0, 7).join(' ');
+    cleaned = words.slice(0, 7).join(" ");
   }
 
   if (cleaned.length > 50) {
     const truncated = cleaned.substring(0, 50);
-    const lastSpace = truncated.lastIndexOf(' ');
+    const lastSpace = truncated.lastIndexOf(" ");
     if (lastSpace > 30) {
       cleaned = truncated.substring(0, lastSpace);
     } else {
@@ -99,7 +100,7 @@ function cleanMessageForTitle(message: string): string {
     }
   }
 
-  cleaned = cleaned.replace(/[?!.,;:]+$/, '');
+  cleaned = cleaned.replace(/[?!.,;:]+$/, "");
 
   if (cleaned.length > 0) {
     cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
@@ -110,30 +111,30 @@ function cleanMessageForTitle(message: string): string {
 
 export function shouldUpdateConversationTitle(
   currentTitle: string,
-  firstUserMessage?: string
+  firstUserMessage?: string,
 ): boolean {
   if (!firstUserMessage || firstUserMessage.trim().length <= 5) {
     return false;
   }
 
   const alwaysUpdateTitles = [
-    'New Chat',
-    'Morning Consultation',
-    'Afternoon Consultation',
-    'Evening Consultation',
-    'Untitled',
-    'Conversation',
+    "New Chat",
+    "Morning Consultation",
+    "Afternoon Consultation",
+    "Evening Consultation",
+    "Untitled",
+    "Conversation",
   ];
 
   if (alwaysUpdateTitles.includes(currentTitle)) {
     return true;
   }
 
-  if (currentTitle.endsWith(' Admissions')) {
+  if (currentTitle.endsWith(" Admissions")) {
     return true;
   }
 
-  if (currentTitle.startsWith('Assessment: ')) {
+  if (currentTitle.startsWith("Assessment: ")) {
     return true;
   }
 

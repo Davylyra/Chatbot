@@ -1,10 +1,10 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from "react";
 
 interface SearchResult {
   id: string;
   title: string;
   description?: string;
-  type: 'university' | 'form' | 'program' | 'general';
+  type: "university" | "form" | "program" | "general";
   data: any;
   matchScore: number;
   matchedFields: string[];
@@ -33,7 +33,7 @@ export const useGlobalSearch = ({
   resultLimit = 10,
   minQueryLength = 2,
 }: UseGlobalSearchOptions): UseGlobalSearchReturn => {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 
   const results = useMemo(() => {
@@ -52,7 +52,7 @@ export const useGlobalSearch = ({
 
       searchFields.forEach((field) => {
         const fieldValue = item[field];
-        if (fieldValue && typeof fieldValue === 'string') {
+        if (fieldValue && typeof fieldValue === "string") {
           const lowerValue = fieldValue.toLowerCase();
 
           if (lowerValue === searchTerm) {
@@ -64,7 +64,7 @@ export const useGlobalSearch = ({
           } else if (lowerValue.includes(searchTerm)) {
             matchScore += 60;
             matchedFields.push(field);
-          } else if (new RegExp(`\\b${searchTerm}`, 'i').test(lowerValue)) {
+          } else if (new RegExp(`\\b${searchTerm}`, "i").test(lowerValue)) {
             matchScore += 40;
             matchedFields.push(field);
           }
@@ -73,10 +73,18 @@ export const useGlobalSearch = ({
 
       if (matchScore > 0) {
         searchResults.push({
-          id: item.id || item.universityName || item.name || Math.random().toString(),
-          title: item.universityName || item.name || item.title || 'Unknown',
-          description: item.fullName || item.description || '',
-          type: item.universityName ? 'university' : item.name ? 'form' : 'general',
+          id:
+            item.id ||
+            item.universityName ||
+            item.name ||
+            Math.random().toString(),
+          title: item.universityName || item.name || item.title || "Unknown",
+          description: item.fullName || item.description || "",
+          type: item.universityName
+            ? "university"
+            : item.name
+              ? "form"
+              : "general",
           data: item,
           matchScore,
           matchedFields,
@@ -93,7 +101,7 @@ export const useGlobalSearch = ({
   }, [query, data, searchFields, resultLimit, minQueryLength]);
 
   const clearSearch = useCallback(() => {
-    setQuery('');
+    setQuery("");
   }, []);
 
   const search = useCallback((searchQuery: string) => {

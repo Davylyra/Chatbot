@@ -13,45 +13,11 @@ const toObjectIdIfValid = (identifier) => {
   return identifier;
 };
 
-const GHANA_MOBILE_MONEY_PROVIDERS = {
-  MTN: { code: 'mtn', name: 'MTN Mobile Money', prefixes: ['024', '054', '055', '059'] },
-  VODAFONE: { code: 'vod', name: 'Vodafone Cash', prefixes: ['020', '050'] },
-  AIRTELTIGO: { code: 'tgo', name: 'AirtelTigo Money', prefixes: ['027', '057', '026', '056'] }
-};
 
-const validateMobileMoneyNumber = (phoneNumber, providerCode) => {
-  const validationFailures = [];
-  const sanitizedNumber = phoneNumber.replace(/[\s\-\(\)]/g, '');
-  
-  if (!/^(0|\+233)?[0-9]{9}$/.test(sanitizedNumber)) {
-    validationFailures.push('Invalid phone number format. Use format: 0XXXXXXXXX or +233XXXXXXXXX');
-    return { valid: false, errors: validationFailures };
-  }
-  
-  const networkPrefix = sanitizedNumber.startsWith('+233') ? sanitizedNumber.substring(4, 7) : sanitizedNumber.substring(0, 3);
-  
-  if (providerCode) {
-    const matchedProvider = Object.values(GHANA_MOBILE_MONEY_PROVIDERS).find(p => p.code === providerCode.toLowerCase());
-    if (!matchedProvider) {
-      validationFailures.push('Invalid mobile money provider. Use: mtn, voda, or tigo');
-      return { valid: false, errors: validationFailures };
-    }
-    if (!matchedProvider.prefixes.includes(networkPrefix)) {
-      validationFailures.push(`This number (${networkPrefix}) doesn't match ${matchedProvider.name}. Expected prefixes: ${matchedProvider.prefixes.join(', ')}`);
-      return { valid: false, errors: validationFailures };
-    }
-  }
-  
-  return { 
-    valid: true, 
-    cleanNumber: sanitizedNumber.startsWith('+233') ? sanitizedNumber : `+233${sanitizedNumber.substring(1)}`,
-    provider: Object.values(GHANA_MOBILE_MONEY_PROVIDERS).find(p => p.prefixes.includes(networkPrefix))
-  };
-};
 
 export const initializePayment = async (req, res) => {
   try {
-    const { email, amount, currency = 'GHS', metadata, paymentMethod = 'card', mobileMoneyProvider, mobileMoneyNumber, formId } = req.body;
+    const { email, amount, currency = 'GHS', metadata, paymentMethod = 'card', formId, callbackUrl } = req.body;
     const studentId = req.user.id;
     const validationFailures = [];
     
@@ -59,13 +25,6 @@ export const initializePayment = async (req, res) => {
     if (!amount || amount <= 0) validationFailures.push('Valid amount is required');
     if (amount < 1) validationFailures.push('Minimum payment amount is GHS 1.00');
     if (amount > 10000) validationFailures.push('Maximum payment amount is GHS 10,000.00');
-    
-    let verifiedMomoDetails = null;
-    if (paymentMethod === 'mobile_money' && mobileMoneyNumber && mobileMoneyProvider) {
-      const momoValidation = validateMobileMoneyNumber(mobileMoneyNumber, mobileMoneyProvider);
-      if (!momoValidation.valid) validationFailures.push(...momoValidation.errors);
-      else verifiedMomoDetails = momoValidation;
-    }
     
     if (validationFailures.length) {
       return res.status(400).json({ success: false, message: 'Validation failed', errors: validationFailures });
@@ -77,20 +36,9 @@ export const initializePayment = async (req, res) => {
       amount: amountInPesewas,
       currency,
       reference: `glinax_${Date.now()}_${studentId}`,
-      callback_url: `${process.env.FRONTEND_URL}/payment/callback`,
+      callback_url: callbackUrl || `${process.env.FRONTEND_URL.split(',')[0]}/forms`,
       metadata: { userId: studentId, service: 'glinax_premium', paymentMethod, country: 'Ghana', ...metadata }
     };
-    
-    if (paymentMethod === 'mobile_money') {
-      transactionParams.channels = ['mobile_money'];
-      if (verifiedMomoDetails) {
-        transactionParams.metadata.mobile_money = {
-          provider: verifiedMomoDetails.provider.name,
-          providerCode: mobileMoneyProvider,
-          number: verifiedMomoDetails.cleanNumber
-        };
-      }
-    }
     
     const requestPayload = JSON.stringify(transactionParams);
     const requestOptions = {
@@ -115,8 +63,6 @@ export const initializePayment = async (req, res) => {
               reference: parsedResponse.data.reference,
               status: 'pending',
               payment_method: paymentMethod,
-              mobile_money_provider: mobileMoneyProvider || null,
-              mobile_money_number: verifiedMomoDetails ? verifiedMomoDetails.cleanNumber : null,
               paystack_data: parsedResponse.data,
               created_at: new Date(),
               updated_at: new Date(),

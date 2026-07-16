@@ -1,21 +1,28 @@
-import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import ProtectedRoute from '../../components/ProtectedRoute';
+import React, { Suspense } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import ProtectedRoute from "../../components/ProtectedRoute";
 
-const Home = React.lazy(() => import('../Home'));
-const Chat = React.lazy(() => import('../Chat'));
-const Forms = React.lazy(() => import('../Forms'));
-const About = React.lazy(() => import('../About'));
-const Settings = React.lazy(() => import('../Settings'));
-const Profile = React.lazy(() => import('../Profile'));
-const Notifications = React.lazy(() => import('../Notifications'));
-const Transactions = React.lazy(() => import('../Transactions'));
-const HelpSupport = React.lazy(() => import('../HelpSupport'));
-const Login = React.lazy(() => import('../Login'));
-const Signup = React.lazy(() => import('../Signup'));
-const Universities = React.lazy(() => import('../Universities'));
-const Assessment = React.lazy(() => import('../Assessment'));
-const ConversationHistoryPage = React.lazy(() => import('../ConversationHistory'));
+const Home = React.lazy(() => import("../Home"));
+const Chat = React.lazy(() => import("../Chat"));
+const Forms = React.lazy(() => import("../Forms"));
+const About = React.lazy(() => import("../About"));
+const Settings = React.lazy(() => import("../Settings"));
+const Profile = React.lazy(() => import("../Profile"));
+const Notifications = React.lazy(() => import("../Notifications"));
+const Transactions = React.lazy(() => import("../Transactions"));
+const HelpSupport = React.lazy(() => import("../HelpSupport"));
+const Login = React.lazy(() => import("../Login"));
+const Signup = React.lazy(() => import("../Signup"));
+const Universities = React.lazy(() => import("../Universities"));
+const Assessment = React.lazy(() => import("../Assessment"));
+const ConversationHistoryPage = React.lazy(
+  () => import("../ConversationHistory"),
+);
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">

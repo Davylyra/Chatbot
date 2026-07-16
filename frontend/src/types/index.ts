@@ -49,21 +49,21 @@ export interface UniversityForm {
   deadline: string;
   isAvailable: boolean;
   logo?: string;
-  status?: 'available' | 'expired' | 'not_yet_open' | 'sold_out';
+  status?: "available" | "expired" | "not_yet_open" | "sold_out";
   daysUntilDeadline?: number;
   lastUpdated?: string;
 }
 
 export interface PurchaseFormRequest {
   formId: string;
-  paymentMethod: 'mtn' | 'airtel' | 'telecel';
-  phoneNumber: string;
+  paymentMethod: "mobile_money" | "card" | string;
+  phoneNumber?: string;
 }
 
 export interface PurchaseFormResponse {
   transactionId: string;
   paymentUrl: string;
-  status: 'pending' | 'completed' | 'failed';
+  status: "pending" | "completed" | "failed";
 }
 
 // Transaction Types
@@ -74,7 +74,7 @@ export interface Transaction {
   type: string;
   date: string;
   time: string;
-  status: 'completed' | 'pending' | 'failed';
+  status: "completed" | "pending" | "failed";
   paymentMethod: string;
   amount: string;
   logo?: string;
@@ -85,16 +85,16 @@ export interface Notification {
   id: string;
   title: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'error' | 'payment' | 'application';
+  type: "info" | "success" | "warning" | "error" | "payment" | "application";
   category:
-    | 'general'
-    | 'payment'
-    | 'application'
-    | 'deadline'
-    | 'scholarship'
-    | 'admission_update'
-    | 'form';
-  priority: 'low' | 'normal' | 'high' | 'urgent';
+    | "general"
+    | "payment"
+    | "application"
+    | "deadline"
+    | "scholarship"
+    | "admission_update"
+    | "form";
+  priority: "low" | "normal" | "high" | "urgent";
   timestamp: string; // ISO date string
   createdAt: Date;
   isRead: boolean;
@@ -136,8 +136,8 @@ export interface Notification {
 export type NotificationData = Notification;
 
 export interface AppSettings {
-  theme: 'light' | 'dark' | 'auto';
-  language: 'en' | 'tw' | 'ga' | 'ew';
+  theme: "light" | "dark" | "auto";
+  language: "en" | "tw" | "ga" | "ew";
   pushNotifications: boolean;
   emailUpdates: boolean;
 }
