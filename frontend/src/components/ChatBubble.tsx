@@ -1,7 +1,8 @@
 import React, { memo } from "react";
 import { motion } from "framer-motion";
-import { FiMessageCircle } from "react-icons/fi";
+import { FiMessageCircle, FiFile, FiImage } from "react-icons/fi";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { ChatMessage } from "../store";
 import { useTheme } from "../contexts/ThemeContext";
 
@@ -39,34 +40,30 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(
       if (!attachments || attachments.length === 0) return null;
 
       return (
-        <div className="mt-2 space-y-1">
+        <div className="mt-2 flex flex-wrap gap-2">
           {attachments.map((file, index) => (
             <div
               key={index}
-              className={`flex items-center space-x-2 p-2 rounded-lg transition-colors duration-200 ${
+              className={`relative flex flex-col justify-end w-20 h-20 rounded-xl overflow-hidden border shrink-0 ${
                 theme === "dark"
-                  ? "bg-gray-600/50 text-gray-300"
-                  : "bg-gray-100 text-gray-700"
+                  ? "border-white/20 bg-black/20 text-white"
+                  : "border-black/10 bg-black/5 text-gray-800"
               }`}
             >
-              <div
-                className={`p-1.5 rounded-full ${
-                  file.type.startsWith("image/")
-                    ? theme === "dark"
-                      ? "bg-blue-500/20 text-blue-400"
-                      : "bg-blue-100 text-blue-600"
-                    : theme === "dark"
-                      ? "bg-green-500/20 text-green-400"
-                      : "bg-green-100 text-green-600"
-                }`}
-              >
-                {file.type.startsWith("image/") ? "️" : ""}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium truncate">{file.name}</p>
-                <p className="text-xs opacity-70">
-                  {(file.size / 1024).toFixed(1)} KB
-                </p>
+              {file.previewUrl ? (
+                <img src={file.previewUrl} alt="preview" className="absolute inset-0 w-full h-full object-cover" />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  {file.type.startsWith("image/") ? (
+                    <FiImage className="w-8 h-8 opacity-50" />
+                  ) : (
+                    <FiFile className="w-8 h-8 opacity-50" />
+                  )}
+                </div>
+              )}
+              
+              <div className="relative z-10 bg-black/60 backdrop-blur-sm text-white text-[10px] px-1.5 py-1 truncate text-center font-medium">
+                {file.name}
               </div>
             </div>
           ))}
@@ -81,7 +78,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(
         className={`flex ${isUser ? "justify-end" : "justify-start"} mb-4`}
       >
         <div
-          className={`flex items-start space-x-2 max-w-xs lg:max-w-md ${isUser ? "flex-row-reverse space-x-reverse" : ""}`}
+          className={`flex items-start space-x-2 w-full max-w-[90%] md:max-w-[85%] lg:max-w-3xl ${isUser ? "flex-row-reverse space-x-reverse" : ""}`}
         >
           {/* Avatar - Only show for bot messages */}
           {!isUser && (
@@ -97,7 +94,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(
           )}
 
           <div
-            className={`p-4 rounded-2xl transition-all duration-300 ${
+            className={`p-4 rounded-2xl transition-all duration-300 overflow-x-auto ${
               isUser
                 ? theme === "dark"
                   ? "bg-primary-600/90 text-white shadow-lg border border-primary-400/30 backdrop-blur-sm shadow-primary-500/20 hover:border-primary-400/50"
@@ -133,7 +130,28 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(
                 {isGreetingMessage ? (
                   <div className="text-sm leading-relaxed font-semibold text-white">
                     <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
                       components={{
+                        table: ({ children }) => (
+                          <div className="overflow-x-auto my-3 rounded-lg border border-white/20">
+                            <table className="min-w-full border-collapse text-sm">
+                              {children}
+                            </table>
+                          </div>
+                        ),
+                        thead: ({ children }) => (
+                          <thead className="bg-black/10 border-b border-white/20">{children}</thead>
+                        ),
+                        th: ({ children }) => (
+                          <th className="px-4 py-2 text-left font-semibold whitespace-nowrap">
+                            {children}
+                          </th>
+                        ),
+                        td: ({ children }) => (
+                          <td className="px-4 py-2 border-t border-white/10">
+                            {children}
+                          </td>
+                        ),
                         p: ({ children }) => (
                           <p className="mb-2 last:mb-0">{children}</p>
                         ),
@@ -202,9 +220,30 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(
                     {renderAttachments()}
                   </div>
                 ) : (
-                  <div className="text-sm leading-relaxed">
+                  <div className="text-sm leading-relaxed text-white">
                     <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
                       components={{
+                        table: ({ children }) => (
+                          <div className="overflow-x-auto my-3 rounded-lg border border-white/20">
+                            <table className="min-w-full border-collapse text-sm">
+                              {children}
+                            </table>
+                          </div>
+                        ),
+                        thead: ({ children }) => (
+                          <thead className="bg-black/10 border-b border-white/20">{children}</thead>
+                        ),
+                        th: ({ children }) => (
+                          <th className="px-4 py-2 text-left font-semibold whitespace-nowrap">
+                            {children}
+                          </th>
+                        ),
+                        td: ({ children }) => (
+                          <td className="px-4 py-2 border-t border-white/10">
+                            {children}
+                          </td>
+                        ),
                         p: ({ children }) => (
                           <p className="mb-2 last:mb-0">{children}</p>
                         ),

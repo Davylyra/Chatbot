@@ -27,6 +27,7 @@ export interface ChatMessage {
     name: string;
     type: string;
     size: number;
+    previewUrl?: string;
   }>;
   sources?: any[];
   confidence?: number;

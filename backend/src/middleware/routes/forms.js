@@ -36,6 +36,36 @@ router.get("/", async (req, res) => {
   }
 });
 
+/* STOCK STATUS - lets the frontend show accurate available/sold-out state
+   before a student ever reaches checkout. This is a display aid only; the
+   actual safeguard against overselling is the hard block in
+   paystackController.js's initializePayment. If this query fails for any
+   reason, fail open (empty map) rather than breaking the whole forms page -
+   an unknown-stock university just falls back to its own is_available flag. */
+router.get("/stock-status", async (req, res) => {
+  try {
+    const inventoryCollection = await getCollection("form_inventory");
+    const stockCounts = await inventoryCollection
+      .aggregate([
+        { $match: { is_used: false } },
+        { $group: { _id: "$university_name", remaining: { $sum: 1 } } }
+      ])
+      .toArray();
+
+    const stockMap = {};
+    stockCounts.forEach((entry) => {
+      if (entry._id) {
+        stockMap[entry._id] = { inStock: entry.remaining > 0, remaining: entry.remaining };
+      }
+    });
+
+    res.status(200).json({ success: true, data: stockMap });
+  } catch (err) {
+    console.error("Error fetching form stock status:", err.message);
+    res.status(200).json({ success: true, data: {} });
+  }
+});
+
 /* -------------------- 🟢 BUY FORM / INITIALIZE PAYMENT -------------------- */
 router.post("/:id/purchase", authMiddleware, async (req, res) => {
   const { form_id, email, payment_method } = req.body;

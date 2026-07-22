@@ -116,6 +116,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
     const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
     const { theme } = useTheme();
@@ -553,15 +554,18 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       const isFirstUserMessage =
         currentMessages.filter((m) => m.isUser).length === 0;
 
-      // Clear input and attachments immediately
+      // Clear input, attachments, and reset textarea height immediately
       setInputMessage("");
       setAttachedFiles([]);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+      }
       setIsTyping(true);
       setError(null);
 
       const newMessage = {
         id: Date.now().toString(),
-        text: messageText || `Sent ${filesToSend.length} file(s)`,
+        text: messageText,
         isUser: true,
         timestamp: new Date().toLocaleTimeString([], {
           hour: "2-digit",
@@ -572,6 +576,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
           name: file.name,
           type: file.type,
           size: file.size,
+          previewUrl: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined
         })),
       };
 
@@ -1233,22 +1238,26 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                   key={index}
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg border transition-colors duration-200 ${
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-gray-300"
-                      : "bg-white border-gray-300 text-gray-700"
+                  className={`relative flex flex-col justify-end w-20 h-20 rounded-xl overflow-hidden border shrink-0 ${
+                    theme === "dark" ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-100"
                   }`}
                 >
-                  <FiFile className="w-4 h-4" />
-                  <span className="text-sm truncate max-w-32">{file.name}</span>
+                  {file.type.startsWith("image/") ? (
+                    <img src={URL.createObjectURL(file)} alt="preview" className="absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <FiFile className="w-8 h-8 text-blue-500" />
+                    </div>
+                  )}
+                  
+                  <div className="relative z-10 bg-black/60 backdrop-blur-sm text-white text-[10px] px-1.5 py-1 truncate text-center font-medium">
+                    {file.name}
+                  </div>
+
                   <button
                     onClick={() => removeAttachedFile(index)}
                     title="Remove file"
-                    className={`p-1 rounded-full transition-colors duration-200 ${
-                      theme === "dark"
-                        ? "hover:bg-gray-600 text-gray-400 hover:text-gray-300"
-                        : "hover:bg-gray-200 text-gray-500 hover:text-gray-700"
-                    }`}
+                    className="absolute top-1 right-1 p-1 bg-black/50 hover:bg-black/80 text-white rounded-full backdrop-blur-md transition-colors z-20"
                   >
                     <FiX className="w-3 h-3" />
                   </button>
@@ -1297,6 +1306,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
 
             <div className="flex-1 relative flex items-center min-h-[40px] py-1">
               <textarea
+                ref={textareaRef}
                 value={inputMessage}
                 onChange={(e) => {
                   setInputMessage(e.target.value);
@@ -1314,8 +1324,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                       !isGuest
                     ) {
                       handleSendMessage();
-                      const target = e.target as HTMLTextAreaElement;
-                      target.style.height = "auto";
                     }
                   }
                 }}

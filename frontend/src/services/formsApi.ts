@@ -55,12 +55,23 @@ export class FormsApiService {
       const response = await ApiService.getUniversities();
 
       if (response.success && response.data) {
+        const stockMap = await this.getStockMap();
+
         const processedForms = this.processFormsData(
-          response.data.map((university) => ({
-            ...university,
-            formPrice: university.formPrice || university.buyPrice || '0',
-            currency: 'GHS',
-          }))
+          response.data.map((university) => {
+            const key = (university as any).universityName || university.name;
+            const stock = stockMap[key];
+            return {
+              ...university,
+              formPrice: university.formPrice || university.buyPrice || '0',
+              currency: 'GHS',
+              // Fold real inventory into availability. If we have no stock
+              // record for this university (lookup failed, or it isn't
+              // tracked in form_inventory yet), fall back to the existing
+              // isAvailable flag rather than assuming sold out.
+              isAvailable: stock ? stock.inStock && university.isAvailable : university.isAvailable,
+            };
+          })
         );
 
         this.cacheManager.set(processedForms);
@@ -85,19 +96,40 @@ export class FormsApiService {
 
       if (response.success && response.data) {
         const matchedUniversity = response.data.find((university) => university.id === formId);
-        return matchedUniversity
-          ? this.processFormData({
-              ...matchedUniversity,
-              formPrice: matchedUniversity.formPrice || matchedUniversity.buyPrice || '0',
-              currency: 'GHS',
-            })
-          : null;
+        if (!matchedUniversity) return null;
+
+        const stockMap = await this.getStockMap();
+        const key = (matchedUniversity as any).universityName || matchedUniversity.name;
+        const stock = stockMap[key];
+
+        return this.processFormData({
+          ...matchedUniversity,
+          formPrice: matchedUniversity.formPrice || matchedUniversity.buyPrice || '0',
+          currency: 'GHS',
+          isAvailable: stock ? stock.inStock && matchedUniversity.isAvailable : matchedUniversity.isAvailable,
+        });
       }
 
       return null;
     } catch {
       const fallback = await this.getFallbackForms();
       return fallback.data.find((form) => form.id === formId) || null;
+    }
+  }
+
+  // Looks up live inventory counts per university. Fails open (empty map)
+  // on any error so a stock-check hiccup never takes down the forms list -
+  // the actual purchase-blocking safeguard lives server-side in
+  // paystackController.js's initializePayment.
+  private static async getStockMap(): Promise<Record<string, { inStock: boolean; remaining: number }>> {
+    try {
+      const stockResponse = await ApiService.getFormStockStatus();
+      if (stockResponse.success && stockResponse.data) {
+        return stockResponse.data;
+      }
+      return {};
+    } catch {
+      return {};
     }
   }
 
