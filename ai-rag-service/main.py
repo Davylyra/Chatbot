@@ -161,6 +161,15 @@ groq_client = None
 db_client = None
 ghana_universities_data = []
 
+# Groq model config - kept as env-overridable constants rather than a
+# hardcoded string, since Groq has deprecated multiple models on short notice
+# (llama-3.1-8b-instant and llama-3.3-70b-versatile both retired within
+# months of each other). Swapping models going forward should just mean
+# setting GROQ_MODEL in the environment, not editing and redeploying code.
+GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+GROQ_REASONING_EFFORT = os.getenv("GROQ_REASONING_EFFORT", "medium")  # low | medium | high
+GROQ_TEMPERATURE = float(os.getenv("GROQ_TEMPERATURE", "0.6"))
+
 TESSERACT_ENV_PATH = os.getenv("TESSERACT_CMD")
 WINDOWS_TESSERACT_CANDIDATES = [
     r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
@@ -690,17 +699,15 @@ async def seed_and_load_universities():
     db = db_client[os.getenv("DB_NAME", "glinax_chatbot_db")]
     col = db["universities_knowledge"]
 
-    # Always wipe and reseed from the current hardcoded knowledge base so that
-    # code updates (new programs, fixed deadlines, etc.) always take effect on
-    # restart. Previously this only seeded when the collection was empty, which
-    # meant stale/incomplete data from an earlier deploy could persist forever
-    # and silently override GHANA_UNIVERSITIES_KNOWLEDGE below.
-    await col.delete_many({})
-    docs = [
-        {"name": name, **data} for name, data in GHANA_UNIVERSITIES_KNOWLEDGE.items()
-    ]
-    await col.insert_many(docs)
-    print(f" Wiped and reseeded {len(docs)} universities into MongoDB")
+    # Seed only if collection is empty
+    if await col.count_documents({}) == 0:
+        docs = [
+            {"name": name, **data} for name, data in GHANA_UNIVERSITIES_KNOWLEDGE.items()
+        ]
+        await col.insert_many(docs)
+        print(f" Seeded {len(docs)} universities into MongoDB")
+    else:
+        print(" Universities collection already seeded; skipping overwrite.")
 
     cursor = col.find({})
     loaded = {}
@@ -1024,14 +1031,21 @@ What makes you better than Google:
 - You explain the WHY behind every recommendation — not just what, but why it fits them specifically.
 - You flag things students miss — application deadlines, entrance exams, hidden fees, scholarship opportunities.
 
+ACCURACY RULES — NON-NEGOTIABLE:
+- Only state a specific number, date, name, or requirement (cut-off aggregate, fee amount, deadline, scholarship name, contact detail) if it actually appears in the "Available university information" below. Never estimate, round, or infer a specific figure that isn't there.
+- If the student asks for a detail that isn't in the provided information, say plainly that you don't have that exact figure right now and point them to the university's official admissions portal or contact details (only if those are themselves present in the context) — do not guess a plausible-sounding number instead.
+- Saying "I don't have the exact figure for that" is always better than stating a wrong one confidently.
+- Never invent university names, programme names, or scholarships that aren't in the provided context.
+
 RESPONSE RULES — STRICTLY FOLLOW:
-1. Answer ONLY what was asked. Do not volunteer all 7 categories of information for every message.
+1. Answer ONLY what was asked. Do not volunteer all categories of information for every message.
 2. For a simple question (e.g. "What is the deadline for KNUST?") — give a direct, focused answer in 2–4 sentences or a short list.
 3. For recommendation requests — recommend ONLY 2–4 universities that genuinely fit the student's profile. Explain why each fits THEIR subjects, grade, and goals. Do not list every university in Ghana.
 4. DO NOT introduce yourself repeatedly. Only introduce yourself in the very first message. For all follow-up questions, skip the greeting and respond directly to the query.
 5. If the student has NOT provided their profile and asks for a recommendation — ask 2–3 short, friendly questions to gather: SHS programme, WASSCE aggregate or expected grade, and career interest. Do not guess.
 6. Never start a response with "I" — vary your opening naturally.
 7. Use markdown formatting (bold headings, bullet points) only when it genuinely improves readability. Short answers should be plain prose.
+8. Write like you're actually talking to this student, not filling out a template — vary sentence length and structure, use natural transitions ("Also,", "One thing worth knowing —", "Honestly,") where they fit, and don't force every reply into the same shape as your last one.
 
 UNIVERSITY MATCHING RULES (use when profile is available):
 - General Science → Engineering (KNUST, UG, UENR, UDS), Medicine (UG, KNUST, UHAS, UDS), Computer Science (KNUST, UG, Ashesi, GTUC, Academic City)
@@ -1063,10 +1077,6 @@ DOCUMENT ANALYSIS:
 
 Current year: {current_year}"""
 
-        # Fields handled separately (structured sections below), so the
-        # generic profile loop shouldn't also dump their raw Python repr.
-        structured_keys = ("raw_context", "university_matches", "ai_recommendations")
-
         # Build student profile section
         profile_section = ""
         if user_profile:
@@ -1087,65 +1097,19 @@ Current year: {current_year}"""
                 if val:
                     profile_lines.append(f"  - {label}: {val}")
             for key, val in user_profile.items():
-                if key not in field_labels and val and key not in structured_keys:
+                if key not in field_labels and val and key not in ("raw_context",):
                     profile_lines.append(f"  - {key.replace('_', ' ').title()}: {val}")
             if profile_lines:
                 profile_section = (
                     "STUDENT PROFILE:\n" + "\n".join(profile_lines) + "\n\n"
                 )
 
-        # Build pre-computed university matches section. These come from the
-        # student's completed assessment (utils/universityMatcher.js on the
-        # Node side) — a deterministic scorer, not a guess — so they should
-        # anchor any recommendation Groq gives rather than being re-derived
-        # from scratch on every turn.
-        matches_section = ""
-        if user_profile:
-            matches = user_profile.get("university_matches")
-            if isinstance(matches, list) and matches:
-                match_lines = []
-                for m in matches[:5]:
-                    if not isinstance(m, dict):
-                        continue
-                    name = m.get("university_name") or m.get("universityName")
-                    if not name:
-                        continue
-                    score = m.get("match_score", m.get("matchScore"))
-                    programs = m.get("programs_eligible")
-                    if not programs:
-                        raw_programs = m.get("recommendedPrograms") or []
-                        programs = [
-                            p.get("name") for p in raw_programs if isinstance(p, dict) and p.get("name")
-                        ]
-                    programs_str = ", ".join(programs) if programs else ""
-                    reasoning = m.get("reasoning", "")
-
-                    line = f"  - {name}"
-                    if score is not None:
-                        line += f" (match score: {score}/100)"
-                    if programs_str:
-                        line += f"\n    Relevant programmes: {programs_str}"
-                    if reasoning:
-                        line += f"\n    Why this fits: {reasoning}"
-                    match_lines.append(line)
-
-                if match_lines:
-                    matches_section = (
-                        "PRE-COMPUTED UNIVERSITY MATCHES (already scored against this "
-                        "student's profile by our matching system — use these as your "
-                        "primary basis for recommendations rather than re-deriving new "
-                        "ones; you may still mention other universities if the student "
-                        "asks about one by name):\n"
-                        + "\n".join(match_lines)
-                        + "\n\n"
-                    )
-
-        user_message = f"""{profile_section}{matches_section}Student's question: {query}
+        user_message = f"""{profile_section}Student's question: {query}
 
 Available university information:
 {context}
 
-Respond naturally and helpfully. Answer only what was asked. If this is a recommendation request and pre-computed university matches are provided above, base your recommendation on those matches and their stated reasoning — do not invent a different ranking. Otherwise, base recommendations strictly on the student profile — explain why each recommendation fits their specific subjects, grade, and goals."""
+Respond naturally and helpfully. Answer only what was asked. If this is a recommendation request, base it strictly on the student profile above — explain why each recommendation fits their specific subjects, grade, and goals."""
 
         messages_array = [{"role": "system", "content": system_prompt}]
         if chat_history:
@@ -1154,9 +1118,10 @@ Respond naturally and helpfully. Answer only what was asked. If this is a recomm
 
         chat_completion = await groq_client.chat.completions.create(
             messages=messages_array,
-            model=os.getenv("GROQ_MODEL", "openai/gpt-oss-20b"),
-            temperature=0.4,
-            max_tokens=2048,
+            model=GROQ_MODEL,
+            temperature=GROQ_TEMPERATURE,
+            max_completion_tokens=2048,
+            reasoning_effort=GROQ_REASONING_EFFORT,
         )
 
         raw_response = chat_completion.choices[0].message.content
@@ -1271,7 +1236,7 @@ def generate_smart_fallback_response(
             "University of Professional Studies",
             "Central University",
             "Academic City University",
-            "University of Mines and Technology",
+            "University of Mines and Techonology",
         ]
 
         shown_count = 0
