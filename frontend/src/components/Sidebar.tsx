@@ -2,6 +2,7 @@ import React, { memo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  FiHome,
   FiUser,
   FiBell,
   FiShoppingCart,
@@ -43,6 +44,13 @@ const Sidebar: React.FC<SidebarProps> = memo(
     } = useGuestLimitations();
 
     const allMenuItems = [
+      {
+        icon: FiHome,
+        label: "Home",
+        description: "Main dashboard & chat",
+        path: "/",
+        showInGuest: true,
+      },
       {
         icon: FiUser,
         label: "Profile Overview",
@@ -205,76 +213,6 @@ const Sidebar: React.FC<SidebarProps> = memo(
                 >
                   <FiMenu className="w-5 h-5" />
                 </button>
-              )}
-            </div>
-
-            {/* User Profile Card */}
-            <div
-              className={`p-4 border-b shrink-0 ${
-                theme === "dark" ? "border-slate-800/80" : "border-slate-200/80"
-              }`}
-            >
-              {isOpen ? (
-                <motion.div
-                  initial={{ scale: 0.96, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  onClick={() => !isGuest && navigate("/profile")}
-                  className={`group relative p-3.5 rounded-2xl border transition-all duration-200 ${
-                    !isGuest ? "cursor-pointer" : ""
-                  } ${
-                    theme === "dark"
-                      ? "bg-slate-800/60 hover:bg-slate-800 border-slate-700/60 shadow-sm"
-                      : "bg-slate-50/80 hover:bg-slate-100/80 border-slate-200/80 shadow-2xs"
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="relative shrink-0">
-                      <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 flex items-center justify-center text-white font-bold text-base shadow-md shadow-primary-500/20">
-                        {isGuest ? (
-                          <FiUser className="w-5 h-5" />
-                        ) : (
-                          (user?.name || userName).charAt(0).toUpperCase()
-                        )}
-                      </div>
-                      {isGuest ? (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold shadow-xs">
-                          G
-                        </div>
-                      ) : (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900" />
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">
-                          {isGuest ? "Guest User" : user?.name || userName}
-                        </h3>
-                        {!isGuest && (
-                          <FiChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                        {isGuest
-                          ? "Browsing mode"
-                          : user?.email || "Student Account"}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              ) : (
-                <div className="flex justify-center">
-                  <button
-                    onClick={() => navigate(isGuest ? "/signup" : "/profile")}
-                    className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-md hover:scale-105 transition-transform relative"
-                    title={isGuest ? "Guest User" : user?.name || userName}
-                  >
-                    <FiUser className="w-5 h-5" />
-                    {isGuest && (
-                      <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-500 rounded-full border-2 border-white dark:border-slate-900" />
-                    )}
-                  </button>
-                </div>
               )}
             </div>
 

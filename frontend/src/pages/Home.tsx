@@ -192,8 +192,6 @@ const Home: React.FC = () => {
           logoSrc="/cerkyl-logo.png"
           logoAlt="CERKYL"
           onMenuClick={() => setSidebarOpen((prev) => !prev)}
-          showProfileButton={true}
-          onProfileClick={() => navigate("/profile")}
         />
 
         <div className="flex-1 overflow-y-auto scrollbar-hide relative pb-24">

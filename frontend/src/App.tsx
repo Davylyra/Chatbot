@@ -27,7 +27,7 @@ const AppContent = memo(() => {
   return (
     <div
       id="main-content"
-      className="relative min-h-screen w-full overflow-hidden scrollbar-hide"
+      className="relative min-h-screen w-full overflow-x-hidden scrollbar-hide"
       role="main"
       aria-label=" Application"
     >

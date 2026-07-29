@@ -14,11 +14,13 @@ import {
   FiSearch,
 } from "react-icons/fi";
 import Navbar from "../components/Navbar";
+import Sidebar from "../components/Sidebar";
 import FormCard from "../components/FormCard";
 import PaymentModal from "../components/PaymentModal";
 import EnhancedSearch from "../components/EnhancedSearch";
 import { useAppStore } from "../store";
 import { useTheme } from "../contexts/ThemeContext";
+import { useSidebarNav } from "../hooks/useSidebarNav";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
 import { PAYMENT_METHODS } from "../data/constants";
@@ -28,6 +30,7 @@ const Forms: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme } = useTheme();
+  const { isDesktop, sidebarOpen, toggleSidebar, closeSidebar } = useSidebarNav();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedForm, setSelectedForm] = useState<any>(null);
   const [isLoading] = useState(false);
@@ -239,28 +242,35 @@ const Forms: React.FC = () => {
   };
 
   return (
-    <div
-      className={`min-h-screen text-slate-900 dark:text-white transition-colors duration-200 ${
-        theme === "dark" ? "bg-slate-950" : "bg-slate-50"
-      }`}
-    >
-      {/* Pull to Refresh Indicator */}
-      <PullToRefreshIndicator
-        isRefreshing={isRefreshing}
-        pullDistance={pullDistance}
-        canRefresh={canRefresh}
-        threshold={80}
-        theme={theme}
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={closeSidebar}
+        isDesktop={isDesktop}
       />
+      <div
+        className={`flex-1 flex flex-col h-full overflow-y-auto text-slate-900 dark:text-white transition-colors duration-200 ${
+          theme === "dark" ? "bg-slate-950" : "bg-slate-50"
+        }`}
+      >
+        {/* Pull to Refresh Indicator */}
+        <PullToRefreshIndicator
+          isRefreshing={isRefreshing}
+          pullDistance={pullDistance}
+          canRefresh={canRefresh}
+          threshold={80}
+          theme={theme}
+        />
 
-      <Navbar
-        title="BUY ADMISSION FORMS"
-        showBackButton={true}
-        onBackClick={() => navigate("/")}
-        showMenuButton={false}
-      />
+        <Navbar
+          title="BUY ADMISSION FORMS"
+          showBackButton={true}
+          onBackClick={() => navigate("/")}
+          showMenuButton={true}
+          onMenuClick={toggleSidebar}
+        />
 
-      <main className="max-w-7xl mx-auto px-4 py-6 md:px-8 md:py-8">
+        <main className="max-w-7xl mx-auto px-4 py-6 md:px-8 md:py-8 pb-24">
         {/* Payment Verification Banner */}
         <AnimatePresence>
           {paymentStatus && (
@@ -498,6 +508,7 @@ const Forms: React.FC = () => {
           onError={handlePaymentError}
         />
       )}
+      </div>
     </div>
   );
 };
