@@ -34,8 +34,8 @@ const AppContent = memo(() => {
       <div
         className={`absolute inset-0 transition-colors duration-200 ${
           theme === "dark"
-            ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
-            : "bg-gradient-to-br from-white via-[#e0f2ff] to-[#d6ecff]"
+            ? "bg-slate-900"
+            : "bg-slate-50"
         }`}
       />
 

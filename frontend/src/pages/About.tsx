@@ -38,8 +38,8 @@ const About: React.FC = () => {
       <div
         className={`flex-1 flex flex-col h-full overflow-y-auto ${
           theme === "dark"
-            ? "bg-gradient-to-b from-transparent via-gray-800/50 to-gray-800"
-            : "bg-gradient-to-b from-transparent via-white/50 to-white"
+            ? "bg-slate-900"
+            : "bg-transparent"
         }`}
       >
         <Navbar
@@ -62,7 +62,7 @@ const About: React.FC = () => {
               : "bg-white/80 border-white/30"
           }`}
         >
-          <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-20 h-20 bg-primary-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <FiInfo className="w-10 h-10 text-white" />
           </div>
           <h2

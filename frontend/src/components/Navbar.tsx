@@ -180,7 +180,7 @@ const Navbar: React.FC<NavbarProps> = memo(
                       className="h-7 w-auto object-contain md:h-10"
                     />
                   ) : (
-                    <h1 className="text-xs md:text-sm font-bold uppercase tracking-wider truncate bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">
+                    <h1 className="text-xs md:text-sm font-bold uppercase tracking-wider truncate text-primary-600 dark:text-primary-400">
                       {title}
                     </h1>
                   )}
@@ -286,7 +286,7 @@ const Navbar: React.FC<NavbarProps> = memo(
                   }`}
                   title={isGuest ? "Guest User" : user?.name || "User Profile"}
                 >
-                  <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-primary-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-xs">
+                  <div className="w-6 h-6 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold text-xs shadow-xs">
                     {isGuest ? (
                       <FiUser className="w-3.5 h-3.5" />
                     ) : (
@@ -319,7 +319,7 @@ const Navbar: React.FC<NavbarProps> = memo(
                     >
                       {/* User Header */}
                       <div className="flex items-center space-x-3 pb-3 border-b border-slate-200/80 dark:border-slate-800/80">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-primary-500/20 shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-primary-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-primary-500/20 shrink-0">
                           {isGuest ? (
                             <FiUser className="w-5 h-5" />
                           ) : (

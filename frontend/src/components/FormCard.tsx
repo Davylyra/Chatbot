@@ -85,7 +85,7 @@ const FormCard: React.FC<FormCardProps> = memo(
                   />
                 </div>
               ) : (
-                <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-xl shadow-md shrink-0">
+                <div className="w-13 h-13 rounded-2xl bg-primary-600 flex items-center justify-center text-white font-extrabold text-xl shadow-md shrink-0">
                   {universityName.charAt(0)}
                 </div>
               )}

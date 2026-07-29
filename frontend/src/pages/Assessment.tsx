@@ -376,7 +376,7 @@ const Assessment: React.FC = () => {
           >
             <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
               <div className="absolute inset-0 rounded-full border-4 border-primary-500/20 animate-ping" />
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-primary-500/30 text-white">
+              <div className="w-14 h-14 rounded-2xl bg-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/30 text-white">
                 <FiRefreshCw className="w-7 h-7 animate-spin" />
               </div>
             </div>
@@ -460,7 +460,7 @@ const Assessment: React.FC = () => {
             >
               <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
                 <div className="absolute inset-0 rounded-full border-4 border-primary-500/30 animate-spin border-t-primary-600" />
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-primary-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-primary-500/40 text-white">
+                <div className="w-14 h-14 rounded-2xl bg-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/40 text-white">
                   <LuSparkles className="w-7 h-7 animate-pulse" />
                 </div>
               </div>
@@ -547,7 +547,7 @@ const Assessment: React.FC = () => {
           {/* Smooth Progress Bar */}
           <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full mb-8 overflow-hidden">
             <motion.div
-              className="bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 h-full rounded-full"
+              className="bg-primary-600 h-full rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${getProgressPercentage()}%` }}
               transition={{ duration: 0.35, ease: "easeOut" }}

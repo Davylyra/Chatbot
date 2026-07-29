@@ -46,8 +46,8 @@ const Settings: React.FC = () => {
       <div
         className={`flex-1 flex flex-col h-full overflow-y-auto ${
           theme === "dark"
-            ? "bg-gradient-to-b from-transparent via-gray-800/50 to-gray-800"
-            : "bg-gradient-to-b from-transparent via-white/50 to-white"
+            ? "bg-slate-900"
+            : "bg-transparent"
         }`}
       >
         <Navbar
@@ -66,7 +66,7 @@ const Settings: React.FC = () => {
           className="mb-6"
         >
           <div className="flex items-center mb-4">
-            <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full mr-3"></div>
+            <div className="w-6 h-6 bg-primary-600 rounded-full mr-3"></div>
             <h3
               className={`text-lg font-bold transition-colors duration-200 ${
                 theme === "dark" ? "text-white" : "text-gray-800"

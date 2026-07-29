@@ -80,8 +80,8 @@ const Universities: React.FC = () => {
     <div
       className={`min-h-screen ${
         theme === "dark"
-          ? "bg-gradient-to-b from-transparent via-gray-800/50 to-gray-800"
-          : "bg-gradient-to-b from-transparent via-white/50 to-white"
+          ? "bg-slate-900"
+          : "bg-transparent"
       }`}
     >
       <Navbar

@@ -159,7 +159,7 @@ const Sidebar: React.FC<SidebarProps> = memo(
                     onClick={() => navigate("/")}
                     className="flex items-center space-x-3 cursor-pointer group"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-primary-500/30 group-hover:scale-105 transition-transform">
+                    <div className="w-10 h-10 rounded-xl bg-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/30 group-hover:scale-105 transition-transform">
                       <span className="text-white font-extrabold text-lg tracking-wider">
                         C
                       </span>

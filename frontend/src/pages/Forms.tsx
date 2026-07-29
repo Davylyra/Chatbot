@@ -301,7 +301,7 @@ const Forms: React.FC = () => {
         </AnimatePresence>
 
         {/* Hero Section Banner */}
-        <div className="bg-gradient-to-r from-primary-900 via-indigo-900 to-slate-900 text-white rounded-3xl p-6 md:p-10 mb-8 shadow-2xl relative overflow-hidden">
+        <div className="bg-slate-900 text-white rounded-3xl p-6 md:p-10 mb-8 shadow-2xl relative overflow-hidden">
           {/* Background Decorative Blur Circle */}
           <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary-500/20 rounded-full blur-3xl pointer-events-none" />
 
