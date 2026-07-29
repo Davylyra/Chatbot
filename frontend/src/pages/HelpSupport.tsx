@@ -10,6 +10,8 @@ import {
   FiChevronUp,
 } from 'react-icons/fi';
 import Navbar from '../components/Navbar';
+import Sidebar from '../components/Sidebar';
+import { useSidebarNav } from '../hooks/useSidebarNav';
 import { useTheme } from '../contexts/ThemeContext';
 import { HELP_SECTIONS, FAQS } from '../data/constants';
 import { contentService, type PageContent } from '../services/contentService';
@@ -17,6 +19,7 @@ import { contentService, type PageContent } from '../services/contentService';
 const HelpSupport: React.FC = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { isDesktop, sidebarOpen, toggleSidebar, closeSidebar } = useSidebarNav();
   const [pageContent, setPageContent] = useState<PageContent | null>(null);
   const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);
 
@@ -46,13 +49,26 @@ const HelpSupport: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <Navbar
-        title="HELP & SUPPORT"
-        showBackButton={true}
-        onBackClick={() => navigate('/')}
-        showMenuButton={false}
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={closeSidebar}
+        isDesktop={isDesktop}
       />
+      <div
+        className={`flex-1 flex flex-col h-full overflow-y-auto ${
+          theme === 'dark'
+            ? 'bg-gradient-to-b from-transparent via-gray-800/50 to-gray-800'
+            : 'bg-gradient-to-b from-transparent via-white/50 to-white'
+        }`}
+      >
+        <Navbar
+          title="HELP & SUPPORT"
+          showBackButton={true}
+          onBackClick={() => navigate('/')}
+          showMenuButton={true}
+          onMenuClick={toggleSidebar}
+        />
 
       <div className="w-full max-w-sm mx-auto px-4 py-4 overflow-hidden md:max-w-xl md:px-6 md:py-6 lg:max-w-2xl xl:max-w-3xl">
         {helpSections.map((section, sectionIndex) => (
@@ -300,7 +316,8 @@ const HelpSupport: React.FC = () => {
         </motion.div>
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default HelpSupport;

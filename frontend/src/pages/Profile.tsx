@@ -9,15 +9,18 @@ import {
   FiCalendar,
   FiShield,
 } from "react-icons/fi";
-import Navbar from "../components/Navbar";
-import { useAuth } from "../contexts/AuthContext";
+import Sidebar from "../components/Sidebar";
+import { useSidebarNav } from "../hooks/useSidebarNav";
 import { useTheme } from "../contexts/ThemeContext";
+import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../hooks/useToast";
 import ToastContainer from "../components/ToastContainer";
+import Navbar from "../components/Navbar";
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { isDesktop, sidebarOpen, toggleSidebar, closeSidebar } = useSidebarNav();
   const [isEditing, setIsEditing] = useState(false);
   const { user, updateProfile } = useAuth();
   const { toasts, showSuccess, removeToast } = useToast();
@@ -233,20 +236,27 @@ const Profile: React.FC = () => {
   };
 
   return (
-    <div
-      className={`min-h-screen ${
-        theme === "dark"
-          ? "bg-gradient-to-b from-transparent via-gray-800/50 to-gray-800"
-          : "bg-gradient-to-b from-transparent via-white/50 to-white"
-      }`}
-    >
-      <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
-      <Navbar
-        title="PROFILE OVERVIEW"
-        showBackButton={true}
-        onBackClick={() => navigate("/")}
-        showMenuButton={false}
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={closeSidebar}
+        isDesktop={isDesktop}
       />
+      <div
+        className={`flex-1 flex flex-col h-full overflow-y-auto ${
+          theme === "dark"
+            ? "bg-gradient-to-b from-transparent via-gray-800/50 to-gray-800"
+            : "bg-gradient-to-b from-transparent via-white/50 to-white"
+        }`}
+      >
+        <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
+        <Navbar
+          title="PROFILE OVERVIEW"
+          showBackButton={true}
+          onBackClick={() => navigate("/")}
+          showMenuButton={true}
+          onMenuClick={toggleSidebar}
+        />
 
       <div className="w-full max-w-sm mx-auto px-4 py-4 overflow-hidden md:max-w-xl md:px-6 md:py-6 lg:max-w-2xl xl:max-w-3xl">
         {/* Profile Header */}
@@ -705,7 +715,8 @@ const Profile: React.FC = () => {
         </motion.div>
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default Profile;

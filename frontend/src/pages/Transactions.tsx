@@ -2,6 +2,8 @@ import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import Navbar from "../components/Navbar";
+import Sidebar from "../components/Sidebar";
+import { useSidebarNav } from "../hooks/useSidebarNav";
 import { useAppStore } from "../store";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -9,6 +11,7 @@ import { useAuth } from "../contexts/AuthContext";
 const Transactions: React.FC = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { isDesktop, sidebarOpen, toggleSidebar, closeSidebar } = useSidebarNav();
   const { user } = useAuth();
   const { transactions, loadTransactions } = useAppStore();
 
@@ -31,13 +34,20 @@ const Transactions: React.FC = () => {
   const failedCount = transactions.filter((t) => t.status === "failed").length;
 
   return (
-    <div className="min-h-screen">
-      <Navbar
-        title="TRANSACTIONS"
-        showBackButton={true}
-        onBackClick={() => navigate("/")}
-        showMenuButton={false}
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={closeSidebar}
+        isDesktop={isDesktop}
       />
+      <div className="flex-1 flex flex-col h-full overflow-y-auto">
+        <Navbar
+          title="TRANSACTIONS"
+          showBackButton={true}
+          onBackClick={() => navigate("/")}
+          showMenuButton={true}
+          onMenuClick={toggleSidebar}
+        />
 
       <div className="w-full max-w-sm mx-auto px-4 py-4 overflow-hidden md:max-w-xl md:px-6 md:py-6 lg:max-w-2xl xl:max-w-3xl">
         {/* Summary Card */}
@@ -246,7 +256,8 @@ const Transactions: React.FC = () => {
         </motion.div>
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default Transactions;

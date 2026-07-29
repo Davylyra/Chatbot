@@ -288,11 +288,8 @@ const Sidebar: React.FC<SidebarProps> = memo(
                     location.pathname.startsWith(item.path));
 
                 return (
-                  <motion.div
+                  <div
                     key={item.path}
-                    initial={{ x: -15, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: index * 0.03 }}
                     className={!isOpen ? "flex justify-center" : ""}
                   >
                     <Link
@@ -362,7 +359,7 @@ const Sidebar: React.FC<SidebarProps> = memo(
                         </div>
                       )}
                     </Link>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>

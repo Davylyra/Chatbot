@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiAlertCircle, FiCheck } from "react-icons/fi";
 import Navbar from "../components/Navbar";
+import Sidebar from "../components/Sidebar";
+import { useSidebarNav } from "../hooks/useSidebarNav";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
 import { contentService, type PageContent } from "../services/contentService";
@@ -11,6 +13,7 @@ import { useSocket } from "../hooks/useSocket";
 const Notifications: React.FC = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { isDesktop, sidebarOpen, toggleSidebar, closeSidebar } = useSidebarNav();
   const { user, isGuest } = useAuth();
   const { notifications, markAsRead, markAllAsRead } = useSocket();
 
@@ -103,18 +106,25 @@ const Notifications: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen">
-      {/* Navigation Header */}
-      <Navbar
-        title="NOTIFICATIONS"
-        showBackButton={true}
-        onBackClick={() => navigate("/")}
-        showMenuButton={false}
-        showNotificationBadge={true}
-        notificationCount={unreadCount}
-        showMarkAllReadButton={true}
-        onMarkAllReadClick={unreadCount > 0 ? handleMarkAllAsRead : undefined}
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={closeSidebar}
+        isDesktop={isDesktop}
       />
+      <div className="flex-1 flex flex-col h-full overflow-y-auto">
+        {/* Navigation Header */}
+        <Navbar
+          title="NOTIFICATIONS"
+          showBackButton={true}
+          onBackClick={() => navigate("/")}
+          showMenuButton={true}
+          onMenuClick={toggleSidebar}
+          showNotificationBadge={true}
+          notificationCount={unreadCount}
+          showMarkAllReadButton={true}
+          onMarkAllReadClick={unreadCount > 0 ? handleMarkAllAsRead : undefined}
+        />
 
       {/* Success Message */}
       <AnimatePresence>
@@ -321,7 +331,8 @@ const Notifications: React.FC = () => {
         </motion.div>
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default Notifications;
