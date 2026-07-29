@@ -10,21 +10,15 @@
       "rlig" 1,
       "calt" 1;
     -ms-overflow-style: none; /* Internet Explorer 10+ */
-    scrollbar-width: none; /* Firefox */
   }
 
-  body::-webkit-scrollbar {
-    display: none; /* Safari and Chrome */
-  }
+
 
   html {
     -ms-overflow-style: none; /* Internet Explorer 10+ */
-    scrollbar-width: none; /* Firefox */
   }
 
-  html::-webkit-scrollbar {
-    display: none; /* Safari and Chrome */
-  }
+  
 }
 
 @layer components {
@@ -90,21 +84,11 @@
   /* Hide scrollbar while maintaining scroll functionality */
   .scrollbar-hide {
     -ms-overflow-style: none; /* Internet Explorer 10+ */
-    scrollbar-width: none; /* Firefox */
-  }
-
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none; /* Safari and Chrome */
   }
 
   /* Global scrollbar hiding - applies to all elements */
   * {
     -ms-overflow-style: none; /* Internet Explorer 10+ */
-    scrollbar-width: none; /* Firefox */
-  }
-
-  *::-webkit-scrollbar {
-    display: none; /* Safari and Chrome */
   }
 
   .blur-backdrop {

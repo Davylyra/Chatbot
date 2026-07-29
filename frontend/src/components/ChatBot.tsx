@@ -104,9 +104,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       sendChatMessage,
     ]);
 
-    const [processedMessages, setProcessedMessages] = useState<Set<string>>(
-      new Set(),
-    );
     const [isInitialized, setIsInitialized] = useState(false);
 
     const [inputMessage, setInputMessage] = useState("");
@@ -311,60 +308,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       stableAddMessage(welcomeMessage);
     }, [locationForceNewConversation]);
 
-    // 3. Handle initial messages (assessment or university) with duplicate prevention
-    useEffect(() => {
-      if (!initialMessage || !currentConversation || !isInitialized) return;
-
-      const timeoutId = setTimeout(() => {
-        const messageKey = `${currentConversation.id}-${initialMessage}`;
-        if (processedMessages.has(messageKey)) {
-          return;
-        }
-
-        setProcessedMessages((prev) => new Set(prev).add(messageKey));
-
-        const isFirstUserMessage =
-          useAppStore
-            .getState()
-            .messages.filter(
-              (m) => m.conversationId === currentConversation.id && m.isUser,
-            ).length === 0;
-
-        const userMessage = {
-          id: `user-${Date.now()}`,
-          text: initialMessage,
-          isUser: true,
-          timestamp: new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          conversationId: currentConversation.id,
-        };
-        stableAddMessage(userMessage);
-
-        if (
-          isFirstUserMessage &&
-          shouldUpdateConversationTitle(
-            currentConversation.title,
-            initialMessage,
-          )
-        ) {
-          const newTitle = generateConversationTitle(
-            initialMessage,
-            universityContext?.name,
-            assessmentData,
-          );
-          useAppStore
-            .getState()
-            .updateConversation(currentConversation.id, { title: newTitle });
-        }
-
-        handleInitialMessageResponse(initialMessage, currentConversation.id);
-      }, 500);
-
-      return () => clearTimeout(timeoutId);
-    }, [initialMessage, currentConversation?.id, isInitialized]);
-
     useEffect(() => {
       if (!universityContext || !currentConversation || !isInitialized) return;
 
@@ -391,84 +334,48 @@ const ChatBot: React.FC<ChatBotProps> = memo(
           })
       : [];
 
-    const handleInitialMessageResponse = useCallback(
-      async (message: string, conversationId: string) => {
-        setIsTyping(true);
-        try {
-          // Determine context based on whether this is assessment or university
-          const context = assessmentData
-            ? {
-                assessment_data: assessmentData,
-                is_assessment_result: true,
-                context_switch: true,
-                bestSubject: assessmentData?.bestSubject,
-                shs_program: assessmentData?.shsProgram,
-                wassce_grade: assessmentData?.wassceGrade,
-                interests: assessmentData?.interests,
-                career_goals: assessmentData?.careerGoals,
-                preferred_location: assessmentData?.preferredLocation,
-                is_coach_mode: forceCoachMode,
-              }
-            : {
-                context_switch: true,
-                university_info_request: true,
-                session_context: {
-                  message_count: currentMessages.length,
-                  has_university_preference: !!universityContext,
-                  timestamp: new Date().toISOString(),
-                },
-                is_coach_mode: forceCoachMode,
-              };
+    const suggestedQuestions = React.useMemo(() => {
+      const questions: string[] = [];
 
-          const response = await stableSendChatMessage(
-            message,
-            conversationId,
-            universityContext?.name,
-            context,
-          );
+      if (initialMessage && initialMessage.trim()) {
+        questions.push(initialMessage.trim());
+      }
 
-          if (response && response.success && response.message) {
-            const botMessage = {
-              id: `bot-${Date.now()}`,
-              text: response.message,
-              isUser: false,
-              timestamp: new Date().toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-              conversationId: conversationId,
-              sources: response.sources || [],
-              confidence: response.confidence || 0.0,
-            };
-            stableAddMessage(botMessage);
-          }
-        } catch (error) {
-          const errorMessage = {
-            id: `error-${Date.now()}`,
-            text: assessmentData
-              ? `I received your assessment data. Let me help you with university recommendations based on your profile.`
-              : universityContext
-                ? `I'm here to help you with ${universityContext.name}! Feel free to ask about their programs, admission requirements, or any other questions.`
-                : `I'm here to help you with university admissions in Ghana. What would you like to know?`,
-            isUser: false,
-            timestamp: new Date().toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-            conversationId: conversationId,
-          };
-          stableAddMessage(errorMessage);
-        } finally {
-          setIsTyping(false);
+      if (universityContext?.name) {
+        const uName = universityContext.name;
+        questions.push(
+          `What are the cut-off points for ${uName}?`,
+          `How do I apply for admission to ${uName}?`,
+          `What programs are offered at ${uName}?`,
+          `What are the tuition fees and accommodation at ${uName}?`,
+        );
+      } else if (assessmentData) {
+        questions.push(
+          "Which universities match my assessment results?",
+          "What degree programs am I qualified for?",
+          "How do I calculate my aggregate score?",
+        );
+      } else {
+        questions.push(
+          "What are the general WASSCE cut-off points for public universities?",
+          "How do I calculate my WASSCE aggregate score?",
+          "Which Ghanaian universities offer Nursing & Engineering?",
+          "How do I buy official application e-vouchers online?",
+        );
+      }
+
+      return Array.from(new Set(questions));
+    }, [initialMessage, universityContext?.name, assessmentData]);
+
+    const handleSuggestionClick = useCallback(
+      (questionText: string) => {
+        if (isGuest) return;
+        setInputMessage(questionText);
+        if (textareaRef.current) {
+          textareaRef.current.focus();
         }
       },
-      [
-        assessmentData,
-        universityContext,
-        stableSendChatMessage,
-        stableAddMessage,
-        currentMessages.length,
-      ],
+      [isGuest],
     );
 
     // quickActions removed due to TS6133
@@ -964,7 +871,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(
 
       setSuppressContext(true);
 
-      setProcessedMessages(new Set());
       setInputMessage("");
       setAttachedFiles([]);
       setError(null);
@@ -1012,22 +918,22 @@ const ChatBot: React.FC<ChatBotProps> = memo(
     }, [handleStartNewConversation]);
 
     return (
-      <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 transition-colors duration-200">
         {/* Header with New Conversation Button */}
         {currentMessages.length > 1 && (
           <div
-            className={`p-4 border-b transition-colors duration-200 ${
+            className={`w-full border-b transition-colors duration-200 ${
               theme === "dark"
-                ? "border-gray-700 bg-gray-800"
-                : "border-gray-200 bg-white"
+                ? "border-slate-800 bg-slate-900"
+                : "border-slate-200 bg-white"
             }`}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
+            <div className="w-full max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center space-x-2.5">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span
-                  className={`text-sm font-medium transition-colors duration-200 ${
-                    theme === "dark" ? "text-gray-300" : "text-gray-700"
+                  className={`text-xs sm:text-sm font-semibold transition-colors duration-200 ${
+                    theme === "dark" ? "text-slate-200" : "text-slate-700"
                   }`}
                 >
                   {universityContext
@@ -1036,14 +942,10 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                 </span>
               </div>
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={handleStartNewConversation}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  theme === "dark"
-                    ? "bg-primary-600 hover:bg-primary-700 text-white"
-                    : "bg-primary-500 hover:bg-primary-600 text-white"
-                }`}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white transition-colors shadow-2xs"
                 title="Save current chat and start new conversation"
               >
                 + New Chat
@@ -1054,100 +956,97 @@ const ChatBot: React.FC<ChatBotProps> = memo(
 
         <div
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4 min-h-0 relative"
+          className="flex-1 overflow-y-auto scrollbar-hide px-4 py-4 min-h-0 relative flex flex-col items-center"
         >
-          <AnimatePresence mode="popLayout">
-            {currentMessages.length <= 1 ? (
-              <div className="flex flex-col items-center justify-center text-center w-full min-h-[60vh]">
-                <h1 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900 dark:text-white">
-                  Thinking about your future?,{" "}
-                  <span className="text-blue-500">
-                    {user?.name?.split(" ")[0] || "Guest"}
-                  </span>
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400 mb-12 text-lg">
-                  Ask me anything about universities and admissions.
-                </p>
+          <div className="w-full max-w-4xl flex-1 flex flex-col justify-between space-y-4">
+            <AnimatePresence mode="popLayout">
+              {currentMessages.length <= 1 ? (
+                <div className="flex flex-col items-center justify-center text-center w-full my-auto py-6">
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 text-slate-900 dark:text-white tracking-tight">
+                    Thinking about your future?,{" "}
+                    <span className="text-primary-600 dark:text-primary-400">
+                      {user?.name?.split(" ")[0] || "Guest"}
+                    </span>
+                  </h1>
+                  <p className="text-slate-600 dark:text-slate-400 mb-10 text-base md:text-lg max-w-lg">
+                    Ask me anything about universities and admissions in Ghana.
+                  </p>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl w-full px-4">
-                  {/* Explore Programs */}
-                  <button
-                    onClick={() => {
-                      setInputMessage("I want to explore university programs");
-                      handleSendMessage();
-                    }}
-                    className="flex flex-col items-center p-6 bg-white dark:bg-gray-800/40 hover:bg-gray-50 dark:hover:bg-gray-800/80 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm dark:shadow-none transition-all duration-200"
-                  >
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-600/20 rounded-xl border border-blue-200 dark:border-blue-500/30 flex items-center justify-center mb-4">
-                      <FiSearch className="text-blue-600 dark:text-blue-400 text-xl" />
-                    </div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium text-sm text-center">
-                      Explore Programs
-                    </span>
-                  </button>
-                  {/* Admission Requirements */}
-                  <button
-                    onClick={() => {
-                      setInputMessage("What are the admission requirements?");
-                      handleSendMessage();
-                    }}
-                    className="flex flex-col items-center p-6 bg-white dark:bg-gray-800/40 hover:bg-gray-50 dark:hover:bg-gray-800/80 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm dark:shadow-none transition-all duration-200"
-                  >
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-600/20 rounded-xl border border-blue-200 dark:border-blue-500/30 flex items-center justify-center mb-4">
-                      <FiFile className="text-blue-600 dark:text-blue-400 text-xl" />
-                    </div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium text-sm text-center">
-                      Admission Requirements
-                    </span>
-                  </button>
-                  {/* Compare Universities */}
-                  <button
-                    onClick={() => {
-                      setInputMessage("Compare KNUST and UG");
-                      handleSendMessage();
-                    }}
-                    className="flex flex-col items-center p-6 bg-white dark:bg-gray-800/40 hover:bg-gray-50 dark:hover:bg-gray-800/80 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm dark:shadow-none transition-all duration-200"
-                  >
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-600/20 rounded-xl border border-blue-200 dark:border-blue-500/30 flex items-center justify-center mb-4">
-                      <FiUsers className="text-blue-600 dark:text-blue-400 text-xl" />
-                    </div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium text-sm text-center">
-                      Compare Schools
-                    </span>
-                  </button>
-                  {/* Career Coach */}
-                  <button
-                    onClick={() => {
-                      setInputMessage(
-                        "I am confused about my career path and need help finding out what I'm good at.",
-                      );
-                      handleSendMessage();
-                    }}
-                    className="flex flex-col items-center p-6 bg-white dark:bg-gray-800/40 hover:bg-gray-50 dark:hover:bg-gray-800/80 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm dark:shadow-none transition-all duration-200"
-                  >
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-600/20 rounded-xl border border-blue-200 dark:border-blue-500/30 flex items-center justify-center mb-4">
-                      <FiStar className="text-blue-600 dark:text-blue-400 text-xl" />
-                    </div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium text-sm text-center">
-                      Career Coach
-                    </span>
-                  </button>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+                    {/* Explore Programs */}
+                    <button
+                      onClick={() => handleSuggestionClick("I want to explore university programs")}
+                      className="flex flex-col items-center p-5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs transition-all duration-200 text-left cursor-pointer group"
+                    >
+                      <div className="w-11 h-11 bg-primary-50 dark:bg-primary-950/60 rounded-xl border border-primary-200 dark:border-primary-800 flex items-center justify-center mb-3 text-primary-600 dark:text-primary-400 group-hover:scale-105 transition-transform">
+                        <FiSearch className="text-xl" />
+                      </div>
+                      <span className="text-slate-800 dark:text-slate-200 font-semibold text-sm text-center">
+                        Explore Programs
+                      </span>
+                    </button>
+
+                    {/* Admission Requirements */}
+                    <button
+                      onClick={() => handleSuggestionClick("What are the admission requirements?")}
+                      className="flex flex-col items-center p-5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs transition-all duration-200 text-left cursor-pointer group"
+                    >
+                      <div className="w-11 h-11 bg-primary-50 dark:bg-primary-950/60 rounded-xl border border-primary-200 dark:border-primary-800 flex items-center justify-center mb-3 text-primary-600 dark:text-primary-400 group-hover:scale-105 transition-transform">
+                        <FiFile className="text-xl" />
+                      </div>
+                      <span className="text-slate-800 dark:text-slate-200 font-semibold text-sm text-center">
+                        Admission Requirements
+                      </span>
+                    </button>
+
+                    {/* Compare Universities */}
+                    <button
+                      onClick={() => handleSuggestionClick("Compare KNUST and UG")}
+                      className="flex flex-col items-center p-5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs transition-all duration-200 text-left cursor-pointer group"
+                    >
+                      <div className="w-11 h-11 bg-primary-50 dark:bg-primary-950/60 rounded-xl border border-primary-200 dark:border-primary-800 flex items-center justify-center mb-3 text-primary-600 dark:text-primary-400 group-hover:scale-105 transition-transform">
+                        <FiUsers className="text-xl" />
+                      </div>
+                      <span className="text-slate-800 dark:text-slate-200 font-semibold text-sm text-center">
+                        Compare Schools
+                      </span>
+                    </button>
+
+                    {/* Career Coach */}
+                    <button
+                      onClick={() =>
+                        handleSuggestionClick(
+                          "I am confused about my career path and need help finding out what I'm good at.",
+                        )
+                      }
+                      className="flex flex-col items-center p-5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs transition-all duration-200 text-left cursor-pointer group"
+                    >
+                      <div className="w-11 h-11 bg-primary-50 dark:bg-primary-950/60 rounded-xl border border-primary-200 dark:border-primary-800 flex items-center justify-center mb-3 text-primary-600 dark:text-primary-400 group-hover:scale-105 transition-transform">
+                        <FiStar className="text-xl" />
+                      </div>
+                      <span className="text-slate-800 dark:text-slate-200 font-semibold text-sm text-center">
+                        Career Coach
+                      </span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              currentMessages.map((message) => (
-                <motion.div
-                  key={`message-${message.id}-${message.conversationId}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <ChatBubble message={message} />
-                </motion.div>
-              ))
-            )}
-          </AnimatePresence>
+              ) : (
+                <div className="space-y-4 py-2 flex-1 flex flex-col justify-end">
+                  {currentMessages.map((message) => (
+                    <motion.div
+                      key={`message-${message.id}-${message.conversationId}`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <ChatBubble message={message} />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </AnimatePresence>
+          </div>
 
           {/* Typing Indicator */}
           {isTyping && (
@@ -1275,6 +1174,33 @@ const ChatBot: React.FC<ChatBotProps> = memo(
               : "bg-gray-50"
           }`}
         >
+          {/* Question Suggestions Bar */}
+          <div className="w-full max-w-4xl mb-3 overflow-x-auto scrollbar-hide">
+            <div className="flex items-center space-x-2 py-1">
+              <span
+                className={`text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 px-1 ${
+                  theme === "dark" ? "text-slate-400" : "text-slate-500"
+                }`}
+              >
+                <FiStar className="w-3.5 h-3.5 text-primary-500" /> Suggestions:
+              </span>
+              {suggestedQuestions.map((q, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSuggestionClick(q)}
+                  disabled={isGuest || isTyping}
+                  className={`whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 border ${
+                    theme === "dark"
+                      ? "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 hover:border-primary-500"
+                      : "bg-white hover:bg-primary-50 text-slate-700 hover:text-primary-700 border-slate-200 hover:border-primary-300 shadow-xs"
+                  } disabled:opacity-50 cursor-pointer`}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div
             className={`w-full max-w-4xl flex items-center space-x-3 rounded-full px-3 py-2 transition-all duration-200 ${
               theme === "dark"

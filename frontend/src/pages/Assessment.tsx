@@ -1,14 +1,26 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   FiArrowLeft,
+  FiArrowRight,
   FiCheck,
   FiStar,
   FiBookOpen,
   FiTarget,
   FiUpload,
+  FiAward,
+  FiBriefcase,
+  FiCompass,
+  FiMapPin,
+  FiSearch,
+  FiInfo,
+  FiRefreshCw,
+  FiFileText,
+  FiZap,
+  FiCheckCircle,
 } from "react-icons/fi";
+import { LuSparkles } from "react-icons/lu";
 import Navbar from "../components/Navbar";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -29,6 +41,59 @@ interface AssessmentData {
   preferredLocation: string;
 }
 
+const STEP_METADATA: Record<
+  string,
+  {
+    label: string;
+    icon: React.ElementType;
+    description: string;
+    tip: string;
+  }
+> = {
+  shsProgram: {
+    label: "SHS Major",
+    icon: FiBookOpen,
+    description: "What High School program did you complete?",
+    tip: "Your SHS program determines prerequisite eligibility for specialized university faculties in Ghana.",
+  },
+  bestSubject: {
+    label: "Strong Subjects",
+    icon: FiAward,
+    description: "Select the subjects you perform best in",
+    tip: "Select 3 or more subjects to calculate your competitive aggregate for university cut-off points.",
+  },
+  wassceGrade: {
+    label: "WASSCE Slip",
+    icon: FiFileText,
+    description: "Enter grades or upload your result slip",
+    tip: "Ghanaian public universities evaluate your 3 Core subjects + 3 best Electives (e.g. Aggregate 6 to 24).",
+  },
+  interests: {
+    label: "Career Fields",
+    icon: FiBriefcase,
+    description: "Choose up to 3 career fields of interest",
+    tip: "Selecting multiple interests helps our AI find multidisciplinary and dual-degree options.",
+  },
+  careerGoals: {
+    label: "Aspirations",
+    icon: FiCompass,
+    description: "What are your primary career goals?",
+    tip: "Be specific! For example: 'I want to become a Cloud Architect' or 'Work in Medical Research'.",
+  },
+  preferredLocation: {
+    label: "Location",
+    icon: FiMapPin,
+    description: "Where in Ghana would you like to study?",
+    tip: "Consider university campus atmosphere, proximity to home, and housing options.",
+  },
+};
+
+const GRADE_PRESETS = [
+  "Core: A1, A1, B2 | Electives: A1, B2, B3 (Agg: 10)",
+  "Core: A1, B2, B3 | Electives: B2, C4, C5 (Agg: 17)",
+  "Core: B2, B3, C4 | Electives: C5, C6, C6 (Agg: 26)",
+];
+
 const Assessment: React.FC = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -36,6 +101,8 @@ const Assessment: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [questions, setQuestions] = useState<AssessmentQuestion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [optionSearch, setOptionSearch] = useState("");
   const [assessmentData, setAssessmentData] = useState<AssessmentData>({
     bestSubject: [],
     shsProgram: "",
@@ -45,13 +112,49 @@ const Assessment: React.FC = () => {
     preferredLocation: "",
   });
   const [isOcrLoading, setIsOcrLoading] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const { toasts, removeToast, showWarning, showError } = useToast();
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toasts, removeToast, showWarning, showError, showSuccess } =
+    useToast();
 
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
+  useEffect(() => {
+    const loadQuestions = async () => {
+      try {
+        setLoading(true);
+        const dynamicQuestions =
+          await assessmentService.getAssessmentQuestions();
+        setQuestions(dynamicQuestions);
+      } catch (err) {
+        console.error("Failed to load questions:", err);
+        setQuestions([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadQuestions();
+  }, []);
+
+  // Reset option search filter when changing step
+  useEffect(() => {
+    setOptionSearch("");
+  }, [currentStep]);
+
+  const currentQuestion = questions[currentStep];
+  const isLastStep = currentStep === questions.length - 1;
+  const isFirstStep = currentStep === 0;
+
+  const currentMeta =
+    (currentQuestion && STEP_METADATA[currentQuestion.id]) || {
+      label: `Step ${currentStep + 1}`,
+      icon: FiTarget,
+      description: "Answer the question below",
+      tip: "Your answers help tailor program recommendations.",
+    };
+
+  const StepIcon = currentMeta.icon;
+
+  const handleFileUpload = async (file: File) => {
     if (!file) return;
 
     try {
@@ -63,11 +166,19 @@ const Assessment: React.FC = () => {
         wassceGrade: wassceGrade || prev.wassceGrade,
       }));
 
+      if (wassceGrade) {
+        showSuccess(
+          "Result Slip Parsed!",
+          "Grades successfully extracted from your WASSCE slip.",
+          4000
+        );
+      }
+
       if (wassceGrade && wassceGrade.split(",").length < 8) {
         showWarning(
-          "Missing Subjects",
-          "We couldn't clearly read all your subjects from the image. Please review the text box and fill in any missing grades manually.",
-          5000,
+          "Review Extracted Grades",
+          "We extracted partial grades. Please verify the text box and adjust any missing values manually.",
+          5000
         );
       }
 
@@ -76,14 +187,14 @@ const Assessment: React.FC = () => {
       if (error.message === "NO_GRADES_FOUND") {
         showWarning(
           "No Grades Detected",
-          "We couldn't clearly detect your grades from this image. Please ensure the photo is clear, well-lit, and contains your WASSCE results, or type them in manually.",
-          5000,
+          "Could not detect clear grades. Please ensure your result image is well-lit or enter grades manually.",
+          5000
         );
       } else {
         showError(
           "Scan Failed",
-          "Oops! Something went wrong while scanning the document. Please try again with a clearer image, or type your grades manually.",
-          5000,
+          "Failed to scan document. Please try again with a clearer image or type your grades.",
+          5000
         );
       }
     } finally {
@@ -91,26 +202,29 @@ const Assessment: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    const loadQuestions = async () => {
-      try {
-        setLoading(true);
-        const dynamicQuestions =
-          await assessmentService.getAssessmentQuestions();
-        setQuestions(dynamicQuestions);
-      } catch {
-        setQuestions([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleFileUpload(file);
+  };
 
-    loadQuestions();
-  }, []);
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
 
-  const currentQuestion = questions[currentStep];
-  const isLastStep = currentStep === questions.length - 1;
-  const isFirstStep = currentStep === 0;
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileUpload(e.dataTransfer.files[0]);
+    }
+  };
 
   const handleAnswer = (answer: string | string[]) => {
     setAssessmentData((prev) => ({
@@ -123,25 +237,15 @@ const Assessment: React.FC = () => {
     if (currentStep < questions.length - 1) {
       setCurrentStep((prev) => prev + 1);
     } else {
-      console.log(" Assessment completed with data:", assessmentData);
-      console.log(" Interests array:", assessmentData.interests);
-      console.log(" User authenticated:", isAuthenticated);
-      console.log("User object:", user);
-
+      setSubmitting(true);
       try {
         if (isAuthenticated && user && assessmentData.interests?.length > 0) {
           const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
           const token = localStorage.getItem("token");
 
-          console.log(" Token exists:", !!token);
-          console.log(
-            " Sending interests to backend:",
-            assessmentData.interests,
-          );
-
           if (token && API_BASE_URL) {
             try {
-              const response = await fetch(`${API_BASE_URL}/profile/update`, {
+              await fetch(`${API_BASE_URL}/profile/update`, {
                 method: "PUT",
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -151,14 +255,8 @@ const Assessment: React.FC = () => {
                   interests: assessmentData.interests,
                 }),
               });
-
-              const responseData = await response.json();
-
-              if (!response.ok) {
-                console.error("Failed to update profile:", responseData);
-              }
-            } catch (error) {
-              console.error("Failed to update profile interests:", error);
+            } catch (err) {
+              console.error("Failed to update profile interests:", err);
             }
           }
         }
@@ -198,62 +296,35 @@ const Assessment: React.FC = () => {
           updateProfile({ assessmentCompleted: true });
         }
 
-        navigate("/chat", {
-          state: {
-            assessmentData,
-            initialMessage: chatMessage,
-            userContext: {
-              is_assessment_result: true,
-              assessment_data: assessmentData,
+        setTimeout(() => {
+          navigate("/chat", {
+            state: {
+              assessmentData,
+              initialMessage: chatMessage,
+              userContext: {
+                is_assessment_result: true,
+                assessment_data: assessmentData,
+              },
             },
-          },
-        });
+          });
+        }, 1200);
       } catch (error) {
         console.error("Failed to send assessment to chat:", error);
 
-        if (isAuthenticated && user && assessmentData.interests?.length > 0) {
-          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-          const token = localStorage.getItem("token");
-
-          if (token && API_BASE_URL) {
-            try {
-              const response = await fetch(`${API_BASE_URL}/profile/update`, {
-                method: "PUT",
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  interests: assessmentData.interests,
-                }),
-              });
-
-              const responseData = await response.json();
-
-              if (!response.ok) {
-                console.error(
-                  "Failed to update profile (retry):",
-                  responseData,
-                );
-              }
-            } catch (updateError) {
-              console.error("Failed to update profile interests:", updateError);
-            }
-          }
-        }
-
         const fallbackMessage = `I just completed my assessment. My strong subjects are ${assessmentData.bestSubject?.join(", ") || "various subjects"} and I studied ${assessmentData.shsProgram || "an SHS program"}. I obtained ${assessmentData.wassceGrade || "good grades"} in WASSCE. I'm interested in ${assessmentData.interests?.join(", ") || "multiple fields"} and my career goal is to ${assessmentData.careerGoals || "pursue higher education"}. Could you help me with university recommendations?`;
 
-        navigate("/chat", {
-          state: {
-            assessmentData,
-            initialMessage: fallbackMessage,
-            userContext: {
-              is_assessment_result: true,
-              assessment_data: assessmentData,
+        setTimeout(() => {
+          navigate("/chat", {
+            state: {
+              assessmentData,
+              initialMessage: fallbackMessage,
+              userContext: {
+                is_assessment_result: true,
+                assessment_data: assessmentData,
+              },
             },
-          },
-        });
+          });
+        }, 1200);
       }
     }
   };
@@ -265,6 +336,7 @@ const Assessment: React.FC = () => {
   };
 
   const isAnswerValid = () => {
+    if (!currentQuestion) return false;
     const currentAnswer =
       assessmentData[currentQuestion.id as keyof AssessmentData];
     if (currentQuestion.type === "multiple") {
@@ -279,9 +351,16 @@ const Assessment: React.FC = () => {
       : 0;
   };
 
+  // Filtered options if option search is typed
+  const filteredOptions = currentQuestion?.options
+    ? currentQuestion.options.filter((opt) =>
+        opt.toLowerCase().includes(optionSearch.toLowerCase().trim())
+      )
+    : [];
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-200 flex flex-col">
         <Navbar
           title="PROGRAM ASSESSMENT"
           showBackButton={true}
@@ -289,42 +368,26 @@ const Assessment: React.FC = () => {
           showMenuButton={false}
         />
 
-        <div className="w-full max-w-sm mx-auto px-4 py-4 overflow-hidden md:max-w-xl md:px-6 md:py-6 lg:max-w-2xl xl:max-w-3xl">
+        <div className="flex-1 flex items-center justify-center p-6">
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-12"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center max-w-sm p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4"
           >
-            <div
-              className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${
-                theme === "dark" ? "bg-primary-500/20" : "bg-primary-100"
-              }`}
-            >
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              >
-                <FiTarget
-                  className={`w-10 h-10 ${
-                    theme === "dark" ? "text-primary-400" : "text-primary-600"
-                  }`}
-                />
-              </motion.div>
+            <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-4 border-primary-500/20 animate-ping" />
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-primary-500/30 text-white">
+                <FiRefreshCw className="w-7 h-7 animate-spin" />
+              </div>
             </div>
-            <h2
-              className={`text-2xl font-bold mb-2 transition-colors duration-200 ${
-                theme === "dark" ? "text-white" : "text-gray-800"
-              }`}
-            >
-              Loading Assessment
-            </h2>
-            <p
-              className={`transition-colors duration-200 ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}
-            >
-              Preparing your personalized assessment questions...
-            </p>
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                Preparing Your Assessment
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Loading smart questions for Ghanaian universities...
+              </p>
+            </div>
           </motion.div>
         </div>
       </div>
@@ -333,7 +396,7 @@ const Assessment: React.FC = () => {
 
   if (questions.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-200 flex flex-col">
         <Navbar
           title="PROGRAM ASSESSMENT"
           showBackButton={true}
@@ -341,38 +404,26 @@ const Assessment: React.FC = () => {
           showMenuButton={false}
         />
 
-        <div className="w-full max-w-sm mx-auto px-4 py-4 overflow-hidden md:max-w-xl md:px-6 md:py-6 lg:max-w-2xl xl:max-w-3xl">
+        <div className="flex-1 flex items-center justify-center p-6">
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-12"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center max-w-md p-8 rounded-3xl bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900/40 shadow-xl space-y-4"
           >
-            <div
-              className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${
-                theme === "dark" ? "bg-red-500/20" : "bg-red-100"
-              }`}
-            >
-              <FiTarget
-                className={`w-10 h-10 ${theme === "dark" ? "text-red-400" : "text-red-600"}`}
-              />
+            <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900/60 flex items-center justify-center mx-auto text-red-600 dark:text-red-400">
+              <FiTarget className="w-7 h-7" />
             </div>
-            <h2
-              className={`text-2xl font-bold mb-2 transition-colors duration-200 ${
-                theme === "dark" ? "text-white" : "text-gray-800"
-              }`}
-            >
-              Assessment Unavailable
-            </h2>
-            <p
-              className={`mb-4 transition-colors duration-200 ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}
-            >
-              Unable to load assessment questions. Please try again later.
-            </p>
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                Assessment Unavailable
+              </h2>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                Unable to load assessment questions right now. Please check your network connection.
+              </p>
+            </div>
             <button
               onClick={() => navigate("/")}
-              className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+              className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs rounded-xl shadow-md shadow-primary-600/20 transition-all active:scale-95"
             >
               Return Home
             </button>
@@ -383,8 +434,9 @@ const Assessment: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors duration-200 flex flex-col relative overflow-x-hidden">
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
+
       <Navbar
         title="PROGRAM ASSESSMENT"
         showBackButton={true}
@@ -392,212 +444,384 @@ const Assessment: React.FC = () => {
         showMenuButton={false}
       />
 
-      <div className="w-full max-w-sm mx-auto px-4 py-4 overflow-hidden md:max-w-xl md:px-6 md:py-6 lg:max-w-2xl xl:max-w-3xl">
-        {/* Progress Bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span
-              className={`text-sm font-medium transition-colors duration-200 ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}
-            >
-              Question {currentStep + 1} of {questions.length}
-            </span>
-            <span className="text-sm font-medium text-primary-600">
-              {Math.round(getProgressPercentage())}% Complete
-            </span>
-          </div>
-          <div
-            className={`w-full rounded-full h-2 transition-colors duration-200 ${
-              theme === "dark" ? "bg-gray-700" : "bg-gray-200"
-            }`}
+      {/* Submitting Loading Modal Overlay */}
+      <AnimatePresence>
+        {submitting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[150] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-6 text-center"
           >
             <motion.div
-              className="bg-primary-600 h-2 rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${getProgressPercentage()}%` }}
-              transition={{ duration: 0.3 }}
-            />
-          </div>
-        </motion.div>
-
-        {/* Question Card */}
-        <motion.div
-          key={currentStep}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.3 }}
-          className={`p-6 mb-6 ${
-            theme === "dark" ? "glass-card-unified-dark" : "glass-card-unified"
-          }`}
-        >
-          <div className="flex items-center mb-4">
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${
-                theme === "dark" ? "bg-primary-500/20" : "bg-primary-100"
-              }`}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="max-w-md w-full p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-6"
             >
-              <FiTarget
-                className={`w-5 h-5 ${theme === "dark" ? "text-primary-400" : "text-primary-600"}`}
-              />
-            </div>
-            <h2
-              className={`text-xl font-bold transition-colors duration-200 ${
-                theme === "dark" ? "text-white" : "text-gray-800"
-              }`}
-            >
-              {currentQuestion.question}
-            </h2>
-          </div>
-
-          {/* Answer Options */}
-          <div className="space-y-3">
-            {currentQuestion.type === "text" ? (
-              <div className="space-y-4">
-                <textarea
-                  value={
-                    (assessmentData[
-                      currentQuestion.id as keyof AssessmentData
-                    ] as string) || ""
-                  }
-                  onChange={(e) => handleAnswer(e.target.value)}
-                  placeholder={
-                    currentQuestion.placeholder || "Enter your answer..."
-                  }
-                  className={`w-full p-4 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none transition-colors duration-200 ${
-                    theme === "dark"
-                      ? "bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
-                      : "bg-white border-gray-200 text-gray-900 placeholder-gray-500"
-                  }`}
-                  rows={4}
-                />
-
-                {currentQuestion.id === "wassceGrade" && (
-                  <div className="flex flex-col space-y-2">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      ref={fileInputRef}
-                      onChange={handleFileUpload}
-                      className="hidden"
-                      aria-label="Upload WASSCE result slip"
-                      title="Upload WASSCE result slip"
-                    />
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isOcrLoading}
-                      className={`flex items-center justify-center space-x-2 p-3 rounded-lg border-2 border-dashed ${
-                        theme === "dark"
-                          ? "border-primary-500/50 hover:bg-primary-500/10"
-                          : "border-primary-300 hover:bg-primary-50"
-                      } text-primary-600 transition-colors cursor-pointer`}
-                    >
-                      <FiUpload />
-                      <span>
-                        {isOcrLoading
-                          ? "Scanning Document..."
-                          : "Upload WASSCE Result Slip (Auto-fill)"}
-                      </span>
-                    </button>
-                    <p
-                      className={`text-xs text-center ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}
-                    >
-                      Upload a clear photo of your WASSCE slip and we'll
-                      automatically extract your grades.
-                    </p>
-                  </div>
-                )}
+              <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border-4 border-primary-500/30 animate-spin border-t-primary-600" />
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-primary-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-primary-500/40 text-white">
+                  <LuSparkles className="w-7 h-7 animate-pulse" />
+                </div>
               </div>
-            ) : currentQuestion.options ? (
-              currentQuestion.options.map((option, index) => {
-                const currentAnswer =
-                  assessmentData[currentQuestion.id as keyof AssessmentData];
-                const isSelected =
-                  currentQuestion.type === "multiple"
-                    ? Array.isArray(currentAnswer) &&
-                      currentAnswer.includes(option)
-                    : currentAnswer === option;
+
+              <div>
+                <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
+                  Analyzing Your Profile...
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                  Matching your WASSCE grades and career goals with entry requirements across UG, KNUST, UCC, and leading Ghanaian universities.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 text-xs font-semibold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/60 py-2.5 px-4 rounded-xl border border-primary-200 dark:border-primary-800">
+                <FiZap className="w-4 h-4 animate-bounce" />
+                <span>Redirecting to AI Academic Advisor...</span>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <main className="flex-1 w-full max-w-4xl mx-auto px-4 py-6 md:px-8 md:py-8 flex flex-col justify-between">
+        {/* Top Header & Interactive Stepper */}
+        <div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+            <div>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-primary-100 text-primary-700 dark:bg-primary-950/80 dark:text-primary-300 border border-primary-200 dark:border-primary-800 mb-1">
+                <LuSparkles className="w-3.5 h-3.5" />
+                AI Career & Admission Matcher
+              </span>
+              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                Find Your Ideal Degree
+              </h1>
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                Step {currentStep + 1} of {questions.length}
+              </span>
+              <span className="px-2.5 py-1 rounded-lg text-xs font-extrabold bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs">
+                {Math.round(getProgressPercentage())}%
+              </span>
+            </div>
+          </div>
+
+          {/* Stepper Timeline Pills */}
+          <div className="mb-8 overflow-x-auto scrollbar-hide py-1">
+            <div className="flex items-center gap-2 min-w-max">
+              {questions.map((q, idx) => {
+                const meta = STEP_METADATA[q.id] || {
+                  label: `Step ${idx + 1}`,
+                  icon: FiTarget,
+                };
+                const Icon = meta.icon;
+                const isCompleted = idx < currentStep;
+                const isActive = idx === currentStep;
 
                 return (
-                  <motion.button
-                    key={index}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      if (currentQuestion.type === "multiple") {
-                        const currentArray = Array.isArray(currentAnswer)
-                          ? currentAnswer
-                          : [];
-                        const newArray = isSelected
-                          ? currentArray.filter((item) => item !== option)
-                          : [...currentArray, option];
-                        handleAnswer(newArray);
-                      } else {
-                        handleAnswer(option);
-                      }
-                    }}
-                    className={`w-full p-4 text-left rounded-lg border-2 transition-all ${
-                      isSelected
-                        ? "border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300"
-                        : theme === "dark"
-                          ? "border-gray-600 bg-gray-700/50 hover:border-gray-500 text-gray-300"
-                          : "border-gray-200 bg-white hover:border-gray-300 text-gray-700"
+                  <button
+                    key={q.id}
+                    onClick={() => idx < currentStep && setCurrentStep(idx)}
+                    disabled={idx > currentStep}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 border ${
+                      isActive
+                        ? "bg-primary-600 text-white border-primary-500 shadow-md shadow-primary-600/25 ring-2 ring-primary-500/30"
+                        : isCompleted
+                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60 cursor-pointer hover:bg-emerald-100"
+                        : "bg-white dark:bg-slate-900/60 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-800 cursor-not-allowed opacity-60"
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{option}</span>
-                      {isSelected && (
-                        <FiCheck className="w-5 h-5 text-primary-600" />
-                      )}
-                    </div>
-                  </motion.button>
+                    {isCompleted ? (
+                      <FiCheckCircle className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <Icon className="w-4 h-4 shrink-0" />
+                    )}
+                    <span>{meta.label}</span>
+                  </button>
                 );
-              })
-            ) : null}
+              })}
+            </div>
           </div>
 
-          {/* Selection Info for Multiple Choice */}
-          {currentQuestion.type === "multiple" && (
-            <div
-              className={`mt-4 p-3 rounded-lg transition-colors duration-200 ${
-                theme === "dark" ? "bg-blue-500/20" : "bg-blue-50"
-              }`}
-            >
-              <p
-                className={`text-sm transition-colors duration-200 ${
-                  theme === "dark" ? "text-blue-300" : "text-blue-700"
-                }`}
-              >
-                {currentQuestion.id === "bestSubject"
-                  ? "Select all subjects you perform well in"
-                  : currentQuestion.id === "interests"
-                    ? "Select up to 3 career fields that interest you most"
-                    : "Select all that apply"}
-              </p>
-            </div>
-          )}
-        </motion.div>
+          {/* Smooth Progress Bar */}
+          <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full mb-8 overflow-hidden">
+            <motion.div
+              className="bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 h-full rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${getProgressPercentage()}%` }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+            />
+          </div>
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between">
+          {/* Question Card Container */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, x: 25 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -25 }}
+              transition={{ duration: 0.25 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl shadow-slate-200/50 dark:shadow-none mb-6 relative overflow-hidden"
+            >
+              {/* Top Accent Icon & Title */}
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-12 h-12 rounded-2xl bg-primary-100 dark:bg-primary-950/80 border border-primary-200 dark:border-primary-800/80 flex items-center justify-center text-primary-600 dark:text-primary-400 shrink-0 shadow-xs">
+                  <StepIcon className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400">
+                    Question {currentStep + 1} of {questions.length}
+                  </span>
+                  <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white mt-0.5 leading-snug">
+                    {currentQuestion.question}
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    {currentMeta.description}
+                  </p>
+                </div>
+              </div>
+
+              {/* Option Filter Search Bar for long option lists */}
+              {currentQuestion.options && currentQuestion.options.length > 8 && (
+                <div className="relative mb-4">
+                  <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={optionSearch}
+                    onChange={(e) => setOptionSearch(e.target.value)}
+                    placeholder={`Filter ${currentQuestion.options.length} options...`}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500 transition-all"
+                  />
+                  {optionSearch && (
+                    <button
+                      onClick={() => setOptionSearch("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 hover:text-slate-600"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Answer Content */}
+              <div className="space-y-3">
+                {currentQuestion.type === "text" ? (
+                  <div className="space-y-4">
+                    <textarea
+                      value={
+                        (assessmentData[
+                          currentQuestion.id as keyof AssessmentData
+                        ] as string) || ""
+                      }
+                      onChange={(e) => handleAnswer(e.target.value)}
+                      placeholder={
+                        currentQuestion.placeholder || "Type your response..."
+                      }
+                      className="w-full p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-2xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500 resize-none transition-all"
+                      rows={4}
+                    />
+
+                    {/* WASSCE Result Slip OCR Drag & Drop Zone */}
+                    {currentQuestion.id === "wassceGrade" && (
+                      <div className="space-y-3">
+                        <div
+                          onDragEnter={handleDrag}
+                          onDragLeave={handleDrag}
+                          onDragOver={handleDrag}
+                          onDrop={handleDrop}
+                          onClick={() => fileInputRef.current?.click()}
+                          className={`relative p-6 rounded-2xl border-2 border-dashed transition-all cursor-pointer text-center ${
+                            dragActive
+                              ? "border-primary-500 bg-primary-50/80 dark:bg-primary-950/40"
+                              : "border-slate-300 dark:border-slate-700 hover:border-primary-400 bg-slate-50/50 dark:bg-slate-800/30"
+                          }`}
+                        >
+                          <input
+                            type="file"
+                            accept="image/*"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            className="hidden"
+                          />
+
+                          <div className="flex flex-col items-center justify-center space-y-2">
+                            <div className="w-12 h-12 rounded-2xl bg-primary-100 dark:bg-primary-950/80 text-primary-600 dark:text-primary-400 flex items-center justify-center shadow-xs">
+                              {isOcrLoading ? (
+                                <FiRefreshCw className="w-6 h-6 animate-spin" />
+                              ) : (
+                                <FiUpload className="w-6 h-6" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                                {isOcrLoading
+                                  ? "Scanning WASSCE Document..."
+                                  : "Upload Result Slip (AI Auto-Fill)"}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                Drag & drop or click to upload photo of your statement of results
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Quick Presets / Examples */}
+                        <div>
+                          <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 block mb-1.5">
+                            Or pick a quick format template:
+                          </span>
+                          <div className="flex flex-wrap gap-2">
+                            {GRADE_PRESETS.map((preset, pIdx) => (
+                              <button
+                                key={pIdx}
+                                type="button"
+                                onClick={() => handleAnswer(preset)}
+                                className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-primary-50 hover:text-primary-700 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors"
+                              >
+                                {preset}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : currentQuestion.options ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[380px] overflow-y-auto pr-1 scrollbar-hide">
+                    {filteredOptions.length === 0 ? (
+                      <div className="col-span-full py-8 text-center text-slate-400 text-xs font-medium">
+                        No options matching "{optionSearch}"
+                      </div>
+                    ) : (
+                      filteredOptions.map((option, index) => {
+                        const currentAnswer =
+                          assessmentData[
+                            currentQuestion.id as keyof AssessmentData
+                          ];
+                        const isSelected =
+                          currentQuestion.type === "multiple"
+                            ? Array.isArray(currentAnswer) &&
+                              currentAnswer.includes(option)
+                            : currentAnswer === option;
+
+                        return (
+                          <motion.button
+                            key={index}
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.99 }}
+                            onClick={() => {
+                              if (currentQuestion.type === "multiple") {
+                                const currentArray = Array.isArray(
+                                  currentAnswer
+                                )
+                                  ? currentAnswer
+                                  : [];
+                                const isAlreadySelected =
+                                  currentArray.includes(option);
+
+                                // If interest question, max 3 choices
+                                if (
+                                  currentQuestion.id === "interests" &&
+                                  !isAlreadySelected &&
+                                  currentArray.length >= 3
+                                ) {
+                                  showWarning(
+                                    "Limit Reached",
+                                    "You can select up to 3 career fields.",
+                                    3000
+                                  );
+                                  return;
+                                }
+
+                                const newArray = isAlreadySelected
+                                  ? currentArray.filter(
+                                      (item) => item !== option
+                                    )
+                                  : [...currentArray, option];
+                                handleAnswer(newArray);
+                              } else {
+                                handleAnswer(option);
+                              }
+                            }}
+                            className={`p-4 rounded-2xl border text-left transition-all duration-200 flex items-center justify-between gap-3 ${
+                              isSelected
+                                ? "bg-primary-50 dark:bg-primary-950/60 border-primary-500 text-primary-900 dark:text-primary-200 shadow-sm ring-1 ring-primary-500/30"
+                                : "bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-200"
+                            }`}
+                          >
+                            <span className="font-semibold text-xs leading-relaxed">
+                              {option}
+                            </span>
+                            <div
+                              className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 transition-colors ${
+                                isSelected
+                                  ? "bg-primary-600 border-primary-600 text-white"
+                                  : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900"
+                              }`}
+                            >
+                              {isSelected && <FiCheck className="w-3.5 h-3.5 stroke-[3]" />}
+                            </div>
+                          </motion.button>
+                        );
+                      })
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Selection Info Footer */}
+              {currentQuestion.type === "multiple" && (
+                <div className="mt-4 p-3 rounded-2xl bg-primary-50/70 dark:bg-primary-950/40 border border-primary-200/60 dark:border-primary-900/60 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-primary-700 dark:text-primary-300 font-medium">
+                    <FiInfo className="w-4 h-4 shrink-0" />
+                    <span>
+                      {currentQuestion.id === "bestSubject"
+                        ? "Select all subjects you excel in"
+                        : currentQuestion.id === "interests"
+                        ? "Select up to 3 career fields"
+                        : "Select all options that apply"}
+                    </span>
+                  </div>
+                  {Array.isArray(
+                    assessmentData[currentQuestion.id as keyof AssessmentData]
+                  ) && (
+                    <span className="px-2 py-0.5 rounded-md bg-primary-600 text-white font-bold text-[11px]">
+                      {
+                        (
+                          assessmentData[
+                            currentQuestion.id as keyof AssessmentData
+                          ] as string[]
+                        ).length
+                      }{" "}
+                      Selected
+                    </span>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Proactive Tip Card */}
+          <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 flex items-start gap-3 text-xs mb-6">
+            <FiZap className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-amber-800 dark:text-amber-300 leading-relaxed font-medium">
+              <strong className="font-bold">Pro Tip:</strong> {currentMeta.tip}
+            </p>
+          </div>
+        </div>
+
+        {/* Navigation Buttons Row */}
+        <div className="flex items-center justify-between gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
           <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: isFirstStep ? 1 : 1.02 }}
+            whileTap={{ scale: isFirstStep ? 1 : 0.98 }}
             onClick={handlePrevious}
             disabled={isFirstStep}
-            className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all ${
+            className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs transition-all ${
               isFirstStep
-                ? theme === "dark"
-                  ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : theme === "dark"
-                  ? "bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600"
-                  : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                ? "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed border border-transparent"
+                : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 shadow-xs"
             }`}
           >
             <FiArrowLeft className="w-4 h-4" />
@@ -605,56 +829,25 @@ const Assessment: React.FC = () => {
           </motion.button>
 
           <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: !isAnswerValid() ? 1 : 1.02 }}
+            whileTap={{ scale: !isAnswerValid() ? 1 : 0.98 }}
             onClick={handleNext}
             disabled={!isAnswerValid()}
-            className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all ${
+            className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs transition-all shadow-md active:scale-95 ${
               isAnswerValid()
-                ? "bg-primary-600 text-white hover:bg-primary-700"
-                : theme === "dark"
-                  ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                ? "bg-primary-600 hover:bg-primary-700 text-white shadow-primary-600/30"
+                : "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed shadow-none"
             }`}
           >
-            <span>{isLastStep ? "Send to AI Chat" : "Next"}</span>
-            {!isLastStep && <FiArrowLeft className="w-4 h-4 rotate-180" />}
-            {isLastStep && <FiStar className="w-4 h-4" />}
+            <span>{isLastStep ? "Send to AI Chat" : "Continue"}</span>
+            {!isLastStep ? (
+              <FiArrowRight className="w-4 h-4" />
+            ) : (
+              <FiStar className="w-4 h-4 fill-white" />
+            )}
           </motion.button>
         </div>
-
-        {/* Assessment Info */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-8 text-center"
-        >
-          <div
-            className={`p-4 ${theme === "dark" ? "glass-card-unified-dark" : "glass-card-unified"}`}
-          >
-            <div className="flex items-center justify-center space-x-2 mb-2">
-              <FiBookOpen className="w-5 h-5 text-primary-600" />
-              <h3
-                className={`font-semibold transition-colors duration-200 ${
-                  theme === "dark" ? "text-white" : "text-gray-800"
-                }`}
-              >
-                Assessment Benefits
-              </h3>
-            </div>
-            <p
-              className={`text-sm transition-colors duration-200 ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}
-            >
-              Get personalized program recommendations based on your academic
-              strengths, interests, and career goals. Our AI will match you with
-              the best universities and programs in Ghana.
-            </p>
-          </div>
-        </motion.div>
-      </div>
+      </main>
     </div>
   );
 };

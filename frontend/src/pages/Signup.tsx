@@ -8,12 +8,14 @@ import {
   FiEyeOff,
   FiArrowRight,
   FiCheck,
+  FiAlertCircle,
+  FiLogIn,
 } from "react-icons/fi";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "../contexts/ThemeContext";
 import { useAutoCloseError } from "../hooks/useAutoCloseError";
 import EmailVerificationModal from "../components/EmailVerificationModal";
+import AuthLayout from "../components/AuthLayout";
 
 const Signup: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -24,11 +26,9 @@ const Signup: React.FC = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const { sendSignupVerification, verifySignup, isLoading } = useAuth();
   const navigate = useNavigate();
-  const { theme } = useTheme();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -86,7 +86,7 @@ const Signup: React.FC = () => {
     }
 
     if (passwordErrors.length > 0) {
-      newErrors.password = `Password must have: ${passwordErrors.join(", ")}`;
+      newErrors.password = `Password needs: ${passwordErrors.join(", ")}`;
     }
 
     if (formData.password !== formData.confirmPassword) {
@@ -144,7 +144,6 @@ const Signup: React.FC = () => {
       );
 
       if (result.success) {
-        // Clear form
         setFormData({
           name: "",
           email: "",
@@ -159,7 +158,7 @@ const Signup: React.FC = () => {
               message: "Account created successfully! Please log in.",
             },
           });
-        }, 2000);
+        }, 1500);
       } else {
         throw new Error(result.message || "Verification failed");
       }
@@ -179,412 +178,263 @@ const Signup: React.FC = () => {
     }
   };
 
+  // Password requirement checks for visual indicators
+  const reqLength = formData.password.length >= 8;
+  const reqUpper = /[A-Z]/.test(formData.password);
+  const reqLower = /[a-z]/.test(formData.password);
+  const reqNumber = /[0-9]/.test(formData.password);
+  const reqSpecial = /[!@#$%^&*]/.test(formData.password);
+
   return (
-    <div className="min-h-screen">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-5">
-        <div
-          className={`absolute inset-0 bg-[length:20px_20px] ${
-            theme === "dark"
-              ? "bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.22)_1px,transparent_0)]"
-              : "bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.22)_1px,transparent_0)]"
-          }`}
-        />
-      </div>
+    <AuthLayout
+      title="Begin Your Academic Journey"
+      subtitle="Create your account to unlock personalized university recommendations, application forms, and smart AI guidance."
+      badgeText="Create Account"
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm"
+      >
+        {/* Header */}
+        <div className="mb-6">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+            Create Account
+          </h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+            Fill in your information to get started with CERKYL
+          </p>
+        </div>
 
-      <div className="relative min-h-screen flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-sm mx-auto px-4 py-4 overflow-hidden md:max-w-xl md:px-6 md:py-6 lg:max-w-2xl xl:max-w-3xl"
-        >
-          {/* Logo and Title */}
-          <div className="text-center mb-12">
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="w-20 h-20 mx-auto mb-6 rounded-3xl flex items-center justify-center"
-            >
-              <img
-                src="/cerkyl-logo.jpeg"
-                alt="Cerkyl Logo"
-                className="w-16 h-16 rounded-2xl object-cover"
-              />
-            </motion.div>
-            <motion.h1
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className={`text-4xl font-bold mb-3 bg-gradient-to-r ${
-                theme === "dark"
-                  ? "from-white to-gray-300 bg-clip-text text-transparent"
-                  : "from-gray-900 to-gray-600 bg-clip-text text-transparent"
-              }`}
-            >
-              Create your account
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className={`text-lg transition-colors duration-200 ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}
-            >
-              Join CERKYL and start your university journey
-            </motion.p>
-          </div>
-
-          {/* Signup Form */}
+        {/* Global Error Banner */}
+        {errors.submit && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className={`rounded-3xl p-8 shadow-2xl transition-all duration-200 ${
-              theme === "dark"
-                ? "glass-card-unified-dark"
-                : "glass-card-unified"
-            }`}
+            className="mb-5 p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60"
           >
-            <form onSubmit={handleSendVerification} className="space-y-6">
-              {/* Name Field */}
-              <div className="space-y-2">
-                <label
-                  className={`text-sm font-semibold transition-colors duration-200 ${
-                    theme === "dark" ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  Full name
-                </label>
-                <div className="relative">
-                  <div
-                    className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${
-                      theme === "dark" ? "text-gray-500" : "text-gray-400"
-                    }`}
-                  >
-                    <FiUser className="w-5 h-5" />
-                  </div>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder="Enter your full name"
-                    className={`w-full pl-12 pr-4 py-4 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200 ${
-                      errors.name
-                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/50"
-                        : theme === "dark"
-                          ? "bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
-                          : "bg-gray-50/50 border-gray-200 text-gray-900 placeholder-gray-500"
-                    }`}
-                    required
-                  />
-                </div>
-                {errors.name && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center">
-                    <span className="mr-1">️</span> {errors.name}
-                  </p>
-                )}
-              </div>
-
-              {/* Email Field */}
-              <div className="space-y-2">
-                <label
-                  className={`text-sm font-semibold transition-colors duration-200 ${
-                    theme === "dark" ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  Email address{" "}
-                  <span className="text-xs text-gray-500">
-                    (@gmail.com only)
-                  </span>
-                </label>
-                <div className="relative">
-                  <div
-                    className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${
-                      theme === "dark" ? "text-gray-500" : "text-gray-400"
-                    }`}
-                  >
-                    <FiMail className="w-5 h-5" />
-                  </div>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="your.email@gmail.com"
-                    className={`w-full pl-12 pr-4 py-4 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200 ${
-                      errors.email
-                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/50"
-                        : theme === "dark"
-                          ? "bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
-                          : "bg-gray-50/50 border-gray-200 text-gray-900 placeholder-gray-500"
-                    }`}
-                    required
-                  />
-                </div>
-                {errors.email && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center">
-                    <span className="mr-1">️</span> {errors.email}
-                  </p>
-                )}
-              </div>
-
-              {/* Password Field */}
-              <div className="space-y-2">
-                <label
-                  className={`text-sm font-semibold transition-colors duration-200 ${
-                    theme === "dark" ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  Password{" "}
-                  <span className="text-xs text-gray-500">(min 8 chars)</span>
-                </label>
-                <p
-                  className={`text-xs transition-colors duration-200 ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}
-                >
-                  Must include: uppercase, lowercase, number, special char
-                  (!@#$%^&*)
-                </p>
-                <div className="relative">
-                  <div
-                    className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${
-                      theme === "dark" ? "text-gray-500" : "text-gray-400"
-                    }`}
-                  >
-                    <FiLock className="w-5 h-5" />
-                  </div>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    placeholder="e.g., MyPass123!"
-                    autoComplete="off"
-                    data-lpignore="true"
-                    data-form-type="other"
-                    className={`w-full pl-12 pr-12 py-4 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200 ${
-                      errors.password
-                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/50"
-                        : theme === "dark"
-                          ? "bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
-                          : "bg-gray-50/50 border-gray-200 text-gray-900 placeholder-gray-500"
-                    }`}
-                    required
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center justify-center z-50">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setShowPassword(!showPassword);
-                      }}
-                      aria-label={
-                        showPassword ? "Hide password" : "Show password"
-                      }
-                      className={`flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200/20 transition-colors duration-200 bg-transparent border-0 outline-none relative z-[9999] ${
-                        theme === "dark"
-                          ? "text-gray-400 hover:text-gray-300"
-                          : "text-gray-500 hover:text-gray-700"
-                      }`}
-                    >
-                      {showPassword ? (
-                        <FiEyeOff className="w-5 h-5" />
-                      ) : (
-                        <FiEye className="w-5 h-5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-                {errors.password && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center">
-                    <span className="mr-1">️</span> {errors.password}
-                  </p>
-                )}
-              </div>
-
-              {/* Confirm Password Field */}
-              <div className="space-y-2">
-                <label
-                  className={`text-sm font-semibold transition-colors duration-200 ${
-                    theme === "dark" ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  Confirm password
-                </label>
-                <div className="relative">
-                  <div
-                    className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${
-                      theme === "dark" ? "text-gray-500" : "text-gray-400"
-                    }`}
-                  >
-                    <FiLock className="w-5 h-5" />
-                  </div>
-                  <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    placeholder="Confirm your password"
-                    autoComplete="off"
-                    data-lpignore="true"
-                    data-form-type="other"
-                    className={`w-full pl-12 pr-12 py-4 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200 ${
-                      errors.confirmPassword
-                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/50"
-                        : theme === "dark"
-                          ? "bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
-                          : "bg-gray-50/50 border-gray-200 text-gray-900 placeholder-gray-500"
-                    }`}
-                    required
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center justify-center z-50">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setShowConfirmPassword(!showConfirmPassword);
-                      }}
-                      aria-label={
-                        showConfirmPassword ? "Hide password" : "Show password"
-                      }
-                      className={`flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200/20 transition-colors duration-200 bg-transparent border-0 outline-none relative z-[9999] ${
-                        theme === "dark"
-                          ? "text-gray-400 hover:text-gray-300"
-                          : "text-gray-500 hover:text-gray-700"
-                      }`}
-                    >
-                      {showConfirmPassword ? (
-                        <FiEyeOff className="w-5 h-5" />
-                      ) : (
-                        <FiEye className="w-5 h-5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-                {errors.confirmPassword && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center">
-                    <span className="mr-1">️</span> {errors.confirmPassword}
-                  </p>
-                )}
-              </div>
-
-              {/* General Error Message */}
-              {errors.submit && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3">
-                  <p className="text-red-600 dark:text-red-400 text-sm">
-                    {errors.submit}
-                  </p>
-                </div>
-              )}
-
-              {/* Terms Agreement */}
-              <div className="flex items-start space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setAgreedToTerms(!agreedToTerms)}
-                  className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${
-                    agreedToTerms
-                      ? "bg-primary-600 border-primary-600 text-white"
-                      : theme === "dark"
-                        ? "border-gray-600 hover:border-gray-500"
-                        : "border-gray-300 hover:border-gray-400"
-                  }`}
-                >
-                  {agreedToTerms && <FiCheck className="w-3 h-3" />}
-                </button>
-                <p
-                  className={`text-sm leading-relaxed transition-colors duration-200 ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}
-                >
-                  I agree to the{" "}
-                  <button
-                    type="button"
-                    className={`font-medium transition-colors duration-200 ${
-                      theme === "dark"
-                        ? "text-primary-400 hover:text-primary-300"
-                        : "text-primary-600 hover:text-primary-700"
-                    }`}
-                  >
-                    Terms of Service
-                  </button>{" "}
-                  and{" "}
-                  <button
-                    type="button"
-                    className={`font-medium transition-colors duration-200 ${
-                      theme === "dark"
-                        ? "text-primary-400 hover:text-primary-300"
-                        : "text-primary-600 hover:text-primary-700"
-                    }`}
-                  >
-                    Privacy Policy
-                  </button>
-                </p>
-              </div>
-
-              {/* Create Account Button */}
-              <motion.button
-                type="submit"
-                disabled={isLoading || !agreedToTerms}
-                whileHover={{ scale: agreedToTerms ? 1.02 : 1 }}
-                whileTap={{ scale: agreedToTerms ? 0.98 : 1 }}
-                className="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 flex items-center justify-center shadow-lg shadow-primary-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    Create account
-                    <FiArrowRight className="w-5 h-5 ml-2" />
-                  </>
-                )}
-              </motion.button>
-            </form>
-          </motion.div>
-
-          {/* Sign In Link */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="text-center mt-8"
-          >
-            <p
-              className={`transition-colors duration-200 ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}
-            >
-              Already have an account?{" "}
-              <button
-                onClick={() => navigate("/login")}
-                className={`font-semibold transition-colors duration-200 ${
-                  theme === "dark"
-                    ? "text-primary-400 hover:text-primary-300"
-                    : "text-primary-600 hover:text-primary-700"
-                }`}
-              >
-                Sign in
-              </button>
+            <p className="text-sm font-medium text-red-800 dark:text-red-300 flex items-center">
+              <FiAlertCircle className="w-4 h-4 mr-2 flex-shrink-0 text-red-600 dark:text-red-400" />
+              {errors.submit}
             </p>
           </motion.div>
-        </motion.div>
-      </div>
+        )}
+
+        {/* Signup Form */}
+        <form onSubmit={handleSendVerification} className="space-y-4">
+          {/* Full Name */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Full name
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                <FiUser className="w-5 h-5" />
+              </div>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                placeholder="Enter your full name"
+                className={`w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800/80 border ${
+                  errors.name
+                    ? "border-red-500 focus:ring-red-500/30"
+                    : "border-slate-300 dark:border-slate-700 focus:ring-primary-600/30 focus:border-primary-600"
+                } rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-base focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 transition-colors`}
+                required
+              />
+            </div>
+            {errors.name && (
+              <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-1">
+                {errors.name}
+              </p>
+            )}
+          </div>
+
+          {/* Email Address */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                Email address
+              </label>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                @gmail.com only
+              </span>
+            </div>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                <FiMail className="w-5 h-5" />
+              </div>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="your.email@gmail.com"
+                className={`w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800/80 border ${
+                  errors.email
+                    ? "border-red-500 focus:ring-red-500/30"
+                    : "border-slate-300 dark:border-slate-700 focus:ring-primary-600/30 focus:border-primary-600"
+                } rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-base focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 transition-colors`}
+                required
+              />
+            </div>
+            {errors.email && (
+              <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-1">
+                {errors.email}
+              </p>
+            )}
+          </div>
+
+          {/* Password */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Password
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                <FiLock className="w-5 h-5" />
+              </div>
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                placeholder="Create password"
+                className={`w-full pl-11 pr-11 py-3 bg-slate-50 dark:bg-slate-800/80 border ${
+                  errors.password
+                    ? "border-red-500 focus:ring-red-500/30"
+                    : "border-slate-300 dark:border-slate-700 focus:ring-primary-600/30 focus:border-primary-600"
+                } rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-base focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 transition-colors`}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
+              >
+                {showPassword ? (
+                  <FiEyeOff className="w-5 h-5" />
+                ) : (
+                  <FiEye className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+            {errors.password && (
+              <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-1">
+                {errors.password}
+              </p>
+            )}
+
+            {/* Password Criteria Checklist */}
+            <div className="mt-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-1 text-xs">
+              <p className="font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                Password requirements:
+              </p>
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                <span className={`flex items-center gap-1 ${reqLength ? "text-green-600 dark:text-green-400 font-medium" : "text-slate-400"}`}>
+                  <FiCheck className={`w-3.5 h-3.5 ${reqLength ? "opacity-100" : "opacity-40"}`} /> Min 8 chars
+                </span>
+                <span className={`flex items-center gap-1 ${reqUpper ? "text-green-600 dark:text-green-400 font-medium" : "text-slate-400"}`}>
+                  <FiCheck className={`w-3.5 h-3.5 ${reqUpper ? "opacity-100" : "opacity-40"}`} /> Uppercase (A-Z)
+                </span>
+                <span className={`flex items-center gap-1 ${reqLower ? "text-green-600 dark:text-green-400 font-medium" : "text-slate-400"}`}>
+                  <FiCheck className={`w-3.5 h-3.5 ${reqLower ? "opacity-100" : "opacity-40"}`} /> Lowercase (a-z)
+                </span>
+                <span className={`flex items-center gap-1 ${reqNumber ? "text-green-600 dark:text-green-400 font-medium" : "text-slate-400"}`}>
+                  <FiCheck className={`w-3.5 h-3.5 ${reqNumber ? "opacity-100" : "opacity-40"}`} /> Number (0-9)
+                </span>
+                <span className={`flex items-center gap-1 col-span-2 ${reqSpecial ? "text-green-600 dark:text-green-400 font-medium" : "text-slate-400"}`}>
+                  <FiCheck className={`w-3.5 h-3.5 ${reqSpecial ? "opacity-100" : "opacity-40"}`} /> Special char (!@#$%^&*)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Confirm Password */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Confirm password
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                <FiLock className="w-5 h-5" />
+              </div>
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                placeholder="Confirm password"
+                className={`w-full pl-11 pr-11 py-3 bg-slate-50 dark:bg-slate-800/80 border ${
+                  errors.confirmPassword
+                    ? "border-red-500 focus:ring-red-500/30"
+                    : "border-slate-300 dark:border-slate-700 focus:ring-primary-600/30 focus:border-primary-600"
+                } rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-base focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 transition-colors`}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
+              >
+                {showConfirmPassword ? (
+                  <FiEyeOff className="w-5 h-5" />
+                ) : (
+                  <FiEye className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+            {errors.confirmPassword && (
+              <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-1">
+                {errors.confirmPassword}
+              </p>
+            )}
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full mt-3 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold py-3.5 px-6 rounded-xl transition-colors duration-150 flex items-center justify-center text-base shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <>
+                Create Account
+                <FiArrowRight className="w-5 h-5 ml-2" />
+              </>
+            )}
+          </button>
+        </form>
+
+        {/* Existing account link */}
+        <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800 text-center">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            Already have an account?{" "}
+            <button
+              type="button"
+              onClick={() => navigate("/login")}
+              className="font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 inline-flex items-center ml-1 transition-colors"
+            >
+              Sign in <FiLogIn className="w-4 h-4 ml-1" />
+            </button>
+          </p>
+        </div>
+      </motion.div>
 
       {/* Email Verification Modal */}
       <EmailVerificationModal
         isOpen={isVerificationModalOpen}
         onClose={() => setIsVerificationModalOpen(false)}
         onVerified={handleVerifyCode}
-        userEmail={formData.email}
         onResendCode={handleResendCode}
+        userEmail={formData.email}
       />
-    </div>
+    </AuthLayout>
   );
 };
 

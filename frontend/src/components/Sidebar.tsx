@@ -153,7 +153,7 @@ const Sidebar: React.FC<SidebarProps> = memo(
                   <h2
                     className={`text-xl font-bold transition-colors duration-200 ${theme === "dark" ? "text-white" : "text-gray-800"}`}
                   >
-                    Menu
+                    {isGuest ? "CERKYL (Guest)" : "CERKYL"}
                   </h2>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
