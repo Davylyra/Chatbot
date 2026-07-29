@@ -1,12 +1,22 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiRefreshCw, FiAlertCircle, FiCheckCircle } from "react-icons/fi";
+import {
+  FiRefreshCw,
+  FiAlertCircle,
+  FiCheckCircle,
+  FiShoppingCart,
+  FiZap,
+  FiShield,
+  FiFileText,
+  FiFilter,
+  FiArrowRight,
+  FiSearch,
+} from "react-icons/fi";
 import Navbar from "../components/Navbar";
 import FormCard from "../components/FormCard";
 import PaymentModal from "../components/PaymentModal";
 import EnhancedSearch from "../components/EnhancedSearch";
-// FormCardSkeleton removed - app loads instantly
 import { useAppStore } from "../store";
 import { useTheme } from "../contexts/ThemeContext";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
@@ -22,6 +32,7 @@ const Forms: React.FC = () => {
   const [selectedForm, setSelectedForm] = useState<any>(null);
   const [isLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"all" | "available" | "closing_soon">("all");
   const [paymentStatus, setPaymentStatus] = useState<
     "success" | "error" | "verifying" | null
   >(null);
@@ -42,7 +53,7 @@ const Forms: React.FC = () => {
 
     const verifyPayment = async () => {
       setPaymentStatus("verifying");
-      setPaymentMessage("Verifying your payment...");
+      setPaymentMessage("Verifying your Mobile Money transaction...");
 
       try {
         const token = localStorage.getItem("token");
@@ -53,13 +64,13 @@ const Forms: React.FC = () => {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
-          },
+          }
         );
         const result = await response.json();
         const status = result?.data?.status || result?.status;
 
         const pendingForm = JSON.parse(
-          localStorage.getItem("pending_payment_form") || "null",
+          localStorage.getItem("pending_payment_form") || "null"
         );
         localStorage.removeItem("pending_payment_form");
 
@@ -71,7 +82,7 @@ const Forms: React.FC = () => {
               typeof pendingForm.formPrice === "number"
                 ? pendingForm.formPrice
                 : parseFloat(
-                    String(pendingForm.formPrice).replace(/[^0-9.]/g, ""),
+                    String(pendingForm.formPrice).replace(/[^0-9.]/g, "")
                   ) || 0;
 
             addTransaction({
@@ -93,7 +104,7 @@ const Forms: React.FC = () => {
 
             addNotification({
               title: "Payment Successful",
-              message: `Your payment for the ${pendingForm.universityName} admission form was successful.`,
+              message: `Your payment for ${pendingForm.universityName} form was successful. Serial Number & PIN issued.`,
               type: "success",
               category: "payment",
               priority: "high",
@@ -104,21 +115,23 @@ const Forms: React.FC = () => {
           }
 
           setPaymentStatus("success");
-          setPaymentMessage(`Successfully purchased form for ${pendingForm?.universityName || "your university"}`);
-          setTimeout(() => setPaymentStatus(null), 5000);
+          setPaymentMessage(
+            `Payment confirmed! Voucher issued for ${pendingForm?.universityName || "your form"}.`
+          );
+          setTimeout(() => setPaymentStatus(null), 6000);
         } else if (status === "failed") {
           setPaymentStatus("error");
-          setPaymentMessage("Payment was declined. Please try again.");
-          setTimeout(() => setPaymentStatus(null), 5000);
+          setPaymentMessage("Transaction was declined by telecom network. Please try again.");
+          setTimeout(() => setPaymentStatus(null), 6000);
         } else {
           setPaymentStatus("error");
-          setPaymentMessage("Payment is still processing. Check back shortly.");
-          setTimeout(() => setPaymentStatus(null), 5000);
+          setPaymentMessage("Payment processing. Check your transactions page shortly.");
+          setTimeout(() => setPaymentStatus(null), 6000);
         }
       } catch {
         setPaymentStatus("error");
-        setPaymentMessage("Could not verify payment. Check your transaction history.");
-        setTimeout(() => setPaymentStatus(null), 5000);
+        setPaymentMessage("Could not verify payment status. Please check your transaction history.");
+        setTimeout(() => setPaymentStatus(null), 6000);
       }
     };
 
@@ -154,7 +167,6 @@ const Forms: React.FC = () => {
 
   const handleRefresh = useCallback(async () => {
     setError(null);
-
     try {
       await loadForms();
     } catch {
@@ -171,29 +183,54 @@ const Forms: React.FC = () => {
 
   const paymentMethods = PAYMENT_METHODS;
 
-  const handleSearchResultSelect = (_selectedForm: any) => {};
+  const filteredForms = useMemo(() => {
+    let result = [...forms];
 
-  const filteredForms = useMemo(
+    // Search query filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(
+        (form) =>
+          form.universityName.toLowerCase().includes(q) ||
+          form.fullName.toLowerCase().includes(q)
+      );
+    }
+
+    // Category tab filter
+    if (activeTab === "available") {
+      result = result.filter((f) => f.isAvailable && f.status !== "expired");
+    } else if (activeTab === "closing_soon") {
+      result = result.filter(
+        (f) =>
+          f.daysUntilDeadline !== undefined &&
+          f.daysUntilDeadline > 0 &&
+          f.daysUntilDeadline <= 30
+      );
+    }
+
+    return result;
+  }, [searchQuery, forms, activeTab]);
+
+  const availableCount = useMemo(
+    () => forms.filter((f) => f.isAvailable && f.status !== "expired").length,
+    [forms]
+  );
+
+  const closingSoonCount = useMemo(
     () =>
-      searchQuery
-        ? forms.filter(
-            (form) =>
-              form.universityName
-                .toLowerCase()
-                .includes(searchQuery.toLowerCase()) ||
-              form.fullName.toLowerCase().includes(searchQuery.toLowerCase()),
-          )
-        : forms,
-    [searchQuery, forms],
+      forms.filter(
+        (f) =>
+          f.daysUntilDeadline !== undefined &&
+          f.daysUntilDeadline > 0 &&
+          f.daysUntilDeadline <= 30
+      ).length,
+    [forms]
   );
 
   const handleBuyForm = useCallback((form: any) => {
     setSelectedForm(form);
     setShowPaymentModal(true);
   }, []);
-
-  // Payment success is now handled by the Paystack redirect callback above
-  const handlePaymentSuccess = (_reference: string) => {};
 
   const handlePaymentError = (message: string) => {
     setPaymentStatus("error");
@@ -203,10 +240,8 @@ const Forms: React.FC = () => {
 
   return (
     <div
-      className={`min-h-screen ${
-        theme === "dark"
-          ? "bg-gradient-to-b from-transparent via-gray-800/50 to-gray-800"
-          : "bg-gradient-to-b from-transparent via-white/50 to-white"
+      className={`min-h-screen text-slate-900 dark:text-white transition-colors duration-200 ${
+        theme === "dark" ? "bg-slate-950" : "bg-slate-50"
       }`}
     >
       {/* Pull to Refresh Indicator */}
@@ -225,211 +260,228 @@ const Forms: React.FC = () => {
         showMenuButton={false}
       />
 
-      <div className="max-w-md mx-auto px-4 py-6">
-        {/* Payment Status Banner */}
+      <main className="max-w-7xl mx-auto px-4 py-6 md:px-8 md:py-8">
+        {/* Payment Verification Banner */}
         <AnimatePresence>
           {paymentStatus && (
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className={`p-4 mb-6 rounded-xl border flex items-center space-x-3 shadow-sm transition-colors ${
+              initial={{ opacity: 0, y: -20, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.98 }}
+              className={`p-4 mb-6 rounded-2xl border flex items-center space-x-3 shadow-lg transition-colors ${
                 paymentStatus === "success"
-                  ? "bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400"
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/60 dark:border-emerald-800 dark:text-emerald-300"
                   : paymentStatus === "error"
-                  ? "bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400"
-                  : "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400"
+                  ? "bg-red-50 border-red-200 text-red-800 dark:bg-red-950/60 dark:border-red-800 dark:text-red-300"
+                  : "bg-primary-50 border-primary-200 text-primary-800 dark:bg-primary-950/60 dark:border-primary-800 dark:text-primary-300"
               }`}
             >
               {paymentStatus === "success" ? (
-                <FiCheckCircle className="w-6 h-6 flex-shrink-0" />
+                <FiCheckCircle className="w-6 h-6 shrink-0 text-emerald-600 dark:text-emerald-400" />
               ) : paymentStatus === "error" ? (
-                <FiAlertCircle className="w-6 h-6 flex-shrink-0" />
+                <FiAlertCircle className="w-6 h-6 shrink-0 text-red-600 dark:text-red-400" />
               ) : (
-                <FiRefreshCw className="w-6 h-6 flex-shrink-0 animate-spin" />
+                <FiRefreshCw className="w-6 h-6 shrink-0 animate-spin text-primary-600" />
               )}
-              <span className="font-medium text-sm">{paymentMessage}</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm">{paymentMessage}</p>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* App loads instantly - no loading states */}
+        {/* Hero Section Banner */}
+        <div className="bg-gradient-to-r from-primary-900 via-indigo-900 to-slate-900 text-white rounded-3xl p-6 md:p-10 mb-8 shadow-2xl relative overflow-hidden">
+          {/* Background Decorative Blur Circle */}
+          <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary-500/20 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Error State - Only show if critical */}
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
-          >
-            <div
-              className={`p-6 rounded-2xl text-center border ${
-                theme === "dark"
-                  ? "bg-red-900/20 border-red-700/50"
-                  : "bg-red-50 border-red-200"
-              }`}
-            >
-              <FiAlertCircle
-                className={`w-8 h-8 mx-auto mb-3 ${
-                  theme === "dark" ? "text-red-400" : "text-red-600"
-                }`}
-              />
-              <h3
-                className={`text-lg font-semibold mb-2 ${
-                  theme === "dark" ? "text-red-400" : "text-red-600"
-                }`}
-              >
-                Error Loading Forms
-              </h3>
-              <p
-                className={`text-sm mb-4 ${theme === "dark" ? "text-red-300" : "text-red-700"}`}
-              >
-                {error}
-              </p>
+          <div className="relative z-10 max-w-3xl">
+            <div className="flex items-center space-x-2 mb-3">
+              <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-primary-500/30 text-primary-300 border border-primary-400/30 backdrop-blur-md flex items-center gap-1.5">
+                <FiZap className="w-3.5 h-3.5 text-primary-400" />
+                Instant Digital Delivery
+              </span>
+            </div>
+
+            <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight text-white leading-tight">
+              Buy Ghanaian University Admission Forms
+            </h1>
+            <p className="text-slate-300 text-xs md:text-sm mt-2 leading-relaxed">
+              Purchase genuine e-vouchers for UG, KNUST, UCC, and top tertiary institutions instantly via Mobile Money (MTN, Telecel, AT). Receive your Serial Number & PIN immediately.
+            </p>
+
+            {/* Quick Stat Chips */}
+            <div className="flex flex-wrap items-center gap-3 mt-6">
+              <div className="bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 flex items-center space-x-2 text-xs font-semibold">
+                <FiShoppingCart className="w-4 h-4 text-primary-400" />
+                <span>{forms.length} Active Forms</span>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 flex items-center space-x-2 text-xs font-semibold">
+                <FiShield className="w-4 h-4 text-emerald-400" />
+                <span>MoMo & Visa Verified</span>
+              </div>
               <button
-                onClick={handleRefresh}
-                disabled={isLoading}
-                className="bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm transition-colors flex items-center space-x-2 mx-auto"
+                onClick={() => navigate("/transactions")}
+                className="bg-white text-slate-900 hover:bg-slate-100 transition-colors px-4 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-md ml-auto sm:ml-0"
               >
-                <FiRefreshCw
-                  className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
-                />
-                <span>Try Again</span>
+                <FiFileText className="w-3.5 h-3.5 text-primary-600" />
+                <span>My Vouchers</span>
+                <FiArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Error State */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 p-6 rounded-3xl text-center border bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900/60 shadow-lg max-w-md mx-auto"
+          >
+            <FiAlertCircle className="w-8 h-8 text-red-600 dark:text-red-400 mx-auto mb-3" />
+            <h3 className="text-base font-bold text-red-900 dark:text-red-300">
+              Error Loading Forms
+            </h3>
+            <p className="text-xs text-red-700 dark:text-red-400 mt-1 mb-4">
+              {error}
+            </p>
+            <button
+              onClick={handleRefresh}
+              disabled={isLoading}
+              className="bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white px-5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-2 mx-auto"
+            >
+              <FiRefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+              <span>Try Again</span>
+            </button>
           </motion.div>
         )}
 
-        {/* Main Content - Only show when not loading and no error */}
+        {/* Main Content Area */}
         {!isLoading && !error && (
           <>
-            {/* Enhanced Search Bar */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="mb-6"
-            >
-              <EnhancedSearch
-                data={forms}
-                searchFields={["universityName", "fullName"]}
-                placeholder="Search universities and forms..."
-                onResultSelect={handleSearchResultSelect}
-                onSearch={setSearchQuery}
-                showSuggestions={true}
-                theme={theme}
-              />
-            </motion.div>
+            {/* Search & Filter Toolbar Row */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+              {/* Filter Tabs */}
+              <div className="flex items-center space-x-2 overflow-x-auto scrollbar-hide py-1">
+                <button
+                  onClick={() => setActiveTab("all")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border ${
+                    activeTab === "all"
+                      ? "bg-primary-600 text-white border-primary-600 shadow-md shadow-primary-600/20"
+                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  All Forms ({forms.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab("available")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border ${
+                    activeTab === "available"
+                      ? "bg-primary-600 text-white border-primary-600 shadow-md shadow-primary-600/20"
+                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  Available Now ({availableCount})
+                </button>
+                <button
+                  onClick={() => setActiveTab("closing_soon")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border ${
+                    activeTab === "closing_soon"
+                      ? "bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-600/20"
+                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  Closing Soon ({closingSoonCount})
+                </button>
+              </div>
 
-            {/* Payment Methods */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className={` rounded-2xl p-4 mb-6 border transition-all duration-200 ${
-                theme === "dark"
-                  ? "glass-card-unified-dark"
-                  : "glass-card-unified"
-              }`}
-            >
-              <h3
-                className={`font-semibold mb-3 transition-colors duration-200 ${
-                  theme === "dark" ? "text-white" : "text-gray-800"
-                }`}
-              >
-                {pageContent?.sections.find(
-                  (s) => s.id === "payment-methods-title",
-                )?.title || "Secure Mobile Money Payment"}
-              </h3>
-              <p
-                className={`text-sm mb-4 transition-colors duration-200 ${
-                  theme === "dark" ? "text-gray-300" : "text-gray-600"
-                }`}
-              >
-                {pageContent?.sections.find(
-                  (s) => s.id === "payment-methods-title",
-                )?.content || "Make payments via"}
-              </p>
-              <div className="flex space-x-3">
-                {paymentMethods.map((method, index) => (
-                  <motion.div
+              {/* Search Box */}
+              <div className="w-full md:w-80">
+                <EnhancedSearch
+                  data={forms}
+                  searchFields={["universityName", "fullName"]}
+                  placeholder="Search universities & forms..."
+                  onResultSelect={() => {}}
+                  onSearch={setSearchQuery}
+                  showSuggestions={true}
+                  theme={theme}
+                />
+              </div>
+            </div>
+
+            {/* Mobile Money Carrier Bar */}
+            <div className="p-4 mb-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center space-x-2">
+                <FiShield className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  {pageContent?.sections.find((s) => s.id === "payment-methods-title")?.title ||
+                    "Supported Mobile Money Networks:"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {paymentMethods.map((method) => (
+                  <span
                     key={method.name}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.3 + index * 0.1 }}
-                    className={`${method.color} text-white px-4 py-2 rounded-lg text-sm font-medium`}
+                    className={`${method.color} text-white px-3 py-1 rounded-lg text-[11px] font-bold shadow-xs`}
                   >
                     {method.name}
-                  </motion.div>
+                  </span>
                 ))}
               </div>
-            </motion.div>
+            </div>
 
-            {/* Forms List */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="space-y-4"
-            >
-              {filteredForms.length > 0 ? (
-                filteredForms.map((form, index) => (
-                  <motion.div
-                    key={form.universityName}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 + index * 0.1 }}
+            {/* Form Cards Grid */}
+            {filteredForms.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredForms.map((form, index) => (
+                  <FormCard
+                    key={form.universityName || index}
+                    universityName={form.universityName}
+                    fullName={form.fullName}
+                    formPrice={form.formPrice}
+                    currency={form.currency || "GHS"}
+                    deadline={form.deadline}
+                    isAvailable={form.isAvailable}
+                    onBuyClick={() => handleBuyForm(form)}
+                    logo={form.logo}
+                    status={form.status || "available"}
+                    daysUntilDeadline={form.daysUntilDeadline}
+                    lastUpdated={form.lastUpdated}
+                  />
+                ))}
+              </div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center py-16 p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md max-w-lg mx-auto"
+              >
+                <FiSearch className="w-10 h-10 text-slate-400 mx-auto mb-3 opacity-50" />
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  No Forms Found
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">
+                  {searchQuery
+                    ? `No admission forms match "${searchQuery}".`
+                    : "No forms currently match the selected filter tab."}
+                </p>
+                {(searchQuery || activeTab !== "all") && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setActiveTab("all");
+                    }}
+                    className="mt-4 px-4 py-2 rounded-xl text-xs font-semibold bg-primary-600 text-white hover:bg-primary-700 transition-colors shadow-md"
                   >
-                    <FormCard
-                      universityName={form.universityName}
-                      fullName={form.fullName}
-                      formPrice={form.formPrice}
-                      currency={form.currency || "GHS"}
-                      deadline={form.deadline}
-                      isAvailable={form.isAvailable}
-                      onBuyClick={() => handleBuyForm(form)}
-                      logo={form.logo}
-                      status={form.status || "available"}
-                      daysUntilDeadline={form.daysUntilDeadline}
-                      lastUpdated={form.lastUpdated}
-                    />
-                  </motion.div>
-                ))
-              ) : (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-center py-12"
-                >
-                  <div
-                    className={`text-lg font-medium mb-2 ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    {searchQuery
-                      ? "No forms found matching your search."
-                      : pageContent?.sections.find(
-                          (s) => s.id === "empty-state",
-                        )?.content || "No admission forms available."}
-                  </div>
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery("")}
-                      className={`text-sm transition-colors duration-200 ${
-                        theme === "dark"
-                          ? "text-primary-400 hover:text-primary-300"
-                          : "text-primary-600 hover:text-primary-700"
-                      }`}
-                    >
-                      Clear search
-                    </button>
-                  )}
-                </motion.div>
-              )}
-            </motion.div>
+                    Reset Search & Filters
+                  </button>
+                )}
+              </motion.div>
+            )}
           </>
         )}
-      </div>
+      </main>
 
       {/* Payment Modal */}
       {selectedForm && (
@@ -442,7 +494,7 @@ const Forms: React.FC = () => {
             fullName: selectedForm.fullName,
             formPrice: selectedForm.formPrice,
           }}
-          onSuccess={handlePaymentSuccess}
+          onSuccess={() => {}}
           onError={handlePaymentError}
         />
       )}

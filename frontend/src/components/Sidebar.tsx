@@ -14,6 +14,8 @@ import {
   FiUserPlus,
   FiX,
   FiMenu,
+  FiChevronRight,
+  FiShield,
 } from "react-icons/fi";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
@@ -94,7 +96,7 @@ const Sidebar: React.FC<SidebarProps> = memo(
       },
       {
         icon: FiInfo,
-        label: "About CERKYL ",
+        label: "About CERKYL",
         description: "App info & version",
         path: "/about",
         showInGuest: true,
@@ -107,6 +109,7 @@ const Sidebar: React.FC<SidebarProps> = memo(
 
     return (
       <>
+        {/* Mobile Backdrop Blur Overlay */}
         <AnimatePresence>
           {!isDesktop && isOpen && (
             <motion.div
@@ -114,52 +117,72 @@ const Sidebar: React.FC<SidebarProps> = memo(
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={onClose}
-              className={`fixed inset-0 z-40`}
-              style={{
-                background:
-                  theme === "dark"
-                    ? "linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%)"
-                    : "linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%)",
-                backdropFilter: "blur(12px) saturate(180%)",
-                WebkitBackdropFilter: "blur(12px) saturate(180%)",
-              }}
+              className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-md"
             />
           )}
         </AnimatePresence>
 
-        <motion.div
+        {/* Sidebar Container */}
+        <motion.aside
+          initial={false}
           animate={{
-            width: isDesktop ? (isOpen ? 320 : 72) : 320,
+            width: isDesktop ? (isOpen ? 320 : 76) : 320,
             x: !isDesktop && !isOpen ? -320 : 0,
           }}
-          transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className={`${isDesktop ? "relative" : "fixed"} left-0 top-0 h-full shadow-2xl z-50 flex flex-col transition-colors duration-200 overflow-hidden whitespace-nowrap ${
+          transition={{ type: "spring", damping: 25, stiffness: 220 }}
+          className={`${
+            isDesktop ? "relative" : "fixed"
+          } left-0 top-0 h-full z-50 flex flex-col transition-colors duration-200 overflow-hidden whitespace-nowrap border-r ${
             theme === "dark"
-              ? "bg-gray-800/95 border-gray-700"
-              : "bg-white/95 border-white/20"
-          } border-r`}
-          style={{
-            backdropFilter: "blur(20px) saturate(180%)",
-            WebkitBackdropFilter: "blur(20px) saturate(180%)",
-          }}
+              ? "bg-slate-900/95 border-slate-800 text-white"
+              : "bg-white/95 border-slate-200/80 text-slate-900"
+          } shadow-2xl backdrop-blur-xl`}
         >
           <div className="flex flex-col h-full">
-            {/* Header */}
+            {/* Header / Brand Section */}
             <div
-              className={`p-4 border-b transition-colors duration-200 h-[72px] flex items-center ${isOpen ? "justify-between" : "justify-center"} ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}
+              className={`px-4 py-3.5 border-b h-[72px] flex items-center shrink-0 ${
+                isOpen ? "justify-between" : "justify-center"
+              } ${theme === "dark" ? "border-slate-800/80" : "border-slate-200/80"}`}
             >
               {isOpen ? (
                 <>
-                  <h2
-                    className={`text-xl font-bold transition-colors duration-200 ${theme === "dark" ? "text-white" : "text-gray-800"}`}
+                  <div
+                    onClick={() => navigate("/")}
+                    className="flex items-center space-x-3 cursor-pointer group"
                   >
-                    {isGuest ? "CERKYL (Guest)" : "CERKYL"}
-                  </h2>
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-primary-500/30 group-hover:scale-105 transition-transform">
+                      <span className="text-white font-extrabold text-lg tracking-wider">
+                        C
+                      </span>
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-1.5">
+                        <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+                          CERKYL
+                        </h2>
+                        {isGuest && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                            Guest
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                        Admissions & Career AI
+                      </p>
+                    </div>
+                  </div>
+
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={onClose}
-                    className={`p-2 rounded-lg transition-colors duration-200 ${theme === "dark" ? "text-gray-400 hover:bg-gray-700 hover:text-white" : "text-gray-500 hover:bg-gray-200 hover:text-black"}`}
+                    className={`p-2 rounded-xl transition-colors ${
+                      theme === "dark"
+                        ? "text-slate-400 hover:bg-slate-800 hover:text-white"
+                        : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                    }`}
+                    title="Close sidebar"
                   >
                     {isDesktop ? (
                       <FiMenu className="w-5 h-5" />
@@ -173,189 +196,182 @@ const Sidebar: React.FC<SidebarProps> = memo(
                   onClick={() => {
                     window.dispatchEvent(new CustomEvent("toggleMainSidebar"));
                   }}
-                  className={`p-2 rounded-lg transition-colors ${theme === "dark" ? "text-gray-400 hover:bg-gray-700 hover:text-white" : "text-gray-500 hover:bg-gray-200 hover:text-black"}`}
+                  className={`p-2.5 rounded-xl transition-colors ${
+                    theme === "dark"
+                      ? "text-slate-400 hover:bg-slate-800 hover:text-white"
+                      : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                  }`}
+                  title="Expand sidebar"
                 >
-                  <FiMenu className="w-6 h-6" />
+                  <FiMenu className="w-5 h-5" />
                 </button>
               )}
             </div>
 
             {/* User Profile Card */}
-            {isOpen ? (
-              <div
-                className={`p-4 border-b transition-colors duration-200 ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}
-              >
+            <div
+              className={`p-4 border-b shrink-0 ${
+                theme === "dark" ? "border-slate-800/80" : "border-slate-200/80"
+              }`}
+            >
+              {isOpen ? (
                 <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
+                  initial={{ scale: 0.96, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                  className={`rounded-2xl p-4 border transition-all duration-200 ${
+                  onClick={() => !isGuest && navigate("/profile")}
+                  className={`group relative p-3.5 rounded-2xl border transition-all duration-200 ${
+                    !isGuest ? "cursor-pointer" : ""
+                  } ${
                     theme === "dark"
-                      ? "bg-gradient-to-br from-gray-800/40 to-gray-900/60 border-gray-700/50 shadow-lg"
-                      : "bg-gradient-to-br from-white/90 to-gray-50/90 border-gray-200/50 shadow-md"
+                      ? "bg-slate-800/60 hover:bg-slate-800 border-slate-700/60 shadow-sm"
+                      : "bg-slate-50/80 hover:bg-slate-100/80 border-slate-200/80 shadow-2xs"
                   }`}
-                  style={{
-                    boxShadow:
-                      theme === "dark"
-                        ? "0 10px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)"
-                        : "0 10px 20px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)",
-                  }}
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="relative">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-md shrink-0">
-                        <FiUser className="w-6 h-6 text-white" />
+                    <div className="relative shrink-0">
+                      <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 flex items-center justify-center text-white font-bold text-base shadow-md shadow-primary-500/20">
+                        {isGuest ? (
+                          <FiUser className="w-5 h-5" />
+                        ) : (
+                          (user?.name || userName).charAt(0).toUpperCase()
+                        )}
                       </div>
-                      {isGuest && (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
-                          <span className="text-[10px] text-yellow-900 font-bold">
-                            G
-                          </span>
+                      {isGuest ? (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold shadow-xs">
+                          G
                         </div>
+                      ) : (
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900" />
                       )}
                     </div>
+
                     <div className="flex-1 min-w-0">
-                      <h3
-                        className={`font-bold text-base truncate transition-colors duration-200 ${theme === "dark" ? "text-white" : "text-gray-800"}`}
-                      >
-                        {isGuest ? "Guest User" : user?.name || userName}
-                      </h3>
-                      {isGuest && (
-                        <div className="mt-0.5">
-                          <p
-                            className={`text-xs font-medium transition-colors duration-200 ${theme === "dark" ? "text-yellow-300" : "text-yellow-600"}`}
-                          >
-                            Guest Mode
-                          </p>
-                        </div>
-                      )}
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                          {isGuest ? "Guest User" : user?.name || userName}
+                        </h3>
+                        {!isGuest && (
+                          <FiChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                        {isGuest
+                          ? "Browsing mode"
+                          : user?.email || "Student Account"}
+                      </p>
                     </div>
                   </div>
                 </motion.div>
-              </div>
-            ) : (
-              <div
-                className={`p-4 border-b flex justify-center transition-colors duration-200 ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}
-              >
-                <div
-                  className="w-10 h-10 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg shrink-0 relative cursor-pointer"
-                  onClick={() => navigate("/profile")}
-                >
-                  <FiUser className="w-5 h-5 text-white" />
-                  {isGuest && (
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full flex items-center justify-center">
-                      <span className="text-[8px] text-yellow-900 font-bold">
-                        G
-                      </span>
-                    </div>
-                  )}
+              ) : (
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => navigate(isGuest ? "/signup" : "/profile")}
+                    className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-md hover:scale-105 transition-transform relative"
+                    title={isGuest ? "Guest User" : user?.name || userName}
+                  >
+                    <FiUser className="w-5 h-5" />
+                    {isGuest && (
+                      <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-500 rounded-full border-2 border-white dark:border-slate-900" />
+                    )}
+                  </button>
                 </div>
-              </div>
-            )}
-
-            {/* Menu Items */}
-            <div className="flex-1 overflow-y-auto p-4 scrollbar-hide">
-              <div
-                className={`space-y-1.5 ${!isOpen && "flex flex-col items-center"}`}
-              >
-                {menuItems.map((item, index) => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.path;
-
-                  return (
-                    <motion.div
-                      key={item.path}
-                      initial={{ x: -20, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: index * 0.05 }}
-                      className={!isOpen ? "w-full flex justify-center" : ""}
-                    >
-                      <Link
-                        to={item.path}
-                        title={!isOpen ? item.label : undefined}
-                        onClick={() => {
-                          if (
-                            item.guestFeature &&
-                            !item.showInGuest &&
-                            !checkGuestAccess(item.guestFeature)
-                          ) {
-                            return;
-                          }
-                          if (!isDesktop) onClose();
-                        }}
-                        className={`${isOpen ? "block p-3" : "flex items-center justify-center w-12 h-12 p-0"} rounded-2xl transition-all duration-200 group ${
-                          isActive
-                            ? theme === "dark"
-                              ? "bg-primary-600/20 border border-primary-500/30"
-                              : "bg-primary-100 border border-primary-200"
-                            : theme === "dark"
-                              ? "hover:bg-white/10 border border-transparent"
-                              : "hover:bg-white/50 border border-transparent"
-                        }`}
-                        style={{
-                          backdropFilter: isActive
-                            ? "blur(8px) saturate(180%)"
-                            : "blur(4px) saturate(180%)",
-                          WebkitBackdropFilter: isActive
-                            ? "blur(8px) saturate(180%)"
-                            : "blur(4px) saturate(180%)",
-                        }}
-                      >
-                        <div
-                          className={`flex items-center ${!isOpen && "justify-center"} space-x-4`}
-                        >
-                          <div
-                            className={`p-2.5 rounded-xl transition-colors duration-200 shrink-0 ${
-                              isActive
-                                ? "bg-primary-500 text-white shadow-lg shadow-primary-500/30"
-                                : theme === "dark"
-                                  ? "bg-gray-800 text-gray-400 group-hover:bg-gray-700 group-hover:text-white"
-                                  : "bg-white text-gray-500 group-hover:bg-primary-50 group-hover:text-primary-600 shadow-sm"
-                            }`}
-                          >
-                            <Icon className="w-6 h-6" />
-                          </div>
-                          {isOpen && (
-                            <div className="flex-1 min-w-0">
-                              <h3
-                                className={`font-semibold text-[15px] mb-0.5 truncate transition-colors duration-200 ${
-                                  isActive
-                                    ? theme === "dark"
-                                      ? "text-primary-400"
-                                      : "text-primary-700"
-                                    : theme === "dark"
-                                      ? "text-gray-200 group-hover:text-white"
-                                      : "text-gray-700 group-hover:text-gray-900"
-                                }`}
-                              >
-                                {item.label}
-                              </h3>
-                              <p
-                                className={`text-xs truncate transition-colors duration-200 ${
-                                  isActive
-                                    ? theme === "dark"
-                                      ? "text-primary-400/80"
-                                      : "text-primary-600/80"
-                                    : theme === "dark"
-                                      ? "text-gray-500 group-hover:text-gray-400"
-                                      : "text-gray-500 group-hover:text-gray-600"
-                                }`}
-                              >
-                                {item.description}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </Link>
-                    </motion.div>
-                  );
-                })}
-              </div>
+              )}
             </div>
 
-            {/* Footer Area */}
+            {/* Scrollable Navigation Items */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide">
+              {menuItems.map((item, index) => {
+                const Icon = item.icon;
+                const isActive =
+                  location.pathname === item.path ||
+                  (item.path !== "/" &&
+                    location.pathname.startsWith(item.path));
+
+                return (
+                  <motion.div
+                    key={item.path}
+                    initial={{ x: -15, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: index * 0.03 }}
+                    className={!isOpen ? "flex justify-center" : ""}
+                  >
+                    <Link
+                      to={item.path}
+                      title={!isOpen ? item.label : undefined}
+                      onClick={(e) => {
+                        if (
+                          item.guestFeature &&
+                          !item.showInGuest &&
+                          !checkGuestAccess(item.guestFeature)
+                        ) {
+                          e.preventDefault();
+                          return;
+                        }
+                        if (!isDesktop) onClose();
+                      }}
+                      className={`group relative flex items-center transition-all duration-200 rounded-2xl ${
+                        isOpen ? "w-full p-2.5 space-x-3" : "w-11 h-11 justify-center"
+                      } ${
+                        isActive
+                          ? "bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 font-semibold border border-primary-200/80 dark:border-primary-800/80 shadow-2xs"
+                          : theme === "dark"
+                          ? "text-slate-300 hover:bg-slate-800/70 hover:text-white"
+                          : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                      }`}
+                    >
+                      {/* Active Left Indicator Bar */}
+                      {isActive && isOpen && (
+                        <motion.div
+                          layoutId="activeSidePill"
+                          className="absolute left-0 top-2 bottom-2 w-1 bg-primary-600 dark:bg-primary-400 rounded-r-full"
+                        />
+                      )}
+
+                      <div
+                        className={`p-2 rounded-xl shrink-0 transition-colors ${
+                          isActive
+                            ? "bg-primary-600 text-white shadow-md shadow-primary-600/30"
+                            : theme === "dark"
+                            ? "bg-slate-800/80 text-slate-400 group-hover:bg-slate-700 group-hover:text-white"
+                            : "bg-slate-100 text-slate-500 group-hover:bg-primary-50 group-hover:text-primary-600"
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                      </div>
+
+                      {isOpen && (
+                        <div className="flex-1 min-w-0 text-left">
+                          <h4
+                            className={`text-xs font-bold truncate transition-colors ${
+                              isActive
+                                ? "text-primary-700 dark:text-primary-300"
+                                : "text-slate-800 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white"
+                            }`}
+                          >
+                            {item.label}
+                          </h4>
+                          <p
+                            className={`text-[11px] truncate transition-colors mt-0.5 ${
+                              isActive
+                                ? "text-primary-600/80 dark:text-primary-400/80"
+                                : "text-slate-400 dark:text-slate-500 group-hover:text-slate-500"
+                            }`}
+                          >
+                            {item.description}
+                          </p>
+                        </div>
+                      )}
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {/* Bottom Footer Actions */}
             <div
-              className={`p-6 border-t transition-colors duration-200 ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}
+              className={`p-4 border-t shrink-0 ${
+                theme === "dark" ? "border-slate-800/80" : "border-slate-200/80"
+              }`}
             >
               {isGuest ? (
                 <motion.button
@@ -366,16 +382,14 @@ const Sidebar: React.FC<SidebarProps> = memo(
                     navigate("/signup");
                   }}
                   title={!isOpen ? "Create Account" : undefined}
-                  className={`w-full flex items-center justify-center space-x-2 py-2 px-3 border rounded-xl transition-colors duration-200 ${
+                  className={`w-full flex items-center justify-center space-x-2 py-2.5 px-3 rounded-2xl font-bold text-xs transition-all shadow-md shadow-primary-600/20 active:scale-95 ${
                     theme === "dark"
-                      ? "border-primary-500 text-primary-400 hover:bg-primary-900/20"
-                      : "border-primary-500 text-primary-600 hover:bg-primary-50"
+                      ? "bg-primary-600 hover:bg-primary-700 text-white"
+                      : "bg-primary-600 hover:bg-primary-700 text-white"
                   }`}
                 >
-                  <FiUserPlus className="w-5 h-5 shrink-0" />
-                  {isOpen && (
-                    <span className="font-semibold">Create Account</span>
-                  )}
+                  <FiUserPlus className="w-4 h-4 shrink-0" />
+                  {isOpen && <span>Create Account</span>}
                 </motion.button>
               ) : (
                 <motion.button
@@ -386,29 +400,29 @@ const Sidebar: React.FC<SidebarProps> = memo(
                     navigate("/");
                   }}
                   title={!isOpen ? "Sign Out" : undefined}
-                  className={`w-full flex items-center justify-center space-x-3 p-4 rounded-2xl border transition-all duration-200 ${
+                  className={`w-full flex items-center justify-center space-x-2.5 p-2.5 rounded-2xl font-bold text-xs transition-all ${
                     theme === "dark"
-                      ? "border-red-900/50 bg-red-900/20 text-red-400 hover:bg-red-900/40 hover:border-red-500/50"
-                      : "border-red-100 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-200"
+                      ? "bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-900/50"
+                      : "bg-red-50 hover:bg-red-100 text-red-600 border border-red-200/60"
                   }`}
                 >
-                  <FiLogOut className="w-5 h-5 shrink-0" />
-                  {isOpen && <span className="font-semibold">Sign Out</span>}
+                  <FiLogOut className="w-4 h-4 shrink-0" />
+                  {isOpen && <span>Sign Out</span>}
                 </motion.button>
               )}
 
               {isOpen && (
-                <div className="mt-6 text-center">
-                  <p
-                    className={`text-xs transition-colors duration-200 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}
-                  >
-                    CERKYL v2.1.0
+                <div className="mt-3 text-center">
+                  <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">
+                    CERKYL v2.1.0 • Ghanaian University AI
                   </p>
                 </div>
               )}
             </div>
           </div>
-        </motion.div>
+        </motion.aside>
+
+        {/* Guest Limitation Modal */}
         <GuestLimitationModal
           isOpen={showLimitationModal}
           onClose={closeLimitationModal}
@@ -417,7 +431,9 @@ const Sidebar: React.FC<SidebarProps> = memo(
         />
       </>
     );
-  },
+  }
 );
+
+Sidebar.displayName = "Sidebar";
 
 export default Sidebar;

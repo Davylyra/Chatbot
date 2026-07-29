@@ -25,8 +25,16 @@ import GuestLimitationModal from "../components/GuestLimitationModal";
 import { contentService, type PageContent } from "../services/contentService";
 
 const Home: React.FC = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(min-width: 768px)").matches
+      : false
+  );
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(min-width: 768px)").matches
+      : false
+  );
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [, setError] = useState<string | null>(null);
