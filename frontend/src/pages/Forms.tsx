@@ -31,9 +31,11 @@ const Forms: React.FC = () => {
   const location = useLocation();
   const { theme } = useTheme();
   const { isDesktop, sidebarOpen, toggleSidebar, closeSidebar } = useSidebarNav();
+  const { forms, loadForms, purchaseForm, addTransaction, addNotification } =
+    useAppStore();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedForm, setSelectedForm] = useState<any>(null);
-  const [isLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(forms.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"all" | "available" | "closing_soon">("all");
   const [paymentStatus, setPaymentStatus] = useState<
@@ -42,8 +44,6 @@ const Forms: React.FC = () => {
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [pageContent, setPageContent] = useState<PageContent | null>(null);
-  const { forms, loadForms, purchaseForm, addTransaction, addNotification } =
-    useAppStore();
 
   // Handle Paystack redirect callback
   useEffect(() => {
@@ -144,11 +144,16 @@ const Forms: React.FC = () => {
   useEffect(() => {
     const loadFormsData = async () => {
       if (forms.length === 0) {
+        setIsLoading(true);
         try {
           await loadForms();
         } catch {
           setError("Failed to load forms. Please try again.");
+        } finally {
+          setIsLoading(false);
         }
+      } else {
+        setIsLoading(false);
       }
     };
 
@@ -170,10 +175,13 @@ const Forms: React.FC = () => {
 
   const handleRefresh = useCallback(async () => {
     setError(null);
+    setIsLoading(true);
     try {
       await loadForms();
     } catch {
       setError("Failed to refresh forms. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   }, [loadForms]);
 
@@ -365,6 +373,64 @@ const Forms: React.FC = () => {
               <span>Try Again</span>
             </button>
           </motion.div>
+        )}
+
+        {/* Loading Skeleton State */}
+        {isLoading && !error && (
+          <div className="space-y-6 mb-8">
+            <div className="flex items-center space-x-2 text-xs font-bold text-primary-600 dark:text-primary-400 animate-pulse px-1">
+              <FiRefreshCw className="w-4 h-4 animate-spin" />
+              <span>Fetching tertiary admission forms...</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((idx) => (
+                <div
+                  key={idx}
+                  className={`rounded-3xl p-6 border animate-pulse flex flex-col justify-between space-y-5 ${
+                    theme === "dark"
+                      ? "bg-slate-900/60 border-slate-800"
+                      : "bg-white border-slate-200/80 shadow-xs"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <div className="flex items-center space-x-3 flex-1">
+                        <div className="w-13 h-13 rounded-2xl bg-slate-200 dark:bg-slate-800 shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-md w-3/4" />
+                          <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded-md w-1/2" />
+                        </div>
+                      </div>
+                      <div className="h-6 w-20 bg-slate-200 dark:bg-slate-800 rounded-full shrink-0" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 my-5 p-3.5 rounded-2xl bg-slate-100/60 dark:bg-slate-800/40">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 shrink-0" />
+                        <div className="flex-1 space-y-1.5">
+                          <div className="h-2.5 bg-slate-200 dark:bg-slate-800 rounded-md w-12" />
+                          <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded-md w-16" />
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 shrink-0" />
+                        <div className="flex-1 space-y-1.5">
+                          <div className="h-2.5 bg-slate-200 dark:bg-slate-800 rounded-md w-12" />
+                          <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded-md w-16" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 flex space-x-2">
+                    <div className="flex-1 h-10 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+                    <div className="w-12 h-10 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Main Content Area */}

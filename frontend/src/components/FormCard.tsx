@@ -5,11 +5,9 @@ import {
   FiCalendar,
   FiMessageCircle,
   FiClock,
-  FiCheckCircle,
 } from "react-icons/fi";
 import { useTheme } from "../contexts/ThemeContext";
 import {
-  formatPrice,
   formatDeadline,
   formatFormStatus,
   getCurrencySymbol,
@@ -122,7 +120,7 @@ const FormCard: React.FC<FormCardProps> = memo(
                 </span>
                 <span className="font-extrabold text-sm text-slate-900 dark:text-white">
                   {typeof formPrice === "number"
-                    ? `${getCurrencySymbol(currency)} ${formatPrice(formPrice, { currency, showSymbol: false })}`
+                    ? `${getCurrencySymbol(currency)} ${formPrice.toFixed(2)}`
                     : formPrice}
                 </span>
               </div>

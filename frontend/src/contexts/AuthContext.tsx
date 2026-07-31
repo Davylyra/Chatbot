@@ -193,27 +193,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const loginAsGuest = () => {
+    const defaultGuestUser: User = {
+      id: `guest_${Date.now()}`,
+      name: "Guest User",
+      email: "guest@cerkyl.com",
+      role: "guest",
+    };
+
+    sessionStorage.setItem("guest-user", JSON.stringify(defaultGuestUser));
+    sessionStorage.setItem("glinax-guest", "true");
+
+    setUser(defaultGuestUser);
+    setIsGuest(true);
+    setIsAuthenticated(false);
+    setError(null);
+
+    // Background sync with API server if available
     fetch(`${API_BASE_URL}/auth/guest`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     })
       .then(async (response) => {
-        const authResponse = await response.json();
-        if (!response.ok)
-          throw new Error(authResponse.message || "Guest login failed");
-
-        const guestUser = authResponse.user;
-        sessionStorage.setItem("guest-user", JSON.stringify(guestUser));
-        sessionStorage.setItem("glinax-guest", "true");
-
-        setUser(guestUser);
-        setIsGuest(true);
-        setIsAuthenticated(false);
-        setError(null);
+        if (response.ok) {
+          const authResponse = await response.json();
+          if (authResponse.user) {
+            sessionStorage.setItem("guest-user", JSON.stringify(authResponse.user));
+            setUser(authResponse.user);
+          }
+        }
       })
-      .catch((guestLoginError) => {
-        console.error("Guest login error:", guestLoginError);
-        setError(guestLoginError.message || "Unable to enter guest mode");
+      .catch(() => {
+        // Silently retain local guest session
       });
   };
 
