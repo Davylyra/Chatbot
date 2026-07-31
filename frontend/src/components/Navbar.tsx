@@ -37,17 +37,17 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = memo(
   ({
-    title = "CERKYL",
-    logoSrc,
-    logoAlt = "Logo",
+    title: _title = "CERKYL",
+    logoSrc: _logoSrc,
+    logoAlt: _logoAlt = "Logo",
     showBackButton = false,
     onBackClick,
     showMenuButton = true,
     onMenuClick,
-    showProfileButton = false,
+    showProfileButton: _showProfileButton = false,
     onProfileClick,
-    showNotificationBadge = false,
-    notificationCount = 0,
+    showNotificationBadge: _showNotificationBadge = false,
+    notificationCount: _notificationCount = 0,
     showMarkAllReadButton = false,
     onMarkAllReadClick,
     showThemeToggle = true,

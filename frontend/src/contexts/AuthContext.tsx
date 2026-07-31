@@ -22,6 +22,7 @@ interface User {
   id: string;
   name: string;
   email: string;
+  role?: string;
   is_verified?: boolean;
   createdAt?: string;
   assessmentCompleted?: boolean;

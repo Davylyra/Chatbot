@@ -15,8 +15,6 @@ import {
   FiUserPlus,
   FiX,
   FiMenu,
-  FiChevronRight,
-  FiShield,
 } from "react-icons/fi";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
@@ -31,10 +29,10 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = memo(
-  ({ isOpen, onClose, userName = "User", isDesktop = false }) => {
+  ({ isOpen, onClose, userName: _userName = "User", isDesktop = false }) => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { user, logout, isGuest } = useAuth();
+    const { logout, isGuest } = useAuth();
     const { theme } = useTheme();
     const {
       showLimitationModal,
@@ -218,7 +216,7 @@ const Sidebar: React.FC<SidebarProps> = memo(
 
             {/* Scrollable Navigation Items */}
             <div className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide">
-              {menuItems.map((item, index) => {
+              {menuItems.map((item) => {
                 const Icon = item.icon;
                 const isActive =
                   location.pathname === item.path ||

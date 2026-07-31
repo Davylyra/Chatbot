@@ -9,7 +9,6 @@ import {
   FiZap,
   FiShield,
   FiFileText,
-  FiFilter,
   FiArrowRight,
   FiSearch,
 } from "react-icons/fi";

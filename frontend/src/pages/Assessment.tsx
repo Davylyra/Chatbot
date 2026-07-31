@@ -22,7 +22,6 @@ import {
 } from "react-icons/fi";
 import { LuSparkles } from "react-icons/lu";
 import Navbar from "../components/Navbar";
-import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
 import {
   assessmentService,
@@ -96,7 +95,6 @@ const GRADE_PRESETS = [
 
 const Assessment: React.FC = () => {
   const navigate = useNavigate();
-  const { theme } = useTheme();
   const { user, isAuthenticated, updateProfile } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [questions, setQuestions] = useState<AssessmentQuestion[]>([]);
