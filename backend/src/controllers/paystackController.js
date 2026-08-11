@@ -30,6 +30,38 @@ export const initializePayment = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Validation failed', errors: validationFailures });
     }
 
+    // Stock safeguard: for form purchases, refuse to open a Paystack checkout
+    // at all if there's no unused PIN/serial left for this university. This
+    // is a check-then-charge gate, not a hard reservation - it stops the
+    // common case (a form with zero stock being paid for repeatedly) but a
+    // true photo-finish between two buyers for the very last unit is still
+    // possible; fulfillFormPurchase's atomic claim + admin alert remains the
+    // backstop for that narrow race.
+    //
+    // RESTORED: this block was present in a prior version of this file and
+    // is missing from the current one - re-added here, nothing else in this
+    // function changed from what's currently live.
+    if (formId) {
+      const universityName = metadata?.universityName;
+      if (!universityName) {
+        return res.status(400).json({ success: false, message: 'University information is required to purchase a form.' });
+      }
+
+      const inventoryCollection = await getCollection('form_inventory');
+      const availablePin = await inventoryCollection.findOne({
+        university_name: universityName,
+        is_used: false
+      });
+
+      if (!availablePin) {
+        return res.status(409).json({
+          success: false,
+          message: `The ${universityName} admission form is currently out of stock. Please check back later or contact support.`,
+          error: 'OUT_OF_STOCK'
+        });
+      }
+    }
+
     const amountInPesewas = Math.round(amount * 100);
     const transactionParams = {
       email,
