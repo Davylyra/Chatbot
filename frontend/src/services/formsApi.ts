@@ -6,21 +6,21 @@ export interface FormData {
   universityId: string;
   universityName: string;
   fullName: string;
-  formPrice: number;
+  formPrice: number | null;
   currency: string;
-  deadline: string;
+  deadline: string | null;
   isAvailable: boolean;
   description: string;
   logo?: string;
   lastUpdated: string;
   applicationPeriod: {
-    start: string;
-    end: string;
+    start: string | null;
+    end: string | null;
   };
   requirements: string[];
   paymentMethods: string[];
   isExpired: boolean;
-  daysUntilDeadline: number;
+  daysUntilDeadline: number | null;
   status: 'available' | 'expired' | 'not_yet_open' | 'sold_out';
 }
 
@@ -63,7 +63,7 @@ export class FormsApiService {
             const stock = stockMap[key];
             return {
               ...university,
-              formPrice: university.formPrice || university.buyPrice || '0',
+              formPrice: university.formPrice || university.buyPrice || null,
               currency: 'GHS',
               // Fold real inventory into availability. If we have no stock
               // record for this university (lookup failed, or it isn't
@@ -104,7 +104,7 @@ export class FormsApiService {
 
         return this.processFormData({
           ...matchedUniversity,
-          formPrice: matchedUniversity.formPrice || matchedUniversity.buyPrice || '0',
+          formPrice: matchedUniversity.formPrice || matchedUniversity.buyPrice || null,
           currency: 'GHS',
           isAvailable: stock ? stock.inStock && matchedUniversity.isAvailable : matchedUniversity.isAvailable,
         });
@@ -151,80 +151,88 @@ export class FormsApiService {
 
   private static processFormData(form: any): FormData {
     const now = new Date();
-    const deadline = new Date(form.deadline);
-    const daysUntilDeadline = Math.ceil(
-      (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    const hasDeadline = !!form.deadline;
+    const deadline = hasDeadline ? new Date(form.deadline) : null;
+    const daysUntilDeadline =
+      deadline && !isNaN(deadline.getTime())
+        ? Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        : null;
 
+    // Status precedence: an unavailable-with-no-deadline university hasn't
+    // been set up yet (not_yet_open reads honestly - "we haven't announced
+    // this"), which is distinct from sold_out (configured, but currently
+    // out of stock). A real deadline that's passed or is implausibly far
+    // out takes priority over the availability flag either way.
     let status: FormData['status'] = 'available';
-    if (daysUntilDeadline < 0) {
+    if (daysUntilDeadline !== null && daysUntilDeadline < 0) {
       status = 'expired';
-    } else if (daysUntilDeadline > 365) {
+    } else if (daysUntilDeadline !== null && daysUntilDeadline > 365) {
       status = 'not_yet_open';
     } else if (!form.isAvailable) {
-      status = 'sold_out';
+      status = daysUntilDeadline === null ? 'not_yet_open' : 'sold_out';
     }
+
+    const formPrice =
+      typeof form.formPrice === 'string'
+        ? parseFloat(form.formPrice.replace(/[^\d.]/g, ''))
+        : (form.formPrice ?? null);
 
     return {
       id: form.id,
       universityId: form.universityId || form.id,
       universityName: form.universityName,
       fullName: form.fullName || form.universityName,
-      formPrice:
-        typeof form.formPrice === 'string'
-          ? parseFloat(form.formPrice.replace(/[^\d.]/g, ''))
-          : form.formPrice,
+      formPrice: formPrice !== null && !isNaN(formPrice) ? formPrice : null,
       currency: form.currency || 'GHS',
-      deadline: form.deadline,
+      deadline: hasDeadline ? form.deadline : null,
       isAvailable: form.isAvailable && status === 'available',
       description: form.description || '',
       logo: form.logo,
       lastUpdated: form.lastUpdated || new Date().toISOString(),
-      applicationPeriod: form.applicationPeriod || {
-        start: form.deadline,
-        end: form.deadline,
-      },
+      applicationPeriod: hasDeadline
+        ? { start: form.deadline, end: form.deadline }
+        : { start: null, end: null },
       requirements: form.requirements || [],
       paymentMethods: form.paymentMethods || ['MTN', 'Vodafone', 'AirtelTigo'],
-      isExpired: daysUntilDeadline < 0,
+      isExpired: daysUntilDeadline !== null && daysUntilDeadline < 0,
       daysUntilDeadline,
       status,
     };
   }
 
+  // IMPORTANT: this only runs when the live /universities call fails
+  // entirely - meaning we have no confirmed data of any kind. Every field
+  // here must reflect that honestly: no price, no deadline, and
+  // isAvailable forced false, regardless of whatever UNIVERSITIES_DATA
+  // happens to have hardcoded. This file is UI placeholder/demo content,
+  // not a source of truth, and must never be presented as if it were.
   private static async getFallbackForms(): Promise<FormsApiResponse> {
     const { UNIVERSITIES_DATA } = await import('../data/constants');
 
-    const forms: FormData[] = UNIVERSITIES_DATA.map((university) => {
-      const deadline = new Date(university.deadline);
-      const now = new Date();
-      const daysUntilDeadline = Math.ceil(
-        (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-      );
+    console.warn(
+      '[FormsApiService] Live universities endpoint unavailable - showing placeholder ' +
+        'listings with purchasing disabled. This is not real availability, price, or deadline data.'
+    );
 
-      return {
-        id: university.id,
-        universityId: university.id,
-        universityName: university.universityName,
-        fullName: university.fullName,
-        formPrice: parseFloat(university.formPrice.replace(/[^\d.]/g, '')),
-        currency: 'GHS',
-        deadline: university.deadline,
-        isAvailable: university.isAvailable,
-        description: university.description,
-        logo: university.logo,
-        lastUpdated: new Date().toISOString(),
-        applicationPeriod: {
-          start: university.deadline,
-          end: university.deadline,
-        },
-        requirements: [],
-        paymentMethods: ['MTN', 'Vodafone', 'AirtelTigo'],
-        isExpired: daysUntilDeadline < 0,
-        daysUntilDeadline,
-        status: daysUntilDeadline < 0 ? 'expired' : 'available',
-      };
-    });
+    const forms: FormData[] = UNIVERSITIES_DATA.map((university) => ({
+      id: university.id,
+      universityId: university.id,
+      universityName: university.universityName,
+      fullName: university.fullName,
+      formPrice: null,
+      currency: 'GHS',
+      deadline: null,
+      isAvailable: false,
+      description: university.description,
+      logo: university.logo,
+      lastUpdated: new Date().toISOString(),
+      applicationPeriod: { start: null, end: null },
+      requirements: [],
+      paymentMethods: ['MTN', 'Vodafone', 'AirtelTigo'],
+      isExpired: false,
+      daysUntilDeadline: null,
+      status: 'not_yet_open',
+    }));
 
     return {
       success: true,
