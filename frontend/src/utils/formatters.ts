@@ -18,12 +18,19 @@ export interface DateFormatOptions {
 }
 
 /**
- * Format price with proper currency and locale
+ * Format price with proper currency and locale.
+ * Accepts null/undefined for a price that hasn't been set yet - returns a
+ * plain "not yet announced" string rather than formatting 0 or NaN as if
+ * it were a real, confirmed price.
  */
 export const formatPrice = (
-  amount: number,
+  amount: number | null | undefined,
   options: PriceFormatOptions = {},
 ): string => {
+  if (amount === null || amount === undefined || isNaN(amount)) {
+    return "Not yet announced";
+  }
+
   const {
     currency = "GHS",
     locale = "en-GH",
@@ -53,12 +60,22 @@ export const formatPrice = (
 };
 
 /**
- * Format date with various options
+ * Format date with various options.
+ * Accepts null/undefined for a date that hasn't been set yet.
+ *
+ * IMPORTANT: this must check for null/undefined BEFORE constructing
+ * `new Date(dateString)` - `new Date(null)` does not throw or produce an
+ * invalid date, it silently resolves to the Unix epoch (1 Jan 1970), which
+ * would previously have rendered as if it were a real, confirmed date.
  */
 export const formatDate = (
-  dateString: string,
+  dateString: string | null | undefined,
   options: DateFormatOptions = {},
 ): string => {
+  if (!dateString) {
+    return "Not yet announced";
+  }
+
   const { format = "medium", locale = "en-GH", includeTime = false } = options;
 
   try {
@@ -102,17 +119,38 @@ export const formatDate = (
 };
 
 /**
- * Format deadline with status indicator
+ * Format deadline with status indicator.
+ * Accepts null/undefined for a deadline that hasn't been announced yet -
+ * returns a distinct "not_set" status rather than treating an unset
+ * deadline as if it were a real date decades in the past (see formatDate).
+ * daysLeft is null in that case since there's nothing to count down to.
  */
 export const formatDeadline = (
-  deadline: string,
+  deadline: string | null | undefined,
 ): {
   formatted: string;
-  status: "expired" | "urgent" | "warning" | "normal";
-  daysLeft: number;
+  status: "expired" | "urgent" | "warning" | "normal" | "not_set";
+  daysLeft: number | null;
 } => {
+  if (!deadline) {
+    return {
+      formatted: "Deadline not yet announced",
+      status: "not_set",
+      daysLeft: null,
+    };
+  }
+
   const now = new Date();
   const deadlineDate = new Date(deadline);
+
+  if (isNaN(deadlineDate.getTime())) {
+    return {
+      formatted: "Deadline not yet announced",
+      status: "not_set",
+      daysLeft: null,
+    };
+  }
+
   const daysLeft = Math.ceil(
     (deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
   );
