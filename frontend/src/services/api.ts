@@ -33,9 +33,9 @@ export interface University {
   type: 'public' | 'private';
   programs: string[];
   logo: string;
-  formPrice: string;
-  buyPrice: string;
-  deadline: string;
+  formPrice: string | null;
+  buyPrice: string | null;
+  deadline: string | null;
   isAvailable: boolean;
   description: string;
   cutOffPoints?: Record<string, number>;
@@ -52,9 +52,9 @@ export interface FormData {
   id: string;
   universityId: string;
   universityName: string;
-  formPrice: string;
-  buyPrice: string;
-  deadline: string;
+  formPrice: string | null;
+  buyPrice: string | null;
+  deadline: string | null;
   isAvailable: boolean;
   description?: string;
   requirements?: string[];
@@ -357,9 +357,15 @@ export class ApiService {
   }
 }
 
+// IMPORTANT: everything in this class only ever runs when the live backend
+// couldn't be reached at all. Every response below must be honest about
+// that - isAvailable forced false, price/deadline nulled out - regardless
+// of whatever UNIVERSITIES_DATA has hardcoded. This is placeholder/demo UI
+// content, not a source of truth, and must never be presented as if it were.
 export class FallbackService {
   static async getUniversities(): Promise<ApiResponse<University[]>> {
     const { UNIVERSITIES_DATA } = await import('../data/constants');
+    console.warn('[FallbackService] Live universities endpoint unavailable - serving placeholder listings, purchasing disabled.');
     return {
       success: true,
       data: UNIVERSITIES_DATA.map((university) => ({
@@ -373,10 +379,10 @@ export class FallbackService {
         type: university.type,
         programs: university.programs,
         logo: university.logo,
-        formPrice: university.formPrice,
-        buyPrice: university.buyPrice,
-        deadline: university.deadline,
-        isAvailable: university.isAvailable,
+        formPrice: null,
+        buyPrice: null,
+        deadline: null,
+        isAvailable: false,
         description: university.description,
       })) as University[],
     };
@@ -384,14 +390,15 @@ export class FallbackService {
 
   static async getForms(): Promise<ApiResponse<FormData[]>> {
     const { UNIVERSITIES_DATA } = await import('../data/constants');
+    console.warn('[FallbackService] Live forms endpoint unavailable - serving placeholder listings, purchasing disabled.');
     const forms = UNIVERSITIES_DATA.map((university) => ({
       id: university.id,
       universityId: university.id,
       universityName: university.universityName,
-      formPrice: university.formPrice,
-      buyPrice: university.buyPrice,
-      deadline: university.deadline,
-      isAvailable: university.isAvailable,
+      formPrice: null,
+      buyPrice: null,
+      deadline: null,
+      isAvailable: false,
       description: university.description,
     }));
 
@@ -460,6 +467,7 @@ export class SmartApiService {
       return ApiService.getUniversity(id);
     }
     const { UNIVERSITIES_DATA } = await import('../data/constants');
+    console.warn('[SmartApiService] Live endpoint unavailable - serving placeholder university, purchasing disabled.');
     const university = UNIVERSITIES_DATA.find((u) => u.id === id);
     return {
       success: !!university,
@@ -468,6 +476,10 @@ export class SmartApiService {
             ...university,
             name: university.universityName,
             logo: university.logo,
+            formPrice: null,
+            buyPrice: null,
+            deadline: null,
+            isAvailable: false,
           } as University)
         : (undefined as any),
     };
@@ -479,6 +491,7 @@ export class SmartApiService {
       return ApiService.searchUniversities(query);
     }
     const { UNIVERSITIES_DATA } = await import('../data/constants');
+    console.warn('[SmartApiService] Live endpoint unavailable - serving placeholder search results, purchasing disabled.');
     const filtered = UNIVERSITIES_DATA.filter(
       (university) =>
         university.universityName.toLowerCase().includes(query.toLowerCase()) ||
@@ -491,6 +504,10 @@ export class SmartApiService {
         ...university,
         name: university.universityName,
         logo: university.logo,
+        formPrice: null,
+        buyPrice: null,
+        deadline: null,
+        isAvailable: false,
       })) as University[],
     };
   }
@@ -500,12 +517,18 @@ export class SmartApiService {
     if (isAvailable) {
       return ApiService.purchaseForm(formId, paymentData);
     }
+    // Previously this fabricated a fake successful transaction ID here
+    // without ever contacting Paystack or checking real inventory - the
+    // same "placeholder presented as real" problem as the listings above,
+    // just on the purchase path instead of the display path. Fail
+    // honestly instead: no live API means no purchase can be verified.
+    console.error(
+      '[SmartApiService] Cannot process purchase - live API is unavailable. Refusing to report a fake success.'
+    );
     return {
-      success: true,
-      data: {
-        transactionId: `txn_${Date.now()}`,
-        status: 'completed',
-      },
+      success: false,
+      data: null as any,
+      error: 'Purchases are temporarily unavailable. Please try again in a moment.',
     };
   }
 
