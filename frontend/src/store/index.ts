@@ -47,15 +47,15 @@ export interface UniversityForm {
   id: string;
   universityName: string;
   fullName: string;
-  formPrice: number | string; // Support both for backward compatibility
+  formPrice: number | string | null; // null = price not yet announced
   buyPrice?: string; // Optional for backward compatibility
   currency?: string;
-  deadline: string;
+  deadline: string | null; // null = deadline not yet announced
   isAvailable: boolean;
   logo?: string;
   description?: string;
   status?: "available" | "expired" | "not_yet_open" | "sold_out";
-  daysUntilDeadline?: number;
+  daysUntilDeadline?: number | null;
   lastUpdated?: string;
 }
 
@@ -139,6 +139,29 @@ interface AppState {
   clearError: () => void;
   reset: () => void;
 }
+
+// Used only as a last-resort UI placeholder when even FormsApiService's own
+// fallback can't be reached (see loadForms below). Never presented as real:
+// availability, price, and deadline are all forced to their "unconfirmed"
+// state regardless of what UNIVERSITIES_DATA has hardcoded, for the same
+// reason FormsApiService.getFallbackForms() and FallbackService in api.ts
+// do the same thing - placeholder data must never look like confirmed data.
+const asUnavailablePlaceholder = (
+  universities: typeof UNIVERSITIES_DATA,
+): UniversityForm[] =>
+  universities.map((university) => ({
+    id: university.id,
+    universityName: university.universityName,
+    fullName: university.fullName,
+    formPrice: null,
+    currency: "GHS",
+    deadline: null,
+    isAvailable: false,
+    logo: university.logo,
+    description: university.description,
+    status: "not_yet_open",
+    daysUntilDeadline: null,
+  }));
 
 export const useAppStore = create<AppState>()(
   devtools(
@@ -409,9 +432,15 @@ export const useAppStore = create<AppState>()(
               throw new Error("Failed to load forms");
             }
           } catch {
+            // FormsApiService.getForms() already has its own internal
+            // fallback and should essentially never reach this catch under
+            // normal conditions - this only fires if something more
+            // fundamental breaks (e.g. the dynamic import itself fails).
+            // Even so, never show fake availability/price/deadline here -
+            // same rule as everywhere else this data flows through.
             set(
               {
-                forms: UNIVERSITIES_DATA,
+                forms: asUnavailablePlaceholder(UNIVERSITIES_DATA),
               },
               false,
               "loadForms/error",
