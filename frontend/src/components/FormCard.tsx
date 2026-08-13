@@ -17,14 +17,14 @@ import { useUniversityChat } from "../hooks/useUniversityChat";
 interface FormCardProps {
   universityName: string;
   fullName: string;
-  formPrice: number | string;
+  formPrice: number | string | null;
   currency?: string;
-  deadline: string;
+  deadline: string | null;
   isAvailable: boolean;
   onBuyClick: () => void;
   logo?: string;
   status?: "available" | "expired" | "not_yet_open" | "sold_out";
-  daysUntilDeadline?: number;
+  daysUntilDeadline?: number | null;
   lastUpdated?: string;
 }
 
@@ -57,6 +57,8 @@ const FormCard: React.FC<FormCardProps> = memo(
 
     const formStatusObj = formatFormStatus(status);
     const deadlineObj = formatDeadline(deadline);
+    const hasDaysUntilDeadline =
+      daysUntilDeadline !== undefined && daysUntilDeadline !== null;
 
     return (
       <motion.div
@@ -119,7 +121,9 @@ const FormCard: React.FC<FormCardProps> = memo(
                   Form Voucher
                 </span>
                 <span className="font-extrabold text-sm text-slate-900 dark:text-white">
-                  {typeof formPrice === "number"
+                  {formPrice === null || formPrice === undefined
+                    ? "Not yet announced"
+                    : typeof formPrice === "number"
                     ? `${getCurrencySymbol(currency)} ${formPrice.toFixed(2)}`
                     : formPrice}
                 </span>
@@ -138,19 +142,19 @@ const FormCard: React.FC<FormCardProps> = memo(
                 <span className="font-bold text-xs text-slate-900 dark:text-white block truncate">
                   {deadlineObj.formatted}
                 </span>
-                {daysUntilDeadline !== undefined && (
+                {hasDaysUntilDeadline && (
                   <span
                     className={`text-[10px] font-extrabold flex items-center gap-1 ${
-                      daysUntilDeadline < 0
+                      (daysUntilDeadline as number) < 0
                         ? "text-red-500"
-                        : daysUntilDeadline <= 14
+                        : (daysUntilDeadline as number) <= 14
                         ? "text-amber-500"
                         : "text-emerald-500"
                     }`}
                   >
                     <FiClock className="w-2.5 h-2.5" />
-                    {daysUntilDeadline < 0
-                      ? `Expired (${Math.abs(daysUntilDeadline)}d ago)`
+                    {(daysUntilDeadline as number) < 0
+                      ? `Expired (${Math.abs(daysUntilDeadline as number)}d ago)`
                       : `${daysUntilDeadline} days left`}
                   </span>
                 )}
