@@ -213,6 +213,7 @@ const Forms: React.FC = () => {
       result = result.filter(
         (f) =>
           f.daysUntilDeadline !== undefined &&
+          f.daysUntilDeadline !== null &&
           f.daysUntilDeadline > 0 &&
           f.daysUntilDeadline <= 30
       );
@@ -231,6 +232,7 @@ const Forms: React.FC = () => {
       forms.filter(
         (f) =>
           f.daysUntilDeadline !== undefined &&
+          f.daysUntilDeadline !== null &&
           f.daysUntilDeadline > 0 &&
           f.daysUntilDeadline <= 30
       ).length,
