@@ -19,19 +19,685 @@ from pydantic import BaseModel
 load_dotenv()
 
 # ============================================================================
-# CONFIGURATION
+# EXISTING CONFIGURATION - KEEPING ALL ORIGINAL VARIABLES
 # ============================================================================
-UNIVERSITY_DATA_DIR = Path("university_data")
+
+def sanitize_markdown_urls(text: str) -> str:
+    """Original function - kept exactly as is"""
+    if not text:
+        return text
+
+    text = re.sub(r"\[+", "[", text)
+
+    while True:
+        previous_text = text
+        text = re.sub(r"\]\(https?://[^\)]+(?=\]\()", "", text)
+        text = re.sub(r"\]\(https?://[^\)]+\)(?=\]\()", "", text)
+        if text == previous_text:
+            break
+
+    nested_pattern = r"\[+([^\[\]]*(?:https?://[^\s\[\]]+)[^\[\]]*)\]+\(+([^)]+)\)+"
+
+    def fix_nested(match):
+        candidate_text = match.group(1)
+        candidate_url = match.group(2)
+
+        url = None
+        if candidate_url and candidate_url.startswith("http"):
+            url = candidate_url
+        elif "http" in candidate_text:
+            url_match = re.search(r"https?://[^\s\[\]]+", candidate_text)
+            if url_match:
+                url = url_match.group(0)
+
+        link_text = candidate_text
+        if url and url in link_text:
+            link_text = re.sub(r"https?://[^\s\[\]]+", "", candidate_text).strip()
+
+        if not link_text or link_text == url:
+            try:
+                link_text = url.split("/")[2] if url else "Link"
+            except Exception:
+                link_text = "Link"
+
+        if url:
+            return f"[{link_text}]({url})"
+        return match.group(0)
+
+    for _ in range(3):
+        text = re.sub(nested_pattern, fix_nested, text)
+
+    url_as_text_pattern = r"\[(https?://[^\]]+)\]\(\1\)"
+
+    def fix_url_as_text(match):
+        url = match.group(1)
+
+        try:
+            domain = url.split("/")[2]
+            return f"[{domain}]({url})"
+        except Exception:
+            return f"[Visit Link]({url})"
+
+    text = re.sub(url_as_text_pattern, fix_url_as_text, text)
+
+    markdown_link_pattern = r"\[([^\]]+)\]\(([^)]+)\)"
+
+    def clean_url(match):
+        link_text = match.group(1)
+        url = match.group(2)
+
+        try:
+            if "%" in url:
+                if "%F0%9D" in url or "%2D" in url:
+                    try:
+                        decoded = urllib.parse.unquote(url)
+                        if any(ord(c) > 127 for c in decoded):
+                            url = urllib.parse.quote(
+                                decoded.encode("utf-8"), safe=":/?#[]@!$&'()*+,;="
+                            )
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+        url = re.sub(r'[`\'"]*$', "", url)
+
+        if url and not url.startswith(("http://", "https://", "mailto:")):
+            if "." in url and "/" in url[10:]:
+                if not url.startswith("/"):
+                    url = "https://" + url
+
+        return f"[{link_text}]({url})"
+
+    cleaned_text = re.sub(markdown_link_pattern, clean_url, text)
+
+    return cleaned_text
+
+
+app = FastAPI(title="Glinax RAG+CAG Service", version="2.0.0")
+
+import jwt
+from fastapi import Depends, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+JWT_SECRET = os.getenv("JWT_SECRET")
+JWT_ALGOS = ["HS256"]
+auth_scheme = HTTPBearer(auto_error=False)
+
+
+def get_current_user(creds: HTTPAuthorizationCredentials = Depends(auth_scheme)):
+    if not creds or not creds.credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing authorization"
+        )
+    token = creds.credentials
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=JWT_ALGOS)
+        user_id = payload.get("sub")
+        if not user_id or not isinstance(user_id, str):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token subject"
+            )
+        return {"user_id": user_id, "claims": payload}
+    except jwt.PyJWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
+
+
+def resolve_user_id(token_user: Optional[str], fallback_user: Optional[str]) -> str:
+    return token_user or (fallback_user or "")
+
+
+_raw_origins = os.getenv(
+    "ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5000"
+)
+ALLOWED_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization", "x-user-id"],
+)
+embedding_model = None
+groq_client = None
+db_client = None
+ghana_universities_data = []
+
+# Groq model config - kept as env-overridable constants
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 GROQ_REASONING_EFFORT = os.getenv("GROQ_REASONING_EFFORT", "medium")
 GROQ_TEMPERATURE = float(os.getenv("GROQ_TEMPERATURE", "0.6"))
 
+TESSERACT_ENV_PATH = os.getenv("TESSERACT_CMD")
+WINDOWS_TESSERACT_CANDIDATES = [
+    r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
+    r"C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe",
+]
+
+
+def configure_tesseract_path_if_needed(pytesseract_module) -> None:
+    if not pytesseract_module:
+        return
+
+    if getattr(pytesseract_module, "pytesseract", None):
+        pytesseract_module = pytesseract_module.pytesseract
+
+    if getattr(pytesseract_module, "tesseract_cmd", None):
+        return
+
+    if TESSERACT_ENV_PATH and os.path.exists(TESSERACT_ENV_PATH):
+        pytesseract_module.tesseract_cmd = TESSERACT_ENV_PATH
+        print(f"🔧 Tesseract path set from TESSERACT_CMD env: {TESSERACT_ENV_PATH}")
+        return
+
+    if platform.system().lower() == "windows":
+        for candidate in WINDOWS_TESSERACT_CANDIDATES:
+            if os.path.exists(candidate):
+                pytesseract_module.tesseract_cmd = candidate
+                print(f"🔧 Tesseract path auto-configured: {candidate}")
+                return
+
+
+class ChatRequest(BaseModel):
+    message: str
+    conversation_id: str
+    user_id: Optional[str] = None
+    university_name: Optional[str] = None
+    user_context: Optional[Dict[str, Any]] = None
+    chat_history: Optional[List[Dict[str, str]]] = None
+
+
+class ChatResponse(BaseModel):
+    model_config = {"protected_namespaces": ()}
+
+    success: bool
+    reply: str
+    sources: List[Dict[str, Any]] = []
+    confidence: float = 0.0
+    timestamp: str
+    processing_time: Optional[float] = None
+    model_used: str = "hybrid-rag"
+
+
 # ============================================================================
-# ENHANCED UNIVERSITY DATA LOADER WITH ADVANCED PARSING
+# ORIGINAL HARDCODED UNIVERSITY DATA - PRESERVED
+# ============================================================================
+
+GHANA_UNIVERSITIES_KNOWLEDGE = {
+    "Kwame Nkrumah University of Science and Technology": {
+        "location": "Kumasi, Ashanti Region",
+        "established": "1952",
+        "website": "www.knust.edu.gh",
+        "programs": {
+            "Computer Engineering": {
+                "duration": "4 years",
+                "requirements": "WASSCE: A1-B3 in Maths, Physics, Chemistry, English (Agg 6-12)",
+                "career_prospects": "Software Engineer, Systems Analyst, Tech Lead",
+            },
+            "Civil Engineering": {
+                "duration": "4 years",
+                "requirements": "WASSCE: A1-B3 in Maths, Physics, Chemistry, English",
+                "career_prospects": "Civil Engineer, Project Manager",
+            },
+            "Medicine": {
+                "duration": "6 years",
+                "requirements": "WASSCE: A1-B3 in Biology, Chemistry, Physics, Maths, English",
+                "career_prospects": "Medical Doctor, Surgeon",
+            },
+            "Architecture": {
+                "duration": "5 years",
+                "requirements": "WASSCE: A1-C6 in Maths, Physics, English + Art or Technical Drawing",
+                "career_prospects": "Architect, Urban Planner",
+            },
+            "Electrical Engineering": {
+                "duration": "4 years",
+                "requirements": "WASSCE: A1-B3 in Maths, Physics, Chemistry, English",
+                "career_prospects": "Electrical Engineer, Power Systems Specialist",
+            },
+        },
+        "admission_requirements": {
+            "general": "WASSCE with minimum aggregate 24 for most programs",
+            "application_deadline": "August 31, 2026",
+            "entrance_exam": "Required for Engineering and Medicine",
+            "online_portal": "https://admissions.knust.edu.gh",
+        },
+        "contact": {"phone": "+233-32-206-0331", "email": "admissions@knust.edu.gh"},
+        "scholarships": {
+            "knust_excellence": "Merit-based full scholarships",
+            "mastercard_foundation": "For disadvantaged but brilliant students",
+        },
+    },
+    "University of Ghana": {
+        "location": "Legon, Accra",
+        "established": "1948",
+        "website": "www.ug.edu.gh",
+        "programs": {
+            "Computer Science": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths, Physics, Elective Maths + 2 others",
+                "career_prospects": "Software Developer, Data Scientist",
+            },
+            "Medicine": {
+                "duration": "6 years",
+                "requirements": "WASSCE: A1-B3 in Biology, Chemistry, Physics, Maths, English",
+                "career_prospects": "Doctor, Medical Researcher, Specialist",
+            },
+            "Business Administration": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths, Economics + 3 others",
+                "career_prospects": "Manager, Entrepreneur, Consultant",
+            },
+            "Law": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths + Social Sciences",
+                "career_prospects": "Lawyer, Judge, Legal Consultant",
+            },
+            "Economics": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths, Economics",
+                "career_prospects": "Economist, Policy Analyst",
+            },
+        },
+        "admission_requirements": {
+            "general": "WASSCE with minimum of 6 credits (A1-C6) including English and Maths",
+            "application_deadline": "August 31, 2026 (Pending WASSCE release)",
+            "entrance_exam": "Required for competitive programs",
+            "online_portal": "https://admissions.ug.edu.gh",
+        },
+        "contact": {"phone": "+233-30-213-8501", "email": "admissions@ug.edu.gh"},
+        "scholarships": {
+            "ug_excellence": "Up to 100% tuition coverage for outstanding students",
+            "sabre_scholarship": "For students from Northern Ghana",
+        },
+    },
+    "University of Cape Coast": {
+        "location": "Cape Coast, Central Region",
+        "established": "1962",
+        "website": "www.ucc.edu.gh",
+        "programs": {
+            "Education": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths + relevant subjects",
+                "career_prospects": "Teacher, Education Administrator",
+            },
+            "Nursing": {
+                "duration": "4 years",
+                "requirements": "WASSCE: A1-C6 in English, Maths, Biology, Chemistry",
+                "career_prospects": "Registered Nurse, Healthcare Professional",
+            },
+            "Business Administration": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths, Economics + 3 others",
+                "career_prospects": "Business Manager, Entrepreneur",
+            },
+            "Agriculture": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths, Science subjects",
+                "career_prospects": "Agricultural Officer, Agribusiness Manager",
+            },
+        },
+        "admission_requirements": {
+            "general": "WASSCE with 6 credits minimum including English and Maths",
+            "application_deadline": "August 31, 2026",
+            "online_portal": "https://admissions.ucc.edu.gh",
+        },
+        "contact": {"phone": "+233-33-213-2440", "email": "admissions@ucc.edu.gh"},
+        "scholarships": {
+            "teacher_training": "Full scholarships for teacher trainees",
+            "excellence_awards": "Merit-based scholarships",
+        },
+    },
+    "University for Development Studies": {
+        "location": "Tamale, Northern Region",
+        "established": "1992",
+        "website": "www.uds.edu.gh",
+        "programs": {
+            "Agriculture": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths, Science subjects",
+                "career_prospects": "Agricultural Officer, Farm Manager",
+            },
+            "Medicine": {
+                "duration": "6 years",
+                "requirements": "WASSCE: A1-B3 in Biology, Chemistry, Physics, Maths, English",
+                "career_prospects": "Medical Doctor, Healthcare Professional",
+            },
+            "Development Studies": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths + Social Science subjects",
+                "career_prospects": "Development Worker, Policy Analyst",
+            },
+            "Agricultural Engineering": {
+                "duration": "4 years",
+                "requirements": "WASSCE: A1-C6 in Maths, Physics, Chemistry + English",
+                "career_prospects": "Agricultural Engineer, Irrigation Specialist",
+            },
+        },
+        "admission_requirements": {
+            "general": "WASSCE with relevant subject combinations",
+            "application_deadline": "September 30, 2026",
+            "online_portal": "https://admissions.uds.edu.gh",
+        },
+        "contact": {"phone": "+233-37-209-3541", "email": "admissions@uds.edu.gh"},
+        "scholarships": {
+            "rural_development": "Scholarships for students from rural communities",
+            "northern_scholarship": "Special support for Northern Ghana students",
+        },
+    },
+    "University of Energy and Natural Resources": {
+        "location": "Sunyani, Bono Region",
+        "established": "2011",
+        "website": "www.uenr.edu.gh",
+        "programs": {
+            "Renewable Energy Engineering": {
+                "duration": "4 years",
+                "requirements": "WASSCE: A1-C6 in Maths, Physics, Chemistry, English",
+                "career_prospects": "Energy Engineer, Renewable Energy Specialist",
+            },
+            "Environmental Science": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in Maths, Biology, Chemistry, English",
+                "career_prospects": "Environmental Scientist, Conservation Officer",
+            },
+            "Forest Resources Management": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in Maths, Biology/Agriculture, English",
+                "career_prospects": "Forestry Officer, Wildlife Conservationist",
+            },
+        },
+        "admission_requirements": {
+            "general": "WASSCE with 6 credits including English, Maths, and Science subjects",
+            "application_deadline": "August 31, 2026",
+            "online_portal": "https://admissions.uenr.edu.gh",
+        },
+        "contact": {"phone": "+233-35-206-2108", "email": "admissions@uenr.edu.gh"},
+        "scholarships": {
+            "energy_scholarship": "For students in energy-related programs"
+        },
+    },
+    "University of Education, Winneba": {
+        "location": "Winneba, Central Region",
+        "established": "1992",
+        "website": "www.uew.edu.gh",
+        "programs": {
+            "Basic Education": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths + relevant subjects",
+                "career_prospects": "Primary School Teacher, Education Administrator",
+            },
+            "Science Education": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths, Science subjects",
+                "career_prospects": "Science Teacher, STEM Educator",
+            },
+            "Physical Education": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths + Sports aptitude",
+                "career_prospects": "PE Teacher, Sports Coach",
+            },
+            "Business Education": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths, Business subjects",
+                "career_prospects": "Business Teacher, Vocational Trainer",
+            },
+        },
+        "admission_requirements": {
+            "general": "WASSCE with 6 credits including English and Maths",
+            "application_deadline": "September 10, 2026",
+            "online_portal": "https://admissions.uew.edu.gh",
+        },
+        "contact": {"phone": "+233-23-202-6660", "email": "admissions@uew.edu.gh"},
+        "scholarships": {
+            "teacher_training": "Government scholarships for teacher trainees"
+        },
+    },
+    "University of Mines and Technology": {
+        "location": "Tarkwa, Western Region",
+        "established": "2004",
+        "website": "www.umat.edu.gh",
+        "programs": {
+            "Mining Engineering": {
+                "duration": "4 years",
+                "requirements": "WASSCE: A1-C6 in Maths, Physics, Chemistry, English",
+                "career_prospects": "Mining Engineer, Resources Manager",
+            },
+            "Geological Engineering": {
+                "duration": "4 years",
+                "requirements": "WASSCE: A1-C6 in Maths, Physics, Chemistry, English",
+                "career_prospects": "Geologist, Mining Consultant",
+            },
+            "Environmental Engineering": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in Maths, Chemistry, Biology, English",
+                "career_prospects": "Environmental Engineer, Sustainability Specialist",
+            },
+            "Computer Science": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in Maths, Physics, English",
+                "career_prospects": "Software Developer, IT Specialist",
+            },
+        },
+        "admission_requirements": {
+            "general": "WASSCE with 6 credits including English, Maths, and Science subjects",
+            "application_deadline": "August 31, 2026",
+            "online_portal": "https://admissions.umat.edu.gh",
+        },
+        "contact": {"phone": "+233-31-209-2072", "email": "admissions@umat.edu.gh"},
+        "scholarships": {
+            "mining_scholarship": "For students in mining-related programs"
+        },
+    },
+    "University of Health and Allied Sciences": {
+        "location": "Ho, Volta Region",
+        "established": "2011",
+        "website": "www.uhas.edu.gh",
+        "programs": {
+            "Medicine": {
+                "duration": "6 years",
+                "requirements": "WASSCE: A1-B3 in Biology, Chemistry, Physics, Maths, English",
+                "career_prospects": "Medical Doctor, Surgeon",
+            },
+            "Nursing": {
+                "duration": "4 years",
+                "requirements": "WASSCE: A1-C6 in English, Maths, Biology, Chemistry",
+                "career_prospects": "Registered Nurse, Healthcare Provider",
+            },
+            "Public Health": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths, Biology, Chemistry",
+                "career_prospects": "Public Health Officer, Epidemiologist",
+            },
+            "Physician Assistant Studies": {
+                "duration": "4 years",
+                "requirements": "WASSCE: A1-C6 in Biology, Chemistry, English, Maths",
+                "career_prospects": "Physician Assistant, Medical Professional",
+            },
+            "Biomedical Sciences": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in Biology, Chemistry, Maths, English",
+                "career_prospects": "Biomedical Scientist, Lab Specialist",
+            },
+        },
+        "admission_requirements": {
+            "general": "WASSCE with strong performance in science subjects",
+            "entrance_exam": "Required for Medicine and competitive programs",
+            "application_deadline": "August 14, 2026",
+            "online_portal": "https://admissions.uhas.edu.gh",
+        },
+        "contact": {"phone": "+233-36-202-1401", "email": "admissions@uhas.edu.gh"},
+        "scholarships": {
+            "health_professional": "For outstanding health sciences students",
+            "rural_health": "For students committed to rural healthcare",
+        },
+    },
+    "Ghana Communication Technology University": {
+        "location": "Accra, Greater Accra",
+        "established": "2005",
+        "website": "www.gctu.edu.gh",
+        "programs": {
+            "Computer Science": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in Maths, Physics/ICT, English",
+                "career_prospects": "Software Developer, Systems Analyst",
+            },
+            "Information Technology": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in Maths, ICT, English",
+                "career_prospects": "IT Specialist, Network Engineer",
+            },
+            "Telecommunications Engineering": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in Maths, Physics, Chemistry, English",
+                "career_prospects": "Telecom Engineer, ICT Consultant",
+            },
+            "Communication Studies": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths + relevant subjects",
+                "career_prospects": "Journalist, Media Specialist",
+            },
+        },
+        "admission_requirements": {
+            "general": "WASSCE with 6 credits including English and Maths",
+            "application_deadline": "August 31, 2026",
+            "online_portal": "https://admissions.gctu.edu.gh",
+        },
+        "contact": {"phone": "+233-30-295-4900", "email": "admissions@gctu.edu.gh"},
+        "scholarships": {"ict_scholarship": "For outstanding ICT students"},
+    },
+    "Takoradi Technical University": {
+        "location": "Takoradi, Western Region",
+        "established": "1954",
+        "website": "www.ttu.edu.gh",
+        "programs": {
+            "Mechanical Engineering Technology": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in Maths, Physics, Chemistry, English",
+                "career_prospects": "Mechanical Technologist, Manufacturing Specialist",
+            },
+            "Civil Engineering Technology": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in Maths, Physics, Chemistry, English",
+                "career_prospects": "Civil Technologist, Construction Manager",
+            },
+            "Electrical Engineering Technology": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in Maths, Physics, Chemistry, English",
+                "career_prospects": "Electrical Technologist, Power Systems Specialist",
+            },
+            "Petroleum Engineering": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in Maths, Physics, Chemistry, English",
+                "career_prospects": "Petroleum Engineer, Energy Consultant",
+            },
+            "Hospitality Management": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths + Home Economics",
+                "career_prospects": "Hotel Manager, Catering Professional",
+            },
+        },
+        "admission_requirements": {
+            "general": "WASSCE with 6 credits including English and Maths",
+            "application_deadline": "October 31, 2026",
+            "online_portal": "https://admissions.ttu.edu.gh",
+        },
+        "contact": {"phone": "+233-31-202-3490", "email": "admissions@ttu.edu.gh"},
+        "scholarships": {
+            "technical_scholarship": "For outstanding technical program students"
+        },
+    },
+    "University of Professional Studies, Accra": {
+        "location": "Accra, Greater Accra",
+        "established": "1965",
+        "website": "www.upsa.edu.gh",
+        "programs": {
+            "Accounting": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths, Economics + 3 others",
+                "career_prospects": "Accountant, Auditor, Financial Analyst",
+            },
+            "Marketing": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths, Economics/Business",
+                "career_prospects": "Marketing Manager, Brand Specialist",
+            },
+            "Banking and Finance": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths, Economics",
+                "career_prospects": "Banker, Financial Advisor",
+            },
+            "Human Resource Management": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths + relevant subjects",
+                "career_prospects": "HR Manager, Recruitment Specialist",
+            },
+            "Public Administration": {
+                "duration": "4 years",
+                "requirements": "WASSCE: Credits in English, Maths + Social Sciences",
+                "career_prospects": "Public Servant, Administrator",
+            },
+        },
+        "admission_requirements": {
+            "general": "WASSCE with 6 credits including English and Maths",
+            "application_deadline": "August 21, 2026",
+            "online_portal": "https://admissions.upsa.edu.gh",
+        },
+        "contact": {"phone": "+233-30-298-1000", "email": "admissions@upsa.edu.gh"},
+        "scholarships": {
+            "professional_excellence": "Merit-based scholarships for top performers",
+            "need_based": "Financial support for disadvantaged students",
+        },
+    },
+}
+
+# ============================================================================
+# ORIGINAL NAME VARIATIONS - PRESERVED
+# ============================================================================
+
+UNI_NAME_VARIATIONS = {
+    "university of ghana": "University of Ghana",
+    "ug": "University of Ghana",
+    "legon": "University of Ghana",
+    "knust": "Kwame Nkrumah University of Science and Technology",
+    "kwame nkrumah": "Kwame Nkrumah University of Science and Technology",
+    "kumasi": "Kwame Nkrumah University of Science and Technology",
+    "ucc": "University of Cape Coast",
+    "cape coast": "University of Cape Coast",
+    "uds": "University for Development Studies",
+    "tamale": "University for Development Studies",
+    "upsa": "University of Professional Studies",
+    "uenr": "University of Energy and Natural Resources",
+    "sunyani": "University of Energy and Natural Resources",
+    "uhas": "University of Health and Allied Sciences",
+    "ho": "University of Health and Allied Sciences",
+    "gctu": "Ghana Communication Technology University",
+    "gctU": "Ghana Communication Technology University",
+    "communication technology": "Ghana Communication Technology University",
+    "gimpa": "Ghana Institute of Management and Public Administration",
+    "ashesi": "Ashesi University",
+    "berekuso": "Ashesi University",
+    "gtuc": "Ghana Technology University College",
+    "central": "Central University",
+    "valley view": "Valley View University",
+    "presbyterian": "Presbyterian University",
+    "methodist": "Methodist University",
+    "academic city": "Academic City University",
+    "umat": "University of Mines and Technology",
+    "tarkwa": "University of Mines and Technology",
+    "mines": "University of Mines and Technology",
+    "uew": "University of Education, Winneba",
+    "winneba": "University of Education, Winneba",
+    "education winneba": "University of Education, Winneba",
+}
+
+# ============================================================================
+# ENHANCED UNIVERSITY DATA LOADER - NEW BUT COMPATIBLE
 # ============================================================================
 
 class UniversityDataParser:
-    """Advanced parser for university context files."""
+    """Parser for university context files - keeps all existing data intact"""
     
     def __init__(self):
         self.current_year = datetime.now().year
@@ -53,7 +719,6 @@ class UniversityDataParser:
             "special_notes": []
         }
         
-        # Parse different sections
         self._parse_programs(content, parsed)
         self._parse_cutoff_points(content, parsed)
         self._parse_deadlines(content, parsed)
@@ -71,11 +736,8 @@ class UniversityDataParser:
         lines = content.split('\n')
         current_section = None
         program_patterns = [
-            # Pattern: "BSc. Computer Science 7(9) 15 - B3 in Elective Maths"
             r'^([A-Z][a-zA-Z\s\.\-]+?)\s+(\d+(?:\(?\d*\)?)?)\s+(\d+(?:\(?\d*\)?)?|[-])\s+([-\d]+)?\s*(.*?)$',
-            # Pattern: "Bachelor of Medicine and Bachelor of Surgery 8 - - -"
             r'^([A-Z][a-zA-Z\s\.\-]+?)\s+(\d+)\s+([-\d]+)\s+([-\d]+)?\s*(.*?)$',
-            # Pattern: "BSc. Nursing 15 - - -"
             r'^([A-Z][a-zA-Z\s\.\-]+?)\s+(\d+)\s+([-\d]+)\s+(.*?)$',
         ]
         
@@ -84,19 +746,16 @@ class UniversityDataParser:
             if not line:
                 continue
             
-            # Detect section headers
             if any(x in line for x in ['College of', 'Faculty of', 'School of', 'Department of']):
                 current_section = line
                 continue
             
-            # Try each pattern
             for pattern in program_patterns:
                 match = re.match(pattern, line)
                 if match:
                     groups = match.groups()
                     prog_name = groups[0].strip()
                     
-                    # Parse cut-off points
                     cut_offs = []
                     reqs = []
                     
@@ -115,32 +774,21 @@ class UniversityDataParser:
                         "raw_line": line
                     }
                     
-                    # Store by program name
                     parsed["programs"][prog_name] = program_data
                     break
     
     def _parse_cutoff_points(self, content: str, parsed: Dict[str, Any]):
         """Parse cut-off point tables specifically."""
-        # Look for cutoff tables
-        cutoff_patterns = [
-            r'(?:CUT-OFF POINTS|cutt-off point|cut off).*?([\s\S]+?)(?=Contacts|Key:|NB:|$|SCHOOL OF|FACULTY OF)',
-            r'([A-Z][A-Z\s]+?)\s+(\d+)\s+(\d+)?\s*',
-            r'(\w+(?:\s+\w+)*)\s+(\d{1,2}(?:\s*[/-]\s*\d{1,2})?)',
-        ]
-        
-        # Find cutoff sections
         cutoff_sections = re.findall(r'(CUT-OFF POINTS|CUT OFF POINTS|ADMISSIONS CUT-OFF).*?([\s\S]+?)(?=\n\n[A-Z][A-Z\s]+:|Contacts:|NB:|$)',
                                     content, re.IGNORECASE | re.DOTALL)
         
         for section_title, section_content in cutoff_sections:
-            # Extract program-cutoff pairs
             lines = section_content.strip().split('\n')
             for line in lines:
                 line = line.strip()
                 if not line or line.startswith('NB:'):
                     continue
                     
-                # Try to match program name with cutoff
                 match = re.match(r'^([A-Z][a-zA-Z\s\.\-]+?)\s+(\d+(?:\s*[/*]\s*\d+)?(?:\s*\(?\d*\)?)?)', line)
                 if match:
                     prog_name = match.group(1).strip()
@@ -175,7 +823,6 @@ class UniversityDataParser:
         if req_sections:
             parsed["admission_requirements"]["general"] = req_sections[0].strip()
         
-        # Parse specific requirements for different qualifications
         qual_patterns = [
             (r'WASSCE.*?(?:credit|pass).*?(?:\n\n|$)', 'wassce'),
             (r'SSSCE.*?(?:credit|pass).*?(?:\n\n|$)', 'sssce'),
@@ -218,7 +865,6 @@ class UniversityDataParser:
             if matches:
                 parsed["fees"][key] = matches[0]
         
-        # Parse international fees
         intl_fee = re.search(r'International\s+Forms?\s*[:.]?\s*[USD$]?(\d+\.?\d*)', content, re.IGNORECASE)
         if intl_fee:
             parsed["fees"]["international_fee"] = intl_fee.group(1)
@@ -240,7 +886,7 @@ class UniversityDataParser:
                 parsed["entrance_exams"].append(exam_data)
     
     def _parse_study_options(self, content: str, parsed: Dict[str, Any]):
-        """Parse study options (Day, Evening, Weekend, Sandwich, Distance)."""
+        """Parse study options."""
         study_patterns = [
             r'(Day|Evening|Weekend|Sandwich|Distance|Regular|Full-time|Part-time)',
         ]
@@ -257,7 +903,7 @@ class UniversityDataParser:
             parsed["study_options"] = list(options)
     
     def _parse_special_notes(self, content: str, parsed: Dict[str, Any]):
-        """Parse special notes like affirmative action, gender restrictions, etc."""
+        """Parse special notes."""
         note_patterns = [
             r'(NB:|NOTE:|NOTICE:|Important|Please note)[\s\S]+?(?=\n\n|\Z)',
             r'(affirmative action|only female|only male|gender)',
@@ -272,23 +918,27 @@ class UniversityDataParser:
                     parsed["special_notes"].append(' '.join(match).strip())
 
 # ============================================================================
-# ENHANCED KNOWLEDGE BASE WITH MULTI-STRATEGY SEARCH
+# ENHANCED KNOWLEDGE BASE - KEEPS ALL ORIGINAL DATA
 # ============================================================================
 
 class EnhancedUniversityKnowledgeBase:
-    """Advanced knowledge base with multiple search strategies."""
+    """Enhanced knowledge base - maintains all original data + adds enhancements"""
     
     def __init__(self):
         self.universities: Dict[str, Dict[str, Any]] = {}
         self.name_variations: Dict[str, str] = {}
-        self.program_index: Dict[str, List[Tuple[str, str]]] = {}  # program -> [(uni_name, program_data)]
+        self.program_index: Dict[str, List[Tuple[str, str]]] = {}
         self.keyword_index: Dict[str, Set[str]] = {}
-        self.cutoff_index: Dict[int, List[Tuple[str, str, str]]] = {}  # aggregate -> [(uni_name, program, cutoff)]
+        self.cutoff_index: Dict[int, List[Tuple[str, str, str]]] = {}
         self.parser = UniversityDataParser()
         
-        # Load all data
-        self._load_from_files()
+        # First load from hardcoded data
         self._load_hardcoded_data()
+        
+        # Then try to load from files (overlay)
+        self._load_from_files()
+        
+        # Build indexes
         self._build_indexes()
         
         print(f"✅ Knowledge Base loaded: {len(self.universities)} universities")
@@ -296,8 +946,46 @@ class EnhancedUniversityKnowledgeBase:
         print(f"   - {len(self.keyword_index)} keywords indexed")
         print(f"   - Cut-off points indexed for {len(self.cutoff_index)} aggregate values")
     
+    def _load_hardcoded_data(self):
+        """Load from the original GHANA_UNIVERSITIES_KNOWLEDGE"""
+        global GHANA_UNIVERSITIES_KNOWLEDGE
+        
+        for uni_name, data in GHANA_UNIVERSITIES_KNOWLEDGE.items():
+            # Add to universities
+            self.universities[uni_name] = data.copy()
+            
+            # Convert programs to the enhanced format
+            if "programs" in data:
+                enhanced_programs = {}
+                for prog_name, prog_data in data["programs"].items():
+                    if isinstance(prog_data, dict):
+                        # Create enhanced program data with cut_offs extracted
+                        enhanced_programs[prog_name] = {
+                            "name": prog_name,
+                            "cut_offs": [],
+                            "requirements": prog_data.get("requirements", ""),
+                            "duration": prog_data.get("duration", ""),
+                            "career_prospects": prog_data.get("career_prospects", ""),
+                            "original_data": prog_data
+                        }
+                        
+                        # Try to extract cut-off from requirements
+                        req_text = prog_data.get("requirements", "")
+                        agg_match = re.search(r'(?:Agg|Aggregate)\s*(\d+[-–]\d+)', req_text, re.IGNORECASE)
+                        if not agg_match:
+                            agg_match = re.search(r'(\d+[-–]\d+)', req_text)
+                        if agg_match:
+                            enhanced_programs[prog_name]["cut_offs"].append(agg_match.group(1))
+                    else:
+                        enhanced_programs[prog_name] = {"name": prog_name, "data": str(prog_data)}
+                
+                self.universities[uni_name]["programs"] = enhanced_programs
+            
+            # Add name variations
+            self._add_name_variations(uni_name)
+    
     def _load_from_files(self):
-        """Load university data from all context files."""
+        """Load from context files - overlays on top of hardcoded data"""
         context_files = {
             "University of Ghana": "University of Ghana.txt",
             "University for Development Studies": "University of Development studies.txt",
@@ -317,9 +1005,43 @@ class EnhancedUniversityKnowledgeBase:
                     
                     parsed_data = self.parser.parse_file(content, uni_name)
                     if parsed_data and parsed_data.get("programs"):
-                        self.universities[uni_name] = parsed_data
-                        self._add_name_variations(uni_name)
-                        print(f"✅ Loaded: {uni_name} ({len(parsed_data['programs'])} programs)")
+                        # Merge with existing data
+                        if uni_name in self.universities:
+                            # Preserve existing data and add parsed info
+                            existing = self.universities[uni_name]
+                            # Add raw content
+                            existing["raw_content"] = parsed_data["raw_content"]
+                            # Add parsed programs (enhanced)
+                            for prog_name, prog_data in parsed_data["programs"].items():
+                                if prog_name not in existing.get("programs", {}):
+                                    if "programs" not in existing:
+                                        existing["programs"] = {}
+                                    existing["programs"][prog_name] = prog_data
+                            # Add deadlines
+                            if parsed_data.get("deadlines"):
+                                if "deadlines" not in existing:
+                                    existing["deadlines"] = {}
+                                existing["deadlines"].update(parsed_data["deadlines"])
+                            # Add cutoff points
+                            if parsed_data.get("cutoff_points"):
+                                if "cutoff_points" not in existing:
+                                    existing["cutoff_points"] = {}
+                                existing["cutoff_points"].update(parsed_data["cutoff_points"])
+                            # Add study options
+                            if parsed_data.get("study_options"):
+                                if "study_options" not in existing:
+                                    existing["study_options"] = []
+                                existing["study_options"].extend(parsed_data["study_options"])
+                            # Add special notes
+                            if parsed_data.get("special_notes"):
+                                if "special_notes" not in existing:
+                                    existing["special_notes"] = []
+                                existing["special_notes"].extend(parsed_data["special_notes"])
+                        else:
+                            self.universities[uni_name] = parsed_data
+                            self._add_name_variations(uni_name)
+                        
+                        print(f"✅ Loaded from file: {uni_name} ({len(parsed_data['programs'])} programs)")
                     else:
                         print(f"⚠️ Failed to parse: {uni_name}")
                 except Exception as e:
@@ -329,34 +1051,21 @@ class EnhancedUniversityKnowledgeBase:
     
     def _add_name_variations(self, uni_name: str):
         """Add comprehensive name variations."""
-        variations_map = {
-            "University of Ghana": ["ug", "legon", "university of ghana", "ug legon", "legon university"],
-            "University for Development Studies": ["uds", "tamale", "university for development studies", "development studies"],
-            "University of Energy and Natural Resources": ["uenr", "sunyani", "energy and natural resources", "uenr sunyani"],
-            "University of Education Winneba": ["uew", "winneba", "university of education", "education winneba"],
-            "University of Mines and Technology": ["umat", "tarkwa", "mines and technology", "umat tarkwa"],
-            "University of Health and Allied Sciences": ["uhas", "ho", "health and allied sciences", "uhas ho"],
-            "Ghana Communication Technology University": ["gctu", "communication technology", "gctu tesano"],
-        }
+        # Use the global UNI_NAME_VARIATIONS
+        global UNI_NAME_VARIATIONS
         
-        if uni_name in variations_map:
-            for var in variations_map[uni_name]:
-                self.name_variations[var.lower()] = uni_name
+        for key, value in UNI_NAME_VARIATIONS.items():
+            if value == uni_name:
+                self.name_variations[key] = uni_name
         
+        # Add lowercase version
         self.name_variations[uni_name.lower()] = uni_name
-        # Add common abbreviations
+        
+        # Add short version (remove "University of")
         if "University of" in uni_name:
             short = uni_name.replace("University of", "").strip()
-            if short:
+            if short and short not in self.name_variations:
                 self.name_variations[short.lower()] = uni_name
-    
-    def _load_hardcoded_data(self):
-        """Load hardcoded data for any missing universities."""
-        # Only add if not already loaded
-        for uni_name, data in HARDCODED_UNIVERSITY_DATA.items():
-            if uni_name not in self.universities:
-                self.universities[uni_name] = data
-                self._add_name_variations(uni_name)
     
     def _build_indexes(self):
         """Build comprehensive search indexes."""
@@ -382,10 +1091,9 @@ class EnhancedUniversityKnowledgeBase:
                     self.keyword_index[keyword].add(uni_name)
                 
                 # Index cut-off points
-                cut_offs = prog_data.get("cut_offs", [])
+                cut_offs = prog_data.get("cut_offs", []) if isinstance(prog_data, dict) else []
                 for cutoff in cut_offs:
                     try:
-                        # Extract numeric value from cutoff (e.g., "15", "15(16)", "7/9")
                         numeric = re.search(r'(\d+)', str(cutoff))
                         if numeric:
                             agg = int(numeric.group(1))
@@ -410,7 +1118,7 @@ class EnhancedUniversityKnowledgeBase:
         
         scored = {}
         
-        # STRATEGY 1: Exact university name match (Highest priority)
+        # STRATEGY 1: Exact university name match
         for variation, uni_name in self.name_variations.items():
             if variation in query_lower:
                 if uni_name not in scored:
@@ -438,36 +1146,12 @@ class EnhancedUniversityKnowledgeBase:
             agg_match = re.search(r'aggregate\s*(\d+)', query_lower)
             if agg_match:
                 agg = int(agg_match.group(1))
-                # Find programs with cut-offs around this aggregate
                 for cutoff_agg, programs in self.cutoff_index.items():
-                    if abs(cutoff_agg - agg) <= 5:  # Within 5 points
+                    if abs(cutoff_agg - agg) <= 5:
                         for uni_name, prog_name, cutoff in programs:
                             if uni_name not in scored:
                                 scored[uni_name] = 0
                             scored[uni_name] += 3.0
-        
-        # STRATEGY 5: Course/Subject matching
-        subjects = ['maths', 'physics', 'chemistry', 'biology', 'english', 'science', 'arts', 'business']
-        for subject in subjects:
-            if subject in query_lower:
-                for uni_name, data in self.universities.items():
-                    # Check if university offers programs in this area
-                    text = json.dumps(data.get("programs", {})).lower()
-                    if subject in text:
-                        if uni_name not in scored:
-                            scored[uni_name] = 0
-                        scored[uni_name] += 2.0
-        
-        # STRATEGY 6: Location matching
-        location_keywords = ['accra', 'kumasi', 'tamale', 'sunyani', 'winneba', 'tarkwa', 'ho', 'tesano']
-        for loc in location_keywords:
-            if loc in query_lower:
-                for uni_name, data in self.universities.items():
-                    content = json.dumps(data).lower()
-                    if loc in content:
-                        if uni_name not in scored:
-                            scored[uni_name] = 0
-                        scored[uni_name] += 2.0
         
         # Sort by score
         sorted_results = sorted(scored.items(), key=lambda x: x[1], reverse=True)
@@ -499,7 +1183,7 @@ class EnhancedUniversityKnowledgeBase:
                any(word in json.dumps(prog_data).lower() for word in query_lower.split()):
                 matches.append(prog_name)
         
-        return matches[:5]  # Limit to 5 matches
+        return matches[:5]
     
     def get_university(self, name: str) -> Optional[Dict[str, Any]]:
         """Get university data by name with variation matching."""
@@ -522,108 +1206,14 @@ class EnhancedUniversityKnowledgeBase:
                         "difference": abs(cutoff_agg - aggregate)
                     })
         return sorted(results, key=lambda x: x["difference"])
-    
-    def recommend_programs(self, aggregate: int, subjects: List[str] = None, interest: str = None) -> List[Dict[str, Any]]:
-        """Recommend programs based on aggregate and optional subject/interest filters."""
-        candidates = self.find_programs_by_cutoff(aggregate)
-        
-        if subjects:
-            candidates = [c for c in candidates if any(subj.lower() in json.dumps(self.universities.get(c["university"], {})).lower() for subj in subjects)]
-        
-        if interest:
-            candidates = [c for c in candidates if interest.lower() in c["program"].lower() or interest.lower() in c["university"].lower()]
-        
-        return candidates[:10]  # Top 10 recommendations
 
 # ============================================================================
-# ENHANCED CONTEXT BUILDING
-# ============================================================================
-
-def build_university_context(uni_name: str, uni_data: Dict[str, Any]) -> str:
-    """Build comprehensive context from university data."""
-    
-    programs = uni_data.get("programs", {})
-    deadlines = uni_data.get("deadlines", {})
-    admission = uni_data.get("admission_requirements", {})
-    contact = uni_data.get("contact", {})
-    fees = uni_data.get("fees", {})
-    cutoff_points = uni_data.get("cutoff_points", {})
-    study_options = uni_data.get("study_options", [])
-    special_notes = uni_data.get("special_notes", [])
-    
-    # Build program list with cut-offs
-    program_lines = []
-    for prog_name, prog_data in programs.items():
-        if isinstance(prog_data, dict):
-            parts = [f"  - **{prog_name}**"]
-            if prog_data.get("cut_offs"):
-                parts.append(f"Cut-off: {', '.join(prog_data['cut_offs'])}")
-            if prog_data.get("requirements"):
-                parts.append(f"Requirements: {prog_data['requirements']}")
-            program_lines.append(" | ".join(parts))
-        else:
-            program_lines.append(f"  - {prog_name}")
-    
-    # Build deadline info
-    deadline_lines = []
-    for key, val in deadlines.items():
-        if val:
-            deadline_lines.append(f"  - {key.replace('_', ' ').title()}: {val}")
-    
-    # Build fee info
-    fee_lines = []
-    for key, val in fees.items():
-        if val:
-            fee_lines.append(f"  - {key.replace('_', ' ').title()}: GH¢{val}" if "fee" in key else f"  - {key.replace('_', ' ').title()}: {val}")
-    
-    # Build study options
-    study_line = f"  - Study Options: {', '.join(study_options)}" if study_options else ""
-    
-    context = f"""
-# {uni_name}
-
-## Programs Offered:
-{chr(10).join(program_lines) if program_lines else '  - See website for full list'}
-
-## Admission Deadlines:
-{chr(10).join(deadline_lines) if deadline_lines else '  - Check university website'}
-
-## Study Options:
-{study_line if study_line else '  - Contact university for study options'}
-
-## Application Fees:
-{chr(10).join(fee_lines) if fee_lines else '  - Check university website'}
-
-## Contact Information:
-  - Phone: {contact.get('phone', 'N/A')}
-  - Email: {contact.get('email', 'N/A')}
-  - Website: {contact.get('website', 'N/A')}
-
-## Special Notes:
-{chr(10).join([f'  - {note}' for note in special_notes]) if special_notes else '  - None'}
-"""
-    return context
-
-# ============================================================================
-# MAIN APP (Using enhanced components)
-# ============================================================================
-
-# Initialize knowledge base
-university_kb = EnhancedUniversityKnowledgeBase()
-
-# FastAPI app setup
-app = FastAPI(title="Glinax RAG+CAG Service", version="2.0.0")
-
-# ... (rest of FastAPI code remains the same, using the enhanced functions)
-
-# ============================================================================
-# ENHANCED SEARCH FUNCTION
+# ENHANCED SEARCH FUNCTION - KEEPS ORIGINAL SIGNATURE
 # ============================================================================
 
 def search_local_knowledge(query: str, university_name: str = None) -> Dict[str, Any]:
-    """Enhanced search using the knowledge base."""
+    """Enhanced search using the knowledge base - maintains original interface."""
     
-    # If a specific university is mentioned, try to get it
     if university_name:
         uni_data = university_kb.get_university(university_name)
         if uni_data:
@@ -638,16 +1228,13 @@ def search_local_knowledge(query: str, university_name: str = None) -> Dict[str,
                 "confidence": 0.95
             }
     
-    # Search the knowledge base
     results = university_kb.search(query)
     
-    # Check for cut-off based queries
     agg_match = re.search(r'aggregate\s*(\d+)', query.lower())
     if agg_match and results:
         aggregate = int(agg_match.group(1))
         program_matches = university_kb.find_programs_by_cutoff(aggregate)
         if program_matches:
-            # Add program matches as additional context
             for match in program_matches[:5]:
                 uni_data = university_kb.get_university(match["university"])
                 if uni_data:
@@ -669,73 +1256,383 @@ def search_local_knowledge(query: str, university_name: str = None) -> Dict[str,
     return {"results": [], "confidence": 0.0}
 
 # ============================================================================
-# ENHANCED SYSTEM PROMPT
+# ORIGINAL BUILD_CONTEXT FUNCTION - MODIFIED TO USE ENHANCED DATA
 # ============================================================================
 
-def build_system_prompt(is_coach_mode: bool = False) -> str:
-    """Build the system prompt with specific rules."""
+def build_university_context(uni_name: str, uni_data: Dict[str, Any]) -> str:
+    """Build comprehensive context - enhanced but maintains original interface."""
     current_year = datetime.now().year
     
-    base_prompt = f"""You are Cerkyl — a smart, friendly, and knowledgeable AI admission counsellor built specifically for Ghanaian SHS graduates.
+    programs = uni_data.get("programs", {})
+    admission = uni_data.get("admission_requirements", {})
+    deadlines = uni_data.get("deadlines", {})
+    contact = uni_data.get("contact", {})
+    scholarships = uni_data.get("scholarships", {})
+    study_options = uni_data.get("study_options", [])
+    special_notes = uni_data.get("special_notes", [])
+    
+    # Build program list with cut-offs from enhanced data
+    program_lines = []
+    for prog_name, prog_data in programs.items():
+        if isinstance(prog_data, dict):
+            parts = [f"  - **{prog_name}**"]
+            if "duration" in prog_data and prog_data["duration"]:
+                parts.append(f"Duration: {prog_data['duration']}")
+            if "cut_offs" in prog_data and prog_data["cut_offs"]:
+                parts.append(f"Cut-off: {', '.join(prog_data['cut_offs'])}")
+            if "requirements" in prog_data and prog_data["requirements"]:
+                parts.append(f"Requirements: {prog_data['requirements']}")
+            if "career_prospects" in prog_data and prog_data["career_prospects"]:
+                parts.append(f"Careers: {prog_data['career_prospects']}")
+            program_lines.append(" | ".join(parts))
+        else:
+            program_lines.append(f"  - {prog_name}: {str(prog_data)[:100]}")
+    
+    # Build deadlines
+    deadline_lines = []
+    for key, val in deadlines.items():
+        if val:
+            deadline_lines.append(f"  - {key.replace('_', ' ').title()}: {val}")
+    
+    # Build study options
+    study_line = f"  - Study Options: {', '.join(study_options)}" if study_options else ""
+    
+    # Build scholarships
+    scholarship_lines = []
+    for key, val in scholarships.items():
+        if val:
+            scholarship_lines.append(f"  - {key}: {val}")
+    
+    context = f"""UNIVERSITY: {uni_name}
+Location: {uni_data.get("location", "Ghana")}
+Established: {uni_data.get("established", "N/A")}
+Website: {uni_data.get("website", "N/A")}
+
+PROGRAMS OFFERED:
+{chr(10).join(program_lines) if program_lines else "  - See university website for full list"}
+
+ADMISSION DEADLINES:
+{chr(10).join(deadline_lines) if deadline_lines else "  - Check university website"}
+
+{study_line if study_line else ""}
+
+ADMISSION REQUIREMENTS:
+  - General: {admission.get("general", "WASSCE with minimum credits")[:500] if admission.get("general") else "  - WASSCE with minimum credits"}
+  - Application Deadline: {admission.get("application_deadline", "Check university website")}
+  - Entrance Exam: {admission.get("entrance_exam", "Not specified")}
+  - Online Portal: {admission.get("online_portal", uni_data.get("website", ""))}
+
+FEES ({current_year}):
+  - Application Fee: {uni_data.get("fees", {}).get("application_fee", "Contact university")}
+  - Ghanaian Students: {uni_data.get("fees", {}).get("tuition_fees", "Contact university for current rates")}
+  - International Students: {uni_data.get("fees", {}).get("international_fee", "Contact university for current rates")}
+
+SCHOLARSHIPS:
+{chr(10).join(scholarship_lines) if scholarship_lines else "  - Contact university for scholarship information"}
+
+SPECIAL NOTES:
+{chr(10).join([f"  - {note}" for note in special_notes]) if special_notes else "  - None"}
+
+CONTACT:
+  - Phone: {contact.get("phone", "N/A")}
+  - Email: {contact.get("email", "N/A")}
+  - Address: {contact.get("address", "N/A")}
+"""
+    return context
+
+# ============================================================================
+# ORIGINAL FUNCTIONS - PRESERVED
+# ============================================================================
+
+async def initialize_services():
+    """Initialize all services on startup - preserved"""
+    global embedding_model, groq_client, db_client, GHANA_UNIVERSITIES_KNOWLEDGE
+
+    print(" Initializing Glinax RAG+CAG Services...")
+
+    try:
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        if groq_api_key:
+            try:
+                groq_client = AsyncGroq(api_key=groq_api_key)
+                print(" Groq client initialized")
+            except Exception as groq_error:
+                print(f" Groq client initialization failed: {groq_error}")
+                groq_client = None
+        else:
+            print(" GROQ_API_KEY not found, will use fallback responses")
+
+        mongodb_uri = os.getenv("MONGODB_URI")
+        if mongodb_uri:
+            try:
+                db_client = motor.motor_asyncio.AsyncIOMotorClient(mongodb_uri)
+                await db_client.admin.command("ping")
+                print(" MongoDB connected successfully")
+                await seed_and_load_universities()
+            except Exception as mongo_error:
+                print(f" MongoDB connection failed: {mongo_error}")
+                db_client = None
+        else:
+            print(" MongoDB URI not found — using hardcoded knowledge base")
+
+        print(" Services initialization complete")
+
+    except Exception as e:
+        print(f" Critical service initialization error: {e}")
+        raise
+
+
+async def seed_and_load_universities():
+    """Seed MongoDB with university data - preserved but enhanced"""
+    global GHANA_UNIVERSITIES_KNOWLEDGE
+    db = db_client[os.getenv("DB_NAME", "glinax_chatbot_db")]
+    col = db["universities_knowledge"]
+
+    if await col.count_documents({}) == 0:
+        docs = [
+            {"name": name, **data} for name, data in GHANA_UNIVERSITIES_KNOWLEDGE.items()
+        ]
+        await col.insert_many(docs)
+        print(f" Seeded {len(docs)} universities into MongoDB")
+    else:
+        print(" Universities collection already seeded; skipping overwrite.")
+
+    cursor = col.find({})
+    loaded = {}
+    async for doc in cursor:
+        name = doc.pop("name", None)
+        doc.pop("_id", None)
+        if name:
+            loaded[name] = doc
+    
+    if loaded:
+        GHANA_UNIVERSITIES_KNOWLEDGE = loaded
+        print(f" University knowledge base loaded from MongoDB ({len(loaded)} entries)")
+
+
+# ============================================================================
+# OTHER ORIGINAL FUNCTIONS - PRESERVED
+# ============================================================================
+
+async def search_web_realtime(query: str) -> Dict[str, Any]:
+    """Original search_web_realtime function - preserved"""
+    try:
+        serpapi_key = os.getenv("SERPAPI_KEY")
+        if serpapi_key:
+            return await search_with_serpapi(query, serpapi_key)
+
+        from duckduckgo_search import DDGS
+
+        ddgs = DDGS()
+        current_year = datetime.now().year
+        enhanced_query = f"{query} Ghana universities {current_year} official site"
+        search_results = []
+        search_items = await asyncio.to_thread(
+            lambda: list(ddgs.text(enhanced_query, region="wt-wt", safesearch="moderate", max_results=8))
+        )
+        for search_item in search_items:
+            if not isinstance(search_item, dict):
+                continue
+            url = search_item.get("href") or search_item.get("url") or ""
+            title = search_item.get("title") or ""
+            snippet = search_item.get("body") or search_item.get("snippet") or ""
+            url_domain = (url or "").lower()
+            source_type = (
+                "official_website"
+                if any(
+                    d in url_domain
+                    for d in [
+                        "ug.edu.gh",
+                        "knust.edu.gh",
+                        "ucc.edu.gh",
+                        "uds.edu.gh",
+                        "upsa.edu.gh",
+                        "uenr.edu.gh",
+                        "uhas.edu.gh",
+                    ]
+                )
+                else "web_search"
+            )
+            search_results.append(
+                {
+                    "title": title,
+                    "url": url,
+                    "snippet": snippet,
+                    "source": source_type,
+                    "priority": "high"
+                    if source_type == "official_website"
+                    else "medium",
+                }
+            )
+        return {"results": search_results, "confidence": 0.75 if search_results else 0.0}
+    except Exception as e:
+        print(f" Web search error (continuing with local knowledge): {e}")
+        return {"results": [], "confidence": 0.0}
+
+
+async def search_with_serpapi(query: str, api_key: str) -> Dict[str, Any]:
+    """Original search_with_serpapi function - preserved"""
+    try:
+        current_year = datetime.now().year
+        enhanced_query = f"{query} Ghana universities admission {current_year} latest"
+
+        url = "https://serpapi.com/search"
+        params = {
+            "engine": "google",
+            "q": enhanced_query,
+            "api_key": api_key,
+            "num": 8,
+            "location": "Ghana",
+            "hl": "en",
+            "gl": "gh",
+        }
+
+        response = requests.get(url, params=params, timeout=15)
+        serpapi_payload = response.json()
+
+        search_results = []
+        for organic_result in serpapi_payload.get("organic_results", [])[:5]:
+            url = organic_result.get("link", "")
+            if any(
+                domain in url.lower()
+                for domain in [
+                    "ug.edu.gh",
+                    "knust.edu.gh",
+                    "ucc.edu.gh",
+                    "uds.edu.gh",
+                    "upsa.edu.gh",
+                ]
+            ):
+                search_results.append(
+                    {
+                        "title": organic_result.get("title", ""),
+                        "url": url,
+                        "snippet": organic_result.get("snippet", ""),
+                        "source": "official_website",
+                        "priority": "high",
+                    }
+                )
+            else:
+                search_results.append(
+                    {
+                        "title": organic_result.get("title", ""),
+                        "url": url,
+                        "snippet": organic_result.get("snippet", ""),
+                        "source": "web_search",
+                        "priority": "medium",
+                    }
+                )
+
+        return {"results": search_results, "confidence": 0.8 if search_results else 0.0}
+
+    except Exception as e:
+        print(f" SerpAPI error: {e}")
+        return {"results": [], "confidence": 0.0}
+
+
+# ============================================================================
+# ENHANCED RESPONSE GENERATION - KEEPS ORIGINAL SIGNATURE
+# ============================================================================
+
+async def generate_response_with_groq(
+    query: str, context: str, sources: List[Dict], user_profile: Dict = None, chat_history: List[Dict] = None
+) -> str:
+    """Enhanced response generation - maintains original signature"""
+    try:
+        if not groq_client:
+            return generate_smart_fallback_response(
+                query, context, sources, user_profile
+            )
+
+        current_year = datetime.now().year
+        
+        system_prompt = f"""You are Cerkyl — a smart, friendly, and knowledgeable AI admission counsellor built specifically for Ghanaian SHS graduates.
 
 You have access to detailed information about Ghanaian universities including:
 - Program names with cut-off points
 - Subject requirements for each program  
 - Application deadlines
 - Entrance exam dates
-- Entry requirements for different qualifications (WASSCE, SSSCE, GCE, HND, Mature)
-- Study options (Day, Evening, Weekend, Sandwich, Distance)
-- Application fees
+- Entry requirements for different qualifications
+- Study options
 
-**CRITICAL RULES - STRICTLY FOLLOW:**
-
-1. **USE ONLY PROVIDED DATA**: Only state a specific number, date, name, or requirement if it appears in the "Available university information" section. Never invent or guess numbers.
-
-2. **CUT-OFF POINTS**: Always provide the exact cut-off points from the data. If multiple cut-offs exist (e.g., regular vs fee-paying), mention all.
-
-3. **SUBJECT REQUIREMENTS**: Always mention specific subject requirements (e.g., "B3 in Elective Maths", "C6 in Chemistry").
-
-4. **DEADLINES**: Always include the application deadline when discussing any program. Current year: {current_year}
-
-5. **ENTRANCE EXAMS**: Mention if the program requires an entrance exam and when it will be held if that information is available.
-
-6. **HONESTY**: If a student's aggregate doesn't meet the cut-off, say so clearly and suggest alternatives.
-
-7. **RECOMMENDATIONS**: When recommending programs, always reference the specific cut-off points and requirements.
-
-8. **STUDY OPTIONS**: Mention study options (Day/Evening/Weekend) if available.
-
-9. **BE CONCISE**: Answer what was asked. Don't dump all information.
+**CRITICAL RULES:**
+1. **USE ONLY PROVIDED DATA**: Only state specific numbers, dates, or requirements if they appear in the "Available university information" section.
+2. **CUT-OFF POINTS**: Provide exact cut-off points from the data. Mention multiple cut-offs if available.
+3. **SUBJECT REQUIREMENTS**: Always mention specific subject requirements.
+4. **DEADLINES**: Always include application deadlines when discussing programs.
+5. **HONESTY**: If a student's aggregate doesn't meet the cut-off, say so clearly and suggest alternatives.
+6. **BE CONCISE**: Answer what was asked. Don't dump all information.
 
 **RESPONSE FORMAT:**
 - Use markdown for readability
-- Start with the most relevant information
 - Include specific numbers when available
-- End with a helpful follow-up question or next step
-"""
+- End with a helpful follow-up question
 
-    if is_coach_mode:
-        return base_prompt + """
-**COACH MODE - SPECIAL RULES:**
-- Ask one insightful question at a time
-- Guide them to discover their path naturally
-- Don't jump to recommendations too quickly
-- Focus on understanding their strengths and interests
-"""
-    
-    return base_prompt
+Current year: {current_year}"""
 
-# ============================================================================
-# ENHANCED FALLBACK RESPONSE
-# ============================================================================
+        # Build student profile section
+        profile_section = ""
+        if user_profile:
+            field_labels = {
+                "shs_program": "SHS Programme",
+                "subjects": "Subjects Studied",
+                "wassce_grade": "WASSCE Aggregate/Grade",
+                "career_goal": "Career Goal",
+                "interests": "Interests",
+                "location_preference": "Location Preference",
+                "preferred_program": "Preferred Programme",
+                "budget": "Budget / Financial Situation",
+                "name": "Student Name",
+            }
+            profile_lines = []
+            for key, label in field_labels.items():
+                val = user_profile.get(key)
+                if val:
+                    profile_lines.append(f"  - {label}: {val}")
+            for key, val in user_profile.items():
+                if key not in field_labels and val and key not in ("raw_context",):
+                    profile_lines.append(f"  - {key.replace('_', ' ').title()}: {val}")
+            if profile_lines:
+                profile_section = (
+                    "STUDENT PROFILE:\n" + "\n".join(profile_lines) + "\n\n"
+                )
+
+        user_message = f"""{profile_section}Student's question: {query}
+
+Available university information:
+{context}
+
+Respond naturally and helpfully. Base your answer strictly on the information provided above."""
+        
+        messages_array = [{"role": "system", "content": system_prompt}]
+        if chat_history:
+            recent_history = chat_history[-5:] if len(chat_history) > 5 else chat_history
+            messages_array.extend(recent_history)
+        messages_array.append({"role": "user", "content": user_message})
+
+        chat_completion = await groq_client.chat.completions.create(
+            messages=messages_array,
+            model=GROQ_MODEL,
+            temperature=GROQ_TEMPERATURE,
+            max_completion_tokens=2048,
+            reasoning_effort=GROQ_REASONING_EFFORT,
+        )
+
+        raw_response = chat_completion.choices[0].message.content
+        return sanitize_markdown_urls(raw_response)
+
+    except Exception as e:
+        print(f" Groq generation error: {e}")
+        return generate_smart_fallback_response(query, context, sources, user_profile)
+
 
 def generate_smart_fallback_response(
     query: str, context: str, sources: List[Dict], user_profile: Dict = None
 ) -> str:
-    """Generate fallback response using the knowledge base directly."""
+    """Enhanced fallback response - uses knowledge base"""
     query_lower = query.lower()
     
-    # Try to find relevant info from knowledge base
     results = university_kb.search(query)
     
     if results:
@@ -747,7 +1644,6 @@ def generate_smart_fallback_response(
             matched_progs = result.get("matched_programs", [])
             
             if result.get("matched_program"):
-                # This is a program match
                 prog_name = result["matched_program"]
                 cutoff = result["matched_cutoff"]
                 prog_data = uni_data.get("programs", {}).get(prog_name, {})
@@ -757,26 +1653,27 @@ def generate_smart_fallback_response(
 ### {prog_name} at {uni_name}
 - **Cut-off Point:** {cutoff}
 - **Subject Requirements:** {reqs}
-- **Study Options:** {', '.join(uni_data.get('study_options', ['See website']))}
+- **Study Options:** {', '.join(uni_data.get('study_options', ['See website'])) if uni_data.get('study_options') else 'See website'}
 """)
             elif matched_progs:
-                # Show matched programs                prog_list = []
+                prog_list = []
                 for p in matched_progs[:3]:
                     p_data = uni_data.get("programs", {}).get(p, {})
-                    cutoff = ', '.join(p_data.get("cut_offs", ["N/A"]))
-                    prog_list.append(f"  - {p}: Cut-off {cutoff}")
+                    if isinstance(p_data, dict):
+                        cutoff = ', '.join(p_data.get("cut_offs", ["N/A"]))
+                        prog_list.append(f"  - {p}: {cutoff}")
+                    else:
+                        prog_list.append(f"  - {p}")
                 
                 response_parts.append(f"""
 ### {uni_name}
 **Programs matching your query:**
 {chr(10).join(prog_list)}
 
-**Study Options:** {', '.join(uni_data.get('study_options', ['See website']))}
 **Application Deadline:** {uni_data.get('deadlines', {}).get('application_deadline', 'Check website')}
 **Contact:** {uni_data.get('contact', {}).get('phone', 'N/A')}
 """)
             else:
-                # General university info
                 programs = uni_data.get("programs", {})
                 program_list = []
                 for pname, pdata in list(programs.items())[:5]:
@@ -791,7 +1688,6 @@ def generate_smart_fallback_response(
 **Programs with Cut-off Points:**
 {chr(10).join(program_list) if program_list else "  - See website for full list"}
 
-**Study Options:** {', '.join(uni_data.get('study_options', ['See website']))}
 **Application Deadline:** {uni_data.get('deadlines', {}).get('application_deadline', 'Check website')}
 **Contact:** {uni_data.get('contact', {}).get('phone', 'N/A')}
 """)
@@ -799,7 +1695,7 @@ def generate_smart_fallback_response(
         if response_parts:
             return "\n\n---\n\n".join(response_parts)
     
-    # Ultimate fallback with all universities
+    # Ultimate fallback - list all universities
     uni_list = []
     for uni_name, data in university_kb.universities.items():
         prog_count = len(data.get("programs", {}))
@@ -821,29 +1717,682 @@ For specific information, please ask about:
 - **Entrance exam dates**
 - **Program recommendations** based on your aggregate
 - **Study options** (Day/Evening/Weekend)
-- **Application fees**
 
 What specific information would you like about any of these universities?
 """
 
+
 # ============================================================================
-# INITIALIZATION
+# INITIALIZE KNOWLEDGE BASE
 # ============================================================================
 
-# Hardcoded data as fallback
-HARDCODED_UNIVERSITY_DATA = {
-    "Kwame Nkrumah University of Science and Technology": {
-        "location": "Kumasi, Ashanti Region",
-        "established": "1952",
-        "website": "www.knust.edu.gh",
-        "contact": {"phone": "+233-32-206-0331", "email": "admissions@knust.edu.gh"},
-        "programs": {}
-    },
-    # ... other hardcoded data
-}
+university_kb = EnhancedUniversityKnowledgeBase()
 
-# Initialize MongoDB and Groq clients
-# ... (rest of the FastAPI app code remains the same)
+# ============================================================================
+# FASTAPI STARTUP EVENT - PRESERVED
+# ============================================================================
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services when app starts"""
+    await initialize_services()
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "service": "glinax-rag", "version": "2.0.0"}
+
+
+# ============================================================================
+# ORIGINAL FASTAPI ENDPOINTS - PRESERVED
+# ============================================================================
+
+@app.get("/api/chat/conversations")
+async def list_conversations(current=Depends(get_current_user)):
+    if not db_client:
+        raise HTTPException(status_code=503, detail="Database not available")
+    try:
+        db = db_client[os.getenv("DB_NAME", "glinax_chatbot_db")]
+        effective_user_id = current["user_id"]
+        pipeline = [
+            {"$match": {"user_id": effective_user_id}},
+            {"$sort": {"conversation_id": 1, "timestamp": 1}},
+            {
+                "$group": {
+                    "_id": "$conversation_id",
+                    "title": {"$first": "$query"},
+                    "last_active": {"$max": "$timestamp"},
+                    "message_count": {"$sum": 1},
+                }
+            },
+            {"$sort": {"last_active": -1}},
+        ]
+        cursor = db.rag_logs.aggregate(pipeline)
+        items = []
+        async for doc in cursor:
+            last = doc.get("last_active")
+            items.append(
+                {
+                    "conversation_id": str(doc.get("_id")),
+                    "title": (doc.get("title") or "Untitled conversation")[:120],
+                    "last_active_date": last.isoformat()
+                    if isinstance(last, datetime)
+                    else str(last or ""),
+                    "message_count": int(doc.get("message_count") or 0),
+                }
+            )
+        return {"success": True, "history": items}
+    except Exception as e:
+        print(f" Conversations list error: {e}")
+        raise HTTPException(
+            status_code=500, detail="Failed to fetch conversation history"
+        )
+
+
+@app.get("/api/chat/conversations-demo")
+async def list_conversations_demo():
+    now = datetime.now().isoformat()
+    demo = [
+        {
+            "conversation_id": "demo-1",
+            "title": f"University of Ghana fees {datetime.now().year}",
+            "last_active_date": now,
+            "message_count": 5,
+        },
+        {
+            "conversation_id": "demo-2",
+            "title": "KNUST Computer Engineering requirements",
+            "last_active_date": now,
+            "message_count": 8,
+        },
+        {
+            "conversation_id": "demo-3",
+            "title": "Ashesi University programs and scholarships",
+            "last_active_date": now,
+            "message_count": 6,
+        },
+        {
+            "conversation_id": "demo-4",
+            "title": "UDS Agriculture program admission",
+            "last_active_date": now,
+            "message_count": 4,
+        },
+        {
+            "conversation_id": "demo-5",
+            "title": "UPSA Business and Accounting opportunities",
+            "last_active_date": now,
+            "message_count": 7,
+        },
+    ]
+    return {"success": True, "history": demo}
+
+
+@app.get("/history/{user_id}")
+async def get_history(user_id: str):
+    if not db_client:
+        raise HTTPException(status_code=503, detail="Database not available")
+    try:
+        db = db_client[os.getenv("DB_NAME", "glinax_chatbot_db")]
+        pipeline = [
+            {"$match": {"user_id": user_id}},
+            {"$sort": {"conversation_id": 1, "timestamp": 1}},
+            {
+                "$group": {
+                    "_id": "$conversation_id",
+                    "title": {"$first": "$query"},
+                    "last_active": {"$max": "$timestamp"},
+                    "message_count": {"$sum": 1},
+                }
+            },
+            {"$sort": {"last_active": -1}},
+        ]
+        cursor = db.rag_logs.aggregate(pipeline)
+        items = []
+        async for doc in cursor:
+            items.append(
+                {
+                    "conversation_id": doc.get("_id"),
+                    "title": (doc.get("title") or "Untitled conversation")[:120],
+                    "last_active": (
+                        doc.get("last_active").isoformat()
+                        if isinstance(doc.get("last_active"), datetime)
+                        else str(doc.get("last_active"))
+                    ),
+                    "message_count": int(doc.get("message_count", 0)),
+                }
+            )
+        return {"success": True, "history": items}
+    except Exception as e:
+        print(f" History aggregation error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch history")
+
+
+@app.get("/history/chat/{conversation_id}")
+async def get_conversation(conversation_id: str):
+    if not db_client:
+        raise HTTPException(status_code=503, detail="Database not available")
+    try:
+        db = db_client[os.getenv("DB_NAME", "glinax_chatbot_db")]
+        cursor = db.rag_logs.find({"conversation_id": conversation_id}).sort(
+            "timestamp", 1
+        )
+        thread = []
+        async for doc in cursor:
+            ts = doc.get("timestamp")
+            ts_iso = ts.isoformat() if isinstance(ts, datetime) else str(ts)
+            user_msg = doc.get("query")
+            assistant_msg = doc.get("response")
+            if user_msg:
+                thread.append(
+                    {"role": "user", "content": user_msg, "timestamp": ts_iso}
+                )
+            if assistant_msg:
+                thread.append(
+                    {
+                        "role": "assistant",
+                        "content": assistant_msg,
+                        "timestamp": ts_iso,
+                        "meta": {
+                            "confidence": doc.get("confidence"),
+                            "sources": doc.get("sources", []),
+                        },
+                    }
+                )
+        return {"success": True, "conversation_id": conversation_id, "messages": thread}
+    except Exception as e:
+        print(f" Conversation fetch error: {e}")
+        raise HTTPException(
+            status_code=500, detail="Failed to fetch conversation thread"
+        )
+
+
+@app.post("/respond", response_model=ChatResponse)
+async def respond_to_query(request: ChatRequest):
+    """Main RAG+CAG endpoint - preserved"""
+    start_time = datetime.now()
+
+    try:
+        user_profile = {}
+        if request.user_context and isinstance(request.user_context, dict):
+            assessment_data = request.user_context.get("assessment_data", None)
+            if assessment_data and isinstance(assessment_data, dict):
+                user_profile.update(assessment_data)
+            skip_keys = {
+                "is_assessment_request",
+                "assessment_data",
+                "has_files",
+                "file_count",
+                "file_info",
+            }
+            for k, v in request.user_context.items():
+                if k not in skip_keys and v:
+                    user_profile.setdefault(k, v)
+
+        user_message = (request.message or "").strip()
+        if not user_message:
+            return ChatResponse(
+                success=False,
+                reply="I need a question or message to help you.",
+                sources=[],
+                confidence=0.0,
+                timestamp=datetime.now().isoformat(),
+                processing_time=0.0,
+                model_used="hybrid-rag",
+            )
+
+        print(f"📥 Processing query: {user_message[:100]}...")
+
+        local_matches = search_local_knowledge(user_message, request.university_name)
+        print(
+            f"🔍 Local search found {len(local_matches['results'])} results (confidence={local_matches.get('confidence', 0.0):.2f})"
+        )
+
+        source_documents: List[Dict[str, Any]] = []
+        context_segments: List[str] = []
+
+        for search_result in local_matches.get("results", []):
+            source_documents.append(
+                {
+                    "source": search_result.get("source"),
+                    "type": "local_knowledge",
+                    "confidence": search_result.get("relevance", 0.0),
+                }
+            )
+            context_segments.append(
+                build_university_context(
+                    search_result.get("source", ""), search_result.get("data", {})
+                )
+            )
+
+        if local_matches.get("confidence", 0.0) > 0.95:
+            print("⚡ Fast Path: Skipping web search due to exact university match")
+            combined_context = "\n\n".join(context_segments)
+            combined_context = combined_context[:6000]
+            final_confidence = local_matches.get("confidence", 0.8)
+            if groq_client and (final_confidence > 0.3 or combined_context):
+                response_text = await generate_response_with_groq(
+                    user_message, combined_context, source_documents, user_profile, request.chat_history
+                )
+            else:
+                response_text = generate_smart_fallback_response(
+                    user_message, combined_context, source_documents, user_profile
+                )
+        else:
+            print("🌐 Fallback path: Running real-time web search...")
+            web_matches = await search_web_realtime(user_message)
+            print(
+                f"🌐 Real-time search found {len(web_matches.get('results', []))} results"
+            )
+
+            for web_match in web_matches.get("results", []):
+                source_documents.append(
+                    {
+                        "source": web_match.get("title", "Web Result"),
+                        "url": web_match.get("url", ""),
+                        "type": web_match.get("source", "web_search"),
+                        "confidence": 0.7,
+                    }
+                )
+                snippet = web_match.get("snippet") or web_match.get("body") or ""
+                context_segments.append(f"Web Result: {snippet}")
+
+            combined_context = "\n\n".join(context_segments)
+            combined_context = combined_context[:6000]
+            final_confidence = max(
+                local_matches.get("confidence", 0.0), web_matches.get("confidence", 0.0)
+            )
+
+            if groq_client and (final_confidence > 0.3 or combined_context):
+                response_text = await generate_response_with_groq(
+                    user_message, combined_context, source_documents, user_profile, request.chat_history
+                )
+            else:
+                response_text = generate_smart_fallback_response(
+                    user_message, combined_context, source_documents, user_profile
+                )
+
+        processing_time = (datetime.now() - start_time).total_seconds()
+        print(
+            f"✅ Response generated in {processing_time:.2f}s with confidence {final_confidence:.2f}"
+        )
+
+        if db_client:
+            try:
+                db = db_client[os.getenv("DB_NAME", "glinax_chatbot_db")]
+                await db.rag_logs.insert_one(
+                    {
+                        "query": request.message,
+                        "response": response_text,
+                        "confidence": final_confidence,
+                        "sources": source_documents,
+                        "processing_time": processing_time,
+                        "timestamp": datetime.now(),
+                        "conversation_id": request.conversation_id,
+                        "user_id": request.user_id,
+                    }
+                )
+            except Exception as e:
+                print(f" Failed to save to MongoDB: {e}")
+
+        return ChatResponse(
+            success=True,
+            reply=response_text,
+            sources=source_documents,
+            confidence=final_confidence,
+            timestamp=datetime.now().isoformat(),
+            processing_time=processing_time,
+            model_used="hybrid-rag-v2",
+        )
+
+    except Exception as e:
+        print(f" RAG processing error: {e}")
+
+        try:
+            fallback_response = generate_smart_fallback_response(
+                request.message, "", [], user_profile if "user_profile" in dir() else {}
+            )
+
+            return ChatResponse(
+                success=True,
+                reply=fallback_response,
+                sources=[
+                    {
+                        "source": "Local Knowledge Base",
+                        "type": "fallback",
+                        "confidence": 0.5,
+                    }
+                ],
+                confidence=0.5,
+                timestamp=datetime.now().isoformat(),
+                model_used="emergency-fallback",
+            )
+        except Exception as fallback_error:
+            print(f" Even fallback failed: {fallback_error}")
+
+            return ChatResponse(
+                success=False,
+                reply="I apologize, but I'm having technical difficulties. Please try asking about specific universities or programs, and I'll do my best to help with admissions information.",
+                sources=[],
+                confidence=0.0,
+                timestamp=datetime.now().isoformat(),
+                model_used="minimal-fallback",
+            )
+
+
+@app.post("/respond-with-files", response_model=ChatResponse)
+async def respond_with_files(
+    message: str = Form(...),
+    conversation_id: str = Form(...),
+    user_id: str = Form(None),
+    university_name: str = Form(None),
+    user_context: str = Form(None),
+    files: List[UploadFile] = File(None),
+):
+    """Enhanced endpoint for handling file uploads - preserved"""
+    start_time = datetime.now()
+
+    try:
+        user_message = (message or "").strip()
+        if not user_message and not files:
+            return ChatResponse(
+                success=False,
+                reply="Please provide a message or at least one file for analysis.",
+                sources=[],
+                confidence=0.0,
+                timestamp=datetime.now().isoformat(),
+                processing_time=0.0,
+                model_used="hybrid-rag-with-files",
+            )
+
+        print(f" Processing message with files: {user_message[:100]}")
+        print(f" File count: {len(files) if files else 0}")
+
+        file_contents = []
+        file_info = []
+        extracted_content_parts: List[str] = []
+
+        if files:
+            for file in files:
+                if file and file.filename:
+                    try:
+                        print(f"📄 Processing file: {file.filename} ({file.content_type})")
+                        content = await file.read()
+
+                        if file.content_type == "text/plain":
+                            try:
+                                text_content = content.decode("utf-8", errors="ignore")
+                                preview = text_content.strip()[:4000]
+                                file_contents.append(f"📄 TEXT: {file.filename}\n{preview}")
+                                if text_content:
+                                    extracted_content_parts.append(text_content.strip())
+                            except Exception as e:
+                                file_contents.append(f"📄 TEXT extraction failed for {file.filename}: {e}")
+
+                        elif file.content_type == "application/pdf":
+                            try:
+                                import io
+                                import pdfplumber
+
+                                extracted_pages = []
+                                with pdfplumber.open(io.BytesIO(content)) as pdf:
+                                    for i, page in enumerate(pdf.pages):
+                                        try:
+                                            page_text = page.extract_text() or ""
+                                        except Exception:
+                                            page_text = ""
+                                        if page_text:
+                                            extracted_pages.append(page_text)
+                                        if sum(len(p) for p in extracted_pages) > 15000:
+                                            break
+
+                                extracted_text = "\n\n".join(extracted_pages).strip()
+                                if not extracted_text:
+                                    extracted_text = "[No selectable text extracted from PDF. This may be a scanned document or image-based PDF.]"
+
+                                extracted_content_parts.append(extracted_text)
+                                preview = extracted_text[:4000]
+                                file_contents.append(f"📋 PDF: {file.filename}\n{preview}")
+                            except Exception as e:
+                                file_contents.append(f"📋 PDF extraction failed for {file.filename}: {e}")
+
+                        elif file.content_type.startswith("image/"):
+                            try:
+                                import io
+                                from PIL import Image
+                                try:
+                                    import pytesseract
+                                except Exception:
+                                    pytesseract = None
+                                image = Image.open(io.BytesIO(content))
+                                ocr_text = ""
+                                if pytesseract:
+                                    try:
+                                        configure_tesseract_path_if_needed(pytesseract)
+                                    except Exception:
+                                        pass
+                                    try:
+                                        ocr_text = pytesseract.image_to_string(image) or ""
+                                    except Exception as ocr_err:
+                                        ocr_text = f"[OCR failed: {ocr_err}]"
+                                else:
+                                    ocr_text = "[OCR engine not available on server]"
+                                preview = ocr_text.strip()[:4000]
+                                file_contents.append(f"🖼️ IMAGE: {file.filename}\n{preview if preview else '[No text detected]'}")
+                                if ocr_text:
+                                    extracted_content_parts.append(ocr_text.strip())
+                            except Exception as e:
+                                file_contents.append(f"🖼️ Image processing failed for {file.filename}: {e}")
+
+                        elif file.content_type in ["application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]:
+                            try:
+                                import io
+                                if file.content_type == "application/msword" and not file.filename.lower().endswith(".docx"):
+                                    file_contents.append(f"📝 {file.filename}: Legacy .doc files are not supported. Please convert to .docx and try again.")
+                                else:
+                                    from docx import Document
+                                    doc = Document(io.BytesIO(content))
+                                    paragraphs = []
+                                    for p in doc.paragraphs:
+                                        txt = p.text.strip()
+                                        if txt:
+                                            paragraphs.append(txt)
+                                        if sum(len(x) for x in paragraphs) > 15000:
+                                            break
+                                    text = "\n".join(paragraphs)
+                                    preview = text[:4000] if text else ""
+                                    file_contents.append(f"📝 DOCX: {file.filename}\n{preview if preview else '[No text extracted]'}")
+                                    if text:
+                                        extracted_content_parts.append(text)
+                            except Exception as e:
+                                file_contents.append(f"📝 DOCX extraction failed for {file.filename}: {e}")
+
+                        else:
+                            try:
+                                file_size_kb = len(content) / 1024
+                                file_contents.append(f"""📎 **DOCUMENT ANALYSIS**
+**File:** {file.filename}
+**Type:** {file.content_type}
+**Size:** {file_size_kb:.1f}KB
+
+I have received your document and will analyze it in the context of Ghanaian university admissions. Please let me know what specific aspect you'd like me to help with.""")
+                            except Exception:
+                                file_contents.append(f"📎 **DOCUMENT:** {file.filename} (processing error)")
+
+                        file_info.append(
+                            {
+                                "name": file.filename,
+                                "type": file.content_type,
+                                "size": len(content),
+                            }
+                        )
+
+                    except Exception as file_error:
+                        print(f" Error processing file {file.filename}: {file_error}")
+                        file_contents.append(f"File: {file.filename} - processing error")
+
+        enhanced_message = message
+        if file_contents:
+            enhanced_message += "\n\n[Extracted content from uploaded files]\n" + "\n\n".join(file_contents)
+
+        extracted_content = "\n\n".join(extracted_content_parts).strip()
+        if extracted_content:
+            enhanced_message += f"\n\n[Document Text]\n{extracted_content}"
+
+        context_data = {}
+        if user_context:
+            try:
+                context_data = json.loads(user_context)
+            except Exception:
+                context_data = {"raw_context": user_context}
+
+        file_user_profile = {}
+        skip_keys = {
+            "is_assessment_request",
+            "assessment_data",
+            "has_files",
+            "file_count",
+            "file_info",
+            "raw_context",
+        }
+        assessment_data = context_data.get("assessment_data", {})
+        if assessment_data and isinstance(assessment_data, dict):
+            file_user_profile.update(assessment_data)
+        for k, v in context_data.items():
+            if k not in skip_keys and v:
+                file_user_profile.setdefault(k, v)
+
+        local_results = search_local_knowledge(enhanced_message, university_name)
+        print(f" Local search found {len(local_results['results'])} results")
+
+        web_results = await search_web_realtime(enhanced_message)
+        print(f"🌐 Real-time search found {len(web_results['results'])} results")
+
+        all_sources = []
+        context_parts = []
+
+        if file_info:
+            all_sources.append(
+                {
+                    "source": f"Uploaded Files ({len(file_info)} files)",
+                    "type": "user_files",
+                    "confidence": 0.9,
+                }
+            )
+            context_parts.append(
+                f"User uploaded {len(file_info)} files: {', '.join([f['name'] for f in file_info])}"
+            )
+
+        for result in local_results["results"]:
+            all_sources.append(
+                {
+                    "source": result["source"],
+                    "type": "local_knowledge",
+                    "confidence": result["relevance"],
+                }
+            )
+            context_parts.append(
+                build_university_context(result["source"], result["data"])
+            )
+
+        for result in web_results["results"]:
+            all_sources.append(
+                {
+                    "source": result.get("title", "Web Result"),
+                    "url": result.get("url", ""),
+                    "type": "web_search",
+                    "confidence": 0.7,
+                }
+            )
+            context_parts.append(f"Web Result: {result.get('snippet', '')}")
+
+        combined_context = "\n\n".join(context_parts)
+        combined_context = combined_context[:6000]
+        final_confidence = max(local_results["confidence"], web_results["confidence"])
+        if file_info:
+            final_confidence = max(final_confidence, 0.8)
+
+        if groq_client and (final_confidence > 0.3 or combined_context):
+            print(" Generating response with Groq LLM (including file context)...")
+            response_text = await generate_response_with_groq(
+                enhanced_message, combined_context, all_sources, file_user_profile
+            )
+        else:
+            print(" Generating smart fallback response (with file acknowledgment)...")
+            response_text = generate_smart_fallback_response(
+                enhanced_message, combined_context, all_sources, file_user_profile
+            )
+
+        if file_info:
+            response_text = f"""**📄 File Analysis Complete**
+
+I have processed {len(file_info)} file(s): {', '.join([f['name'] for f in file_info])}
+
+---
+
+{response_text}
+
+---
+
+**What would you like to know about:**
+- Cut-off points for specific programs?
+- Subject requirements?
+- Application deadlines?
+- Program recommendations?
+"""
+            response_text = sanitize_markdown_urls(response_text)
+
+        processing_time = (datetime.now() - start_time).total_seconds()
+        print(f"File response generated in {processing_time:.2f}s with confidence {final_confidence:.2f}")
+
+        if db_client:
+            try:
+                db = db_client[os.getenv("DB_NAME", "glinax_chatbot_db")]
+                await db.rag_logs.insert_one(
+                    {
+                        "query": message,
+                        "response": response_text,
+                        "confidence": final_confidence,
+                        "sources": all_sources,
+                        "processing_time": processing_time,
+                        "timestamp": datetime.now(),
+                        "conversation_id": conversation_id,
+                        "user_id": user_id,
+                        "has_files": bool(file_info),
+                        "file_info": file_info,
+                    }
+                )
+            except Exception as e:
+                print(f" Failed to save file-response to MongoDB: {e}")
+
+        return ChatResponse(
+            success=True,
+            reply=sanitize_markdown_urls(response_text),
+            sources=all_sources,
+            confidence=final_confidence,
+            timestamp=datetime.now().isoformat(),
+            processing_time=processing_time,
+            model_used="hybrid-rag-with-files",
+        )
+
+    except Exception as e:
+        print(f" File processing error: {e}")
+
+        return ChatResponse(
+            success=True,
+            reply=f"I received your files but had some trouble processing them. However, I can still help with your question: {message}\n\nPlease let me know how I can assist you with Ghanaian university information!",
+            sources=[
+                {
+                    "source": "File Processing Error",
+                    "type": "fallback",
+                    "confidence": 0.3,
+                }
+            ],
+            confidence=0.3,
+            timestamp=datetime.now().isoformat(),
+            model_used="file-error-fallback",
+        )
+
 
 if __name__ == "__main__":
     import uvicorn
