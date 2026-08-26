@@ -18,12 +18,8 @@ from pydantic import BaseModel
 
 load_dotenv()
 
-# ============================================================================
-# EXISTING CONFIGURATION - KEEPING ALL ORIGINAL VARIABLES
-# ============================================================================
 
 def sanitize_markdown_urls(text: str) -> str:
-    """Original function - kept exactly as is"""
     if not text:
         return text
 
@@ -166,7 +162,6 @@ groq_client = None
 db_client = None
 ghana_universities_data = []
 
-# Groq model config - kept as env-overridable constants
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 GROQ_REASONING_EFFORT = os.getenv("GROQ_REASONING_EFFORT", "medium")
 GROQ_TEMPERATURE = float(os.getenv("GROQ_TEMPERATURE", "0.6"))
@@ -223,137 +218,488 @@ class ChatResponse(BaseModel):
 
 
 # ============================================================================
-# ORIGINAL HARDCODED UNIVERSITY DATA - PRESERVED
+# COMPLETE GHANA UNIVERSITIES KNOWLEDGE BASE
 # ============================================================================
 
 GHANA_UNIVERSITIES_KNOWLEDGE = {
+    # ========================================================================
+    # KWAME NKRUMAH UNIVERSITY OF SCIENCE AND TECHNOLOGY (KNUST)
+    # ========================================================================
     "Kwame Nkrumah University of Science and Technology": {
         "location": "Kumasi, Ashanti Region",
         "established": "1952",
         "website": "www.knust.edu.gh",
-        "programs": {
-            "Computer Engineering": {
-                "duration": "4 years",
-                "requirements": "WASSCE: A1-B3 in Maths, Physics, Chemistry, English (Agg 6-12)",
-                "career_prospects": "Software Engineer, Systems Analyst, Tech Lead",
-            },
-            "Civil Engineering": {
-                "duration": "4 years",
-                "requirements": "WASSCE: A1-B3 in Maths, Physics, Chemistry, English",
-                "career_prospects": "Civil Engineer, Project Manager",
-            },
-            "Medicine": {
-                "duration": "6 years",
-                "requirements": "WASSCE: A1-B3 in Biology, Chemistry, Physics, Maths, English",
-                "career_prospects": "Medical Doctor, Surgeon",
-            },
-            "Architecture": {
-                "duration": "5 years",
-                "requirements": "WASSCE: A1-C6 in Maths, Physics, English + Art or Technical Drawing",
-                "career_prospects": "Architect, Urban Planner",
-            },
-            "Electrical Engineering": {
-                "duration": "4 years",
-                "requirements": "WASSCE: A1-B3 in Maths, Physics, Chemistry, English",
-                "career_prospects": "Electrical Engineer, Power Systems Specialist",
-            },
-        },
+        "type": "Public",
         "admission_requirements": {
-            "general": "WASSCE with minimum aggregate 24 for most programs",
+            "general": "WASSCE: Credit passes (A1-C6) in 6 subjects (3 Core + 3 Electives). Aggregate 24 or better for regular admission. Fee-Paying up to 30-36. D7, E8, F9 NOT accepted.",
+            "wassce": "Credit passes A1-C6 in English, Core Maths, Integrated Science/Social Studies + 3 relevant electives",
+            "sssce": "Credit passes A-D in English, Core Maths, Integrated Science/Social Studies + 3 relevant electives",
+            "gce": "5 'O' Level credits + 3 'A' Level passes in relevant subjects",
+            "ib": "Grade 4+ in 3 HL subjects",
+            "mature": "25+ years old, 2-3 years work experience, entrance exam/interview",
             "application_deadline": "August 31, 2026",
-            "entrance_exam": "Required for Engineering and Medicine",
-            "online_portal": "https://admissions.knust.edu.gh",
+            "online_portal": "https://apps.knust.edu.gh/admissions/",
+            "application_fee": "GH¢ 220 (via *415*55#)",
+            "entrance_exam": "Required for Medicine, Dentistry, and some competitive programmes"
         },
-        "contact": {"phone": "+233-32-206-0331", "email": "admissions@knust.edu.gh"},
+        "contact": {
+            "phone": "+233-32-206-0331",
+            "email": "admissions@knust.edu.gh",
+            "address": "Private Mail Bag, Kumasi, Ghana"
+        },
+        "colleges": {
+            "Engineering": {
+                "cutoff_range": "10-20",
+                "requirements": "Elective Mathematics, Physics, and Chemistry required",
+                "programs": [
+                    {"name": "BSc Civil Engineering", "cutoff": "10-14", "campuses": "Main/Obuasi"},
+                    {"name": "BSc Geological Engineering", "cutoff": "10-16", "campuses": "Main/Obuasi"},
+                    {"name": "BSc Geomatic Engineering", "cutoff": "12-18", "campuses": "Main/Obuasi"},
+                    {"name": "BSc Petroleum Engineering", "cutoff": "10-16", "campuses": "Main"},
+                    {"name": "BSc Electrical/Electronic Engineering", "cutoff": "10-14", "campuses": "Main/Obuasi"},
+                    {"name": "BSc Computer Engineering", "cutoff": "10-14", "campuses": "Main"},
+                    {"name": "BSc Biomedical Engineering", "cutoff": "10-14", "campuses": "Main"},
+                    {"name": "BSc Telecommunications Engineering", "cutoff": "12-16", "campuses": "Main"},
+                    {"name": "BSc Mechanical Engineering", "cutoff": "10-16", "campuses": "Main/Obuasi"},
+                    {"name": "BSc Aerospace Engineering", "cutoff": "10-16", "campuses": "Main"},
+                    {"name": "BSc Chemical Engineering", "cutoff": "10-16", "campuses": "Main"},
+                    {"name": "BSc Petrochemical Engineering", "cutoff": "12-18", "campuses": "Main"},
+                    {"name": "BSc Automobile Engineering", "cutoff": "12-18", "campuses": "Main"},
+                    {"name": "BSc Industrial Engineering", "cutoff": "12-18", "campuses": "Main"},
+                    {"name": "BSc Marine Engineering", "cutoff": "14-20", "campuses": "Main"},
+                    {"name": "BSc Agricultural Engineering", "cutoff": "14-20", "campuses": "Main"},
+                    {"name": "BSc Materials Engineering", "cutoff": "14-20", "campuses": "Main/Obuasi"},
+                    {"name": "BSc Metallurgical Engineering", "cutoff": "14-20", "campuses": "Main/Obuasi"}
+                ]
+            },
+            "Health Sciences": {
+                "cutoff_range": "6-22",
+                "requirements": "Biology, Chemistry + Physics/Elective Maths",
+                "programs": [
+                    {"name": "MBChB (Medicine & Surgery)", "duration": "6 years", "cutoff": "6-10", "entrance_exam": "Yes", "first_choice": "Yes"},
+                    {"name": "BDS (Dental Surgery)", "duration": "6 years", "cutoff": "8-12", "entrance_exam": "Yes", "first_choice": "Yes"},
+                    {"name": "PharmD (Doctor of Pharmacy)", "duration": "6 years", "cutoff": "8-14", "first_choice": "Yes"},
+                    {"name": "BSc Nursing", "duration": "4 years", "cutoff": "14-20"},
+                    {"name": "BSc Midwifery", "duration": "4 years", "cutoff": "14-20"},
+                    {"name": "BSc Medical Laboratory Technology", "duration": "4 years", "cutoff": "12-16"},
+                    {"name": "BSc Physiotherapy & Sports Science", "duration": "4 years", "cutoff": "12-16"},
+                    {"name": "BSc Optometry", "duration": "4 years", "cutoff": "10-14"},
+                    {"name": "BSc Sonography", "duration": "4 years", "cutoff": "14-18"},
+                    {"name": "BSc Disability & Rehabilitation Studies", "duration": "4 years", "cutoff": "16-22"},
+                    {"name": "BSc Herbal Medicine", "duration": "4 years", "cutoff": "14-20"},
+                    {"name": "BSc Emergency Nursing (Top-Up)", "duration": "2 years"}
+                ]
+            },
+            "Humanities and Social Sciences": {
+                "cutoff_range": "6-24",
+                "programs": [
+                    {"name": "BSc Business Administration - Accounting", "cutoff": "14-20", "backgrounds": "Business, Arts, Science"},
+                    {"name": "BSc Business Administration - Banking & Finance", "cutoff": "14-20", "backgrounds": "Business, Arts, Science"},
+                    {"name": "BSc Business Administration - Marketing", "cutoff": "14-20", "backgrounds": "Business, Arts, Science, Vocational"},
+                    {"name": "BSc Business Administration - International Business", "cutoff": "14-20", "backgrounds": "Business, Arts, Science, Vocational"},
+                    {"name": "BSc Business Administration - Human Resource Management", "cutoff": "14-20", "backgrounds": "Business, Arts, Science, Vocational"},
+                    {"name": "BSc Business Administration - Management", "cutoff": "14-20", "backgrounds": "Business, Arts, Science, Vocational"},
+                    {"name": "BSc Business Administration - Logistics & Supply Chain", "cutoff": "14-20", "backgrounds": "Business, Arts, Science"},
+                    {"name": "BSc Business Administration - Business IT", "cutoff": "14-20", "backgrounds": "Business, Arts, Science"},
+                    {"name": "BSc Hospitality & Tourism Management", "cutoff": "16-22"},
+                    {"name": "LLB (4-year Full-Time)", "duration": "4 years", "cutoff": "6-8", "first_choice": "Yes"},
+                    {"name": "LLB Post-First-Degree (3-year)", "duration": "3 years", "requirements": "Degree + entrance exam"},
+                    {"name": "BA Political Studies", "cutoff": "12-18"},
+                    {"name": "BA Economics", "cutoff": "14-20"},
+                    {"name": "BA English", "cutoff": "14-20"},
+                    {"name": "BA Communication Studies", "cutoff": "14-20"},
+                    {"name": "BA Sociology / Social Work", "cutoff": "16-22"},
+                    {"name": "BA French", "cutoff": "16-24"},
+                    {"name": "BA History", "cutoff": "16-24"},
+                    {"name": "BA Geography & Rural Development", "cutoff": "16-24"},
+                    {"name": "BA Religious Studies", "cutoff": "18-24"},
+                    {"name": "BA Culture & Tourism", "cutoff": "18-24"}
+                ]
+            },
+            "Science": {
+                "cutoff_range": "10-24",
+                "programs": [
+                    {"name": "BSc Computer Science", "cutoff": "12-18", "requirements": "Maths, Physics + Chemistry/Applied Electricity/Electronics"},
+                    {"name": "BSc Actuarial Science", "cutoff": "10-16", "requirements": "Maths, Physics, Chemistry"},
+                    {"name": "BSc Mathematics", "cutoff": "16-22", "requirements": "Maths, Physics, Chemistry"},
+                    {"name": "BSc Statistics", "cutoff": "16-22", "requirements": "Maths, Physics, Chemistry"},
+                    {"name": "BSc Physics", "cutoff": "16-24", "requirements": "Maths, Physics, Chemistry"},
+                    {"name": "BSc Chemistry", "cutoff": "16-24", "requirements": "Maths, Physics, Chemistry"},
+                    {"name": "BSc Meteorology & Climate Science", "cutoff": "18-24", "requirements": "Maths, Physics, Chemistry"},
+                    {"name": "BSc Biochemistry", "cutoff": "12-18", "requirements": "Biology, Chemistry + Physics/Maths"},
+                    {"name": "BSc Biotechnology", "cutoff": "14-20", "requirements": "Biology, Chemistry + Physics/Maths"},
+                    {"name": "BSc Food Science & Technology", "cutoff": "14-20", "requirements": "Biology, Chemistry + Physics/Maths"},
+                    {"name": "BSc Environmental Science", "cutoff": "16-22", "requirements": "Biology/Agric, Chemistry + Physics/Maths"},
+                    {"name": "BSc Biological Science", "cutoff": "16-22", "requirements": "Biology, Chemistry + Physics/Maths"}
+                ]
+            },
+            "Agriculture and Natural Resources": {
+                "cutoff_range": "16-24",
+                "programs": [
+                    {"name": "BSc Agriculture", "cutoff": "18-24", "options": "Crop Science, Soil Science, Agric Economics, Agric Extension"},
+                    {"name": "BSc Agricultural Biotechnology", "cutoff": "16-22"},
+                    {"name": "BSc Agribusiness Management", "cutoff": "18-24"},
+                    {"name": "BSc Post Harvest Technology", "cutoff": "18-24"},
+                    {"name": "BSc Natural Resources Management", "cutoff": "18-24"},
+                    {"name": "BSc Forest Resources Technology", "cutoff": "18-24"},
+                    {"name": "BSc Landscape Design & Management", "cutoff": "18-24"},
+                    {"name": "BSc Aquaculture & Water Resources Management", "cutoff": "18-24"}
+                ]
+            },
+            "Art and Built Environment": {
+                "cutoff_range": "9-24",
+                "programs": [
+                    {"name": "BSc Architecture", "cutoff": "9-14", "requirements": "Elective Maths + 2 from Tech/Science/Visual Arts"},
+                    {"name": "BSc Construction Tech & Management", "cutoff": "12-18"},
+                    {"name": "BSc Quantity Surveying", "cutoff": "12-18"},
+                    {"name": "BSc Development Planning", "cutoff": "14-20", "requirements": "Geography, Economics, Maths, History, Government"},
+                    {"name": "BSc Land Economy (Real Estate)", "cutoff": "14-20"},
+                    {"name": "BA Communication Design", "cutoff": "12-18"},
+                    {"name": "BSc Fashion Design", "cutoff": "14-22"},
+                    {"name": "BSc Industrial Art", "cutoff": "14-22"},
+                    {"name": "BFA Painting & Sculpture", "cutoff": "16-24"},
+                    {"name": "BA Publishing Studies", "cutoff": "16-24"},
+                    {"name": "BA Integrated Rural Art & Industry", "cutoff": "18-24"},
+                    {"name": "B.Ed JHS Education", "cutoff": "18-24", "specializations": "Maths, Science, ICT, Agric, History, Visual Arts, Geography"}
+                ]
+            }
+        },
+        "fees": {
+            "ghanaian_students": {
+                "Humanities & Social Sciences": "~GH¢ 1,948",
+                "Business/Law": "~GH¢ 2,501",
+                "Hospitality & Tourism": "~GH¢ 2,921",
+                "Science (General)": "~GH¢ 2,821",
+                "Maths/Stats/Actuarial": "~GH¢ 2,221",
+                "Engineering": "~GH¢ 2,800-3,200",
+                "Agriculture & Natural Resources": "~GH¢ 2,200-2,800",
+                "Art & Built Environment": "~GH¢ 2,500-3,000",
+                "Health Sciences (Medicine/Dentistry/Pharmacy)": "~GH¢ 4,141+",
+                "Health Sciences (Nursing/Allied Health)": "~GH¢ 3,200-3,800",
+                "Freshmen Fee-Paying/Humanities": "~GH¢ 4,543",
+                "Freshmen Fee-Paying/Business": "~GH¢ 5,740-6,160",
+                "Freshmen Fee-Paying/Science/Engineering": "~GH¢ 5,000-6,500",
+                "Freshmen Fee-Paying/Health Sciences": "~GH¢ 6,000-8,000",
+                "Freshmen Residential": "~GH¢ 2,168"
+            },
+            "international_students": "Contact Students' Financial Services - fees in USD",
+            "payment_policy": "1st Semester: 50% before registration; 2nd Semester: 100% before registration"
+        },
         "scholarships": {
-            "knust_excellence": "Merit-based full scholarships",
+            "knust_excellence": "Merit-based full scholarships for outstanding students",
             "mastercard_foundation": "For disadvantaged but brilliant students",
-        },
+            "engineering_scholarship": "For students in engineering programmes",
+            "health_science_scholarship": "For health sciences students"
+        }
     },
+
+    # ========================================================================
+    # UNIVERSITY OF GHANA (UG)
+    # ========================================================================
     "University of Ghana": {
         "location": "Legon, Accra",
         "established": "1948",
         "website": "www.ug.edu.gh",
-        "programs": {
-            "Computer Science": {
-                "duration": "4 years",
-                "requirements": "WASSCE: Credits in English, Maths, Physics, Elective Maths + 2 others",
-                "career_prospects": "Software Developer, Data Scientist",
-            },
-            "Medicine": {
-                "duration": "6 years",
-                "requirements": "WASSCE: A1-B3 in Biology, Chemistry, Physics, Maths, English",
-                "career_prospects": "Doctor, Medical Researcher, Specialist",
-            },
-            "Business Administration": {
-                "duration": "4 years",
-                "requirements": "WASSCE: Credits in English, Maths, Economics + 3 others",
-                "career_prospects": "Manager, Entrepreneur, Consultant",
-            },
-            "Law": {
-                "duration": "4 years",
-                "requirements": "WASSCE: Credits in English, Maths + Social Sciences",
-                "career_prospects": "Lawyer, Judge, Legal Consultant",
-            },
-            "Economics": {
-                "duration": "4 years",
-                "requirements": "WASSCE: Credits in English, Maths, Economics",
-                "career_prospects": "Economist, Policy Analyst",
-            },
-        },
+        "type": "Public",
         "admission_requirements": {
-            "general": "WASSCE with minimum of 6 credits (A1-C6) including English and Maths",
+            "general": "WASSCE: Credit passes (A1-C6) in 6 subjects (4 Core + 3 Electives). Aggregate 24 or better for regular admission. Distance Education: Aggregate 30.",
+            "wassce": "Credit passes A1-C6 in English, Core Maths, Integrated Science, Social Studies + 3 relevant electives",
+            "sssce": "Credit passes A-D in English, Core Maths, Integrated Science, Social Studies + 3 relevant electives",
+            "gce": "3 'A' Level passes + 5 'O' Level credits including English and Maths",
+            "ib": "Grade 4+ in 3 HL subjects",
+            "mature": "25+ years old, entrance exam, relevant work experience",
             "application_deadline": "August 31, 2026 (Pending WASSCE release)",
-            "entrance_exam": "Required for competitive programs",
             "online_portal": "https://admissions.ug.edu.gh",
+            "application_fee": "GH¢ 250 (via *924*200*25#)",
+            "entrance_exam": "Required for Medicine, Law, and other competitive programmes",
+            "first_choice_policy": "Many competitive programmes (Medicine, Law, Business, Computer Science, Engineering) are strictly 'First Choice Only'"
         },
-        "contact": {"phone": "+233-30-213-8501", "email": "admissions@ug.edu.gh"},
+        "contact": {
+            "phone": "+233-30-213-8501",
+            "email": "admissions@ug.edu.gh",
+            "address": "P.O. Box LG 25, Legon, Accra"
+        },
+        "colleges": {
+            "Humanities": {
+                "cutoff_range": "7-24",
+                "programs": [
+                    {"name": "LLB (Law)", "duration": "4 years", "cutoff": "7", "first_choice": "Yes"},
+                    {"name": "BSc Administration - Accounting", "cutoff": "9", "first_choice": "Yes"},
+                    {"name": "BSc Administration - Banking & Finance", "cutoff": "9", "first_choice": "Yes"},
+                    {"name": "BSc Administration - Marketing", "cutoff": "9", "first_choice": "Yes"},
+                    {"name": "BSc Administration - Human Resource Management", "cutoff": "9", "first_choice": "Yes"},
+                    {"name": "BSc Administration - Public Administration", "cutoff": "9", "first_choice": "Yes"},
+                    {"name": "BSc Administration - Insurance", "cutoff": "9", "first_choice": "Yes"},
+                    {"name": "BSc Administration - Health Services Management", "cutoff": "9", "first_choice": "Yes"},
+                    {"name": "BSc Administration - E-Commerce & Customer Management", "cutoff": "9", "first_choice": "Yes"},
+                    {"name": "BA Political Science", "cutoff": "24"},
+                    {"name": "BA Economics", "cutoff": "24"},
+                    {"name": "BA Geography & Resource Development", "cutoff": "24"},
+                    {"name": "BA Psychology", "cutoff": "24"},
+                    {"name": "BA Social Work", "cutoff": "24"},
+                    {"name": "BA Sociology", "cutoff": "24"},
+                    {"name": "BA English", "cutoff": "24"},
+                    {"name": "BA French", "cutoff": "24"},
+                    {"name": "BA History", "cutoff": "24"},
+                    {"name": "BA Archaeology & Heritage Studies", "cutoff": "24"},
+                    {"name": "BA Information Studies", "cutoff": "24"},
+                    {"name": "BA Music", "cutoff": "24", "requirements": "Audition"},
+                    {"name": "BA Theatre Arts", "cutoff": "24", "requirements": "Audition"},
+                    {"name": "BA Dance Studies", "cutoff": "24", "requirements": "Audition"}
+                ]
+            },
+            "Basic and Applied Sciences": {
+                "cutoff_range": "6-24",
+                "programs": [
+                    {"name": "BSc Biomedical Engineering", "cutoff": "6-7", "first_choice": "Yes", "requirements": "Elective Maths (B3+)"},
+                    {"name": "BSc Computer Engineering", "cutoff": "7", "first_choice": "Yes", "requirements": "Elective Maths (B3+)"},
+                    {"name": "BSc Computer Science", "cutoff": "7-9", "first_choice": "Yes", "requirements": "Elective Maths (B3+)"},
+                    {"name": "BSc Information Technology", "cutoff": "12", "first_choice": "Yes", "requirements": "Core Maths (C4+)"},
+                    {"name": "BSc Actuarial Science", "cutoff": "11", "requirements": "Elective Maths (B3+)"},
+                    {"name": "BSc Agricultural Engineering", "cutoff": "15", "requirements": "Elective Maths (B3+)"},
+                    {"name": "BSc Food Process Engineering", "cutoff": "14", "requirements": "Elective Maths (B3+)"},
+                    {"name": "BSc Materials Science & Engineering", "cutoff": "14", "requirements": "Elective Maths (B3+)"},
+                    {"name": "Doctor of Veterinary Medicine", "duration": "6 years", "cutoff": "14", "first_choice": "Yes"},
+                    {"name": "BSc Agriculture", "cutoff": "24"},
+                    {"name": "BSc Earth Science", "cutoff": "24"},
+                    {"name": "BSc Mathematics", "cutoff": "24"},
+                    {"name": "BSc Statistics", "cutoff": "24"},
+                    {"name": "BSc Physics", "cutoff": "24"},
+                    {"name": "BSc Chemistry", "cutoff": "24"},
+                    {"name": "BSc Biochemistry", "cutoff": "24"},
+                    {"name": "BSc Nutrition & Food Science", "cutoff": "24"},
+                    {"name": "BSc Animal Biology & Conservation Science", "cutoff": "24"},
+                    {"name": "BSc Plant & Environmental Biology", "cutoff": "24"},
+                    {"name": "BSc Marine & Fisheries Sciences", "cutoff": "24"}
+                ]
+            },
+            "Health Sciences": {
+                "cutoff_range": "8-16",
+                "first_choice_only": "Yes",
+                "programs": [
+                    {"name": "MB ChB (Medicine & Surgery)", "duration": "6 years", "cutoff": "8", "first_choice": "Yes", "entrance_exam": "Yes"},
+                    {"name": "BDS (Dental Surgery)", "duration": "6 years", "cutoff": "10", "first_choice": "Yes", "entrance_exam": "Yes"},
+                    {"name": "Pharm.D (Doctor of Pharmacy)", "duration": "6 years", "cutoff": "10", "first_choice": "Yes"},
+                    {"name": "BSc Nursing", "duration": "4 years", "cutoff": "15", "first_choice": "Yes"},
+                    {"name": "BSc Midwifery", "duration": "4 years", "cutoff": "15", "first_choice": "Yes"},
+                    {"name": "BSc Medical Laboratory Science", "duration": "4 years", "cutoff": "12", "first_choice": "Yes"},
+                    {"name": "BSc Diagnostic Radiography", "duration": "4 years", "cutoff": "13", "first_choice": "Yes"},
+                    {"name": "BSc Physiotherapy", "duration": "4 years", "cutoff": "14", "first_choice": "Yes"},
+                    {"name": "BSc Dietetics", "duration": "4 years", "cutoff": "14", "first_choice": "Yes"},
+                    {"name": "BSc Occupational Therapy", "duration": "4 years", "cutoff": "14-15", "first_choice": "Yes"},
+                    {"name": "BSc Respiratory Therapy", "duration": "4 years", "cutoff": "14", "first_choice": "Yes"},
+                    {"name": "BPH (Bachelor of Public Health)", "duration": "4 years", "cutoff": "16", "first_choice": "Yes"}
+                ]
+            },
+            "Education": {
+                "cutoff_range": "24-30",
+                "programs": [
+                    {"name": "B.Ed Education", "cutoff": "24"},
+                    {"name": "B.Ed Early Grade Specialism", "cutoff": "24"},
+                    {"name": "B.Ed Upper Primary Specialism", "cutoff": "24"},
+                    {"name": "B.Ed JHS Specialism", "cutoff": "24"},
+                    {"name": "B.Ed Arabic", "cutoff": "24", "requirements": "C6 in French"},
+                    {"name": "B.Ed Computer Science", "cutoff": "24"},
+                    {"name": "B.Ed Consumer Sciences", "cutoff": "24"},
+                    {"name": "B.Ed English", "cutoff": "24", "requirements": "C6 in Literature in English"},
+                    {"name": "B.Ed French", "cutoff": "24", "requirements": "C6 in French"},
+                    {"name": "B.Ed Ghanaian Language", "cutoff": "24"},
+                    {"name": "B.Ed Mathematics", "cutoff": "24", "requirements": "C6 in Elective Mathematics"},
+                    {"name": "B.Ed Science", "cutoff": "24", "requirements": "C6 in relevant science subject"},
+                    {"name": "B.Ed Social Studies", "cutoff": "24"},
+                    {"name": "BA Information Studies", "cutoff": "24"},
+                    {"name": "BSc Administration (Accra City Campus)", "cutoff": "24"},
+                    {"name": "BA (Accra City Campus)", "cutoff": "24"}
+                ]
+            }
+        },
+        "fees": {
+            "ghanaian_students": {
+                "Humanities (BA, BSc Admin, LLB)": "~GH¢ 2,300-2,500",
+                "Basic & Applied Sciences": "~GH¢ 2,500-3,000",
+                "Education": "~GH¢ 2,300-2,500",
+                "Medical School": "~GH¢ 2,900-3,000",
+                "Dental School": "~GH¢ 2,900-3,000",
+                "Pharmacy": "~GH¢ 4,500-4,600",
+                "Biomedical & Allied Health": "~GH¢ 4,200-4,300",
+                "Nursing": "~GH¢ 3,800-4,000"
+            },
+            "mandatory_levies": {
+                "SRC Dues": "GH¢ 50",
+                "SRC Development Levy": "GH¢ 150",
+                "75th Anniversary Legacy Project Levy": "GH¢ 100",
+                "Telecel Broadband Levy": "GH¢ 122 (optional)",
+                "Reprographic Fees": "GH¢ 5"
+            },
+            "payment_policy": "1st Semester: 50% before registration; 2nd Semester: 100% before registration",
+            "international_students": "Contact International Programmes Office - fees in USD"
+        },
         "scholarships": {
             "ug_excellence": "Up to 100% tuition coverage for outstanding students",
             "sabre_scholarship": "For students from Northern Ghana",
-        },
+            "mastercard_foundation": "For disadvantaged but brilliant students",
+            "needy_student_scholarship": "For students with financial need"
+        }
     },
+
+    # ========================================================================
+    # UNIVERSITY OF CAPE COAST (UCC)
+    # ========================================================================
     "University of Cape Coast": {
         "location": "Cape Coast, Central Region",
         "established": "1962",
         "website": "www.ucc.edu.gh",
-        "programs": {
-            "Education": {
-                "duration": "4 years",
-                "requirements": "WASSCE: Credits in English, Maths + relevant subjects",
-                "career_prospects": "Teacher, Education Administrator",
-            },
-            "Nursing": {
-                "duration": "4 years",
-                "requirements": "WASSCE: A1-C6 in English, Maths, Biology, Chemistry",
-                "career_prospects": "Registered Nurse, Healthcare Professional",
-            },
-            "Business Administration": {
-                "duration": "4 years",
-                "requirements": "WASSCE: Credits in English, Maths, Economics + 3 others",
-                "career_prospects": "Business Manager, Entrepreneur",
-            },
-            "Agriculture": {
-                "duration": "4 years",
-                "requirements": "WASSCE: Credits in English, Maths, Science subjects",
-                "career_prospects": "Agricultural Officer, Agribusiness Manager",
-            },
-        },
+        "type": "Public",
         "admission_requirements": {
-            "general": "WASSCE with 6 credits minimum including English and Maths",
+            "general": "WASSCE: Credit passes (A1-C6) in 6 subjects (3 Core + 3 Electives). Maximum aggregate 36 (more accessible than UG/KNUST). SSSCE: Maximum aggregate 24.",
+            "wassce": "Credit passes A1-C6 in English, Core Maths, Integrated Science/Social Studies + 3 relevant electives. Aggregate 36 or better.",
+            "sssce": "Credit passes A-D in English, Core Maths, Integrated Science/Social Studies + 3 relevant electives. Aggregate 24 or better.",
+            "gce": "5 'O' Level credits + 3 'A' Level passes in relevant subjects",
+            "gce_business": "GBCE/ABCE credits in relevant subjects",
+            "igcse": "Equivalent grade requirements in relevant subjects",
+            "ib": "Grade 4+ in relevant subjects",
+            "american_high_school": "Grade 12 certificate with equivalent grades",
+            "diploma_hnd": "Assessed individually for Level 100/200/300 placement",
+            "mature": "25+ years by June 30, SHS certificate or equivalent, 5+ years work experience, entrance exam",
             "application_deadline": "August 31, 2026",
-            "online_portal": "https://admissions.ucc.edu.gh",
+            "online_portal": "https://apply.ucc.edu.gh",
+            "application_fee": "Contact university for current fee"
         },
-        "contact": {"phone": "+233-33-213-2440", "email": "admissions@ucc.edu.gh"},
+        "contact": {
+            "phone": "+233-33-213-2440",
+            "email": "admissions@ucc.edu.gh",
+            "address": "University of Cape Coast, Cape Coast, Central Region"
+        },
+        "colleges": {
+            "Health and Allied Sciences": {
+                "cutoff_range": "8-22",
+                "programs": [
+                    {"name": "MBChB (Medicine & Surgery)", "duration": "6 years", "cutoff": "8", "entrance_exam": "Yes"},
+                    {"name": "Doctor of Pharmacy (PharmD)", "duration": "6 years", "cutoff": "9"},
+                    {"name": "BSc Physician Assistant Studies", "duration": "4 years", "cutoff": "11"},
+                    {"name": "BSc Nursing", "duration": "4 years", "cutoff": "12"},
+                    {"name": "BSc Midwifery", "duration": "4 years", "cutoff": "12"},
+                    {"name": "Doctor of Optometry", "duration": "6 years", "cutoff": "12"},
+                    {"name": "BSc Medical Laboratory Science", "duration": "4 years", "cutoff": "12"},
+                    {"name": "BSc Mental Health Nursing", "duration": "4 years", "cutoff": "14"},
+                    {"name": "BSc Clinical Nutrition & Dietetics", "duration": "4 years", "cutoff": "14"},
+                    {"name": "BSc Biomedical Sciences", "duration": "4 years", "cutoff": "14"},
+                    {"name": "BSc Diagnostic Imaging Technology", "duration": "4 years", "cutoff": "14"},
+                    {"name": "BSc Diagnostic Medical Sonography", "duration": "4 years", "cutoff": "14"},
+                    {"name": "BSc Health Information Management", "duration": "4 years", "cutoff": "16"},
+                    {"name": "BSc Sports & Exercise Science", "duration": "4 years", "cutoff": "16"}
+                ]
+            },
+            "Humanities and Legal Studies": {
+                "cutoff_range": "8-25",
+                "programs": [
+                    {"name": "LLB (Law)", "duration": "4 years", "cutoff": "8-10"},
+                    {"name": "LLB (3-year Post-First-Degree)", "duration": "3 years", "requirements": "Degree + entrance exam"},
+                    {"name": "BSc Economics", "cutoff": "15"},
+                    {"name": "BSc Economics with Finance", "cutoff": "15"},
+                    {"name": "BA Economics", "cutoff": "16"},
+                    {"name": "BBA Accounting", "cutoff": "15"},
+                    {"name": "BBA Human Resource Management", "cutoff": "16"},
+                    {"name": "BBA Management", "cutoff": "16"},
+                    {"name": "B.Com Finance", "cutoff": "15"},
+                    {"name": "B.Com Marketing", "cutoff": "16"},
+                    {"name": "B.Com Procurement & Supply Chain Management", "cutoff": "16"},
+                    {"name": "BSc Hospitality Management", "cutoff": "16"},
+                    {"name": "BSc Tourism Management", "cutoff": "16"},
+                    {"name": "BA Communication Studies", "cutoff": "17"},
+                    {"name": "BA English", "cutoff": "18"},
+                    {"name": "BA Sociology", "cutoff": "18"},
+                    {"name": "BA Population & Health", "cutoff": "18"},
+                    {"name": "BSc Geography & Regional Planning", "cutoff": "18"},
+                    {"name": "BA History", "cutoff": "19"},
+                    {"name": "BA African Studies", "cutoff": "19"},
+                    {"name": "BA French", "cutoff": "20"},
+                    {"name": "BA Theatre Studies", "cutoff": "20"},
+                    {"name": "BA Film Studies", "cutoff": "20"},
+                    {"name": "BA Social Behaviour & Conflict Management", "cutoff": "20"},
+                    {"name": "BA Anthropology", "cutoff": "22"},
+                    {"name": "BA Dance", "cutoff": "22"},
+                    {"name": "Bachelor of Music (B.Mus)", "cutoff": "22"},
+                    {"name": "BA Ghanaian Language & Linguistics", "cutoff": "22"},
+                    {"name": "BA Chinese", "cutoff": "25"}
+                ]
+            },
+            "Education Studies": {
+                "cutoff_range": "18-24",
+                "programs": [
+                    {"name": "B.Ed Accounting", "cutoff": "18"},
+                    {"name": "B.Ed Mathematics", "cutoff": "18"},
+                    {"name": "B.Ed Computer Science / ICT", "cutoff": "18"},
+                    {"name": "B.Ed Robotics & Intelligent Systems", "cutoff": "18"},
+                    {"name": "B.Ed Arts", "cutoff": "20"},
+                    {"name": "B.Ed Social Science", "cutoff": "20"},
+                    {"name": "B.Ed Social Studies", "cutoff": "20"},
+                    {"name": "B.Ed Management", "cutoff": "20"},
+                    {"name": "B.Ed Science", "cutoff": "20"},
+                    {"name": "B.Ed Health Science", "cutoff": "20"},
+                    {"name": "B.Ed Health, Physical Education & Recreation", "cutoff": "22"},
+                    {"name": "B.Ed Home Economics", "cutoff": "22"},
+                    {"name": "B.Ed Basic Education", "cutoff": "22"},
+                    {"name": "B.Ed Early Childhood Education", "cutoff": "24"}
+                ]
+            },
+            "Agriculture and Natural Sciences": {
+                "cutoff_range": "14-24",
+                "programs": [
+                    {"name": "BSc Actuarial Science", "cutoff": "14"},
+                    {"name": "BSc Forensic Science", "cutoff": "14"},
+                    {"name": "BSc Computer Science", "cutoff": "15"},
+                    {"name": "BSc Biochemistry", "cutoff": "16"},
+                    {"name": "BSc Molecular Biology & Biotechnology", "cutoff": "16"},
+                    {"name": "BSc Information Technology", "cutoff": "16"},
+                    {"name": "BSc Agribusiness", "cutoff": "18"},
+                    {"name": "BSc Fisheries & Aquatic Science", "cutoff": "18"},
+                    {"name": "BSc Environmental Science", "cutoff": "18"},
+                    {"name": "BSc Mathematics", "cutoff": "18"},
+                    {"name": "BSc Statistics", "cutoff": "18"},
+                    {"name": "BSc Engineering Physics", "cutoff": "18"},
+                    {"name": "BSc Industrial Chemistry", "cutoff": "18"},
+                    {"name": "BSc Laboratory Technology", "cutoff": "18"},
+                    {"name": "BSc Agriculture", "cutoff": "20"},
+                    {"name": "BSc Agro-Processing", "cutoff": "20"},
+                    {"name": "BSc Animal Health", "cutoff": "20"},
+                    {"name": "BSc Physics", "cutoff": "20"},
+                    {"name": "BSc Chemistry", "cutoff": "20"},
+                    {"name": "BSc Agricultural Extension & Community Development", "cutoff": "22"},
+                    {"name": "BSc Entomology & Wildlife", "cutoff": "20"},
+                    {"name": "BSc Meteorology & Atmospheric Physics", "cutoff": "22"},
+                    {"name": "BSc Water & Sanitation", "cutoff": "22"}
+                ]
+            }
+        },
+        "fees": {
+            "ghanaian_students": {
+                "Humanities/Arts/Education": "~GH¢ 1,300-2,400",
+                "Social Sciences/Business/Economics": "~GH¢ 1,500-2,500",
+                "Sciences/Agriculture": "~GH¢ 1,600-3,000",
+                "Health Sciences (Nursing/Allied Health)": "~GH¢ 2,500-3,500+",
+                "Health Sciences (Medicine/Pharmacy)": "~GH¢ 3,000-4,000+",
+                "Distance Education": "Varies by programme"
+            },
+            "payment_policy": "1st Semester: 50% before registration; 2nd Semester: 100% before registration",
+            "international_students": "Contact International Programmes Office - fees in USD"
+        },
         "scholarships": {
-            "teacher_training": "Full scholarships for teacher trainees",
-            "excellence_awards": "Merit-based scholarships",
-        },
+            "teacher_training": "Government scholarships for teacher trainees",
+            "excellence_awards": "Merit-based scholarships for outstanding students",
+            "need_based": "Financial support for disadvantaged students",
+            "distance_education_scholarship": "Scholarships for distance education students"
+        }
     },
+
+    # ========================================================================
+    # OTHER UNIVERSITIES (Preserved from original)
+    # ========================================================================
     "University for Development Studies": {
         "location": "Tamale, Northern Region",
         "established": "1992",
         "website": "www.uds.edu.gh",
+        "type": "Public",
         "programs": {
             "Agriculture": {
                 "duration": "4 years",
@@ -391,6 +737,7 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
         "location": "Sunyani, Bono Region",
         "established": "2011",
         "website": "www.uenr.edu.gh",
+        "type": "Public",
         "programs": {
             "Renewable Energy Engineering": {
                 "duration": "4 years",
@@ -414,14 +761,13 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
             "online_portal": "https://admissions.uenr.edu.gh",
         },
         "contact": {"phone": "+233-35-206-2108", "email": "admissions@uenr.edu.gh"},
-        "scholarships": {
-            "energy_scholarship": "For students in energy-related programs"
-        },
+        "scholarships": {"energy_scholarship": "For students in energy-related programs"},
     },
     "University of Education, Winneba": {
         "location": "Winneba, Central Region",
         "established": "1992",
         "website": "www.uew.edu.gh",
+        "type": "Public",
         "programs": {
             "Basic Education": {
                 "duration": "4 years",
@@ -450,14 +796,13 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
             "online_portal": "https://admissions.uew.edu.gh",
         },
         "contact": {"phone": "+233-23-202-6660", "email": "admissions@uew.edu.gh"},
-        "scholarships": {
-            "teacher_training": "Government scholarships for teacher trainees"
-        },
+        "scholarships": {"teacher_training": "Government scholarships for teacher trainees"},
     },
     "University of Mines and Technology": {
         "location": "Tarkwa, Western Region",
         "established": "2004",
         "website": "www.umat.edu.gh",
+        "type": "Public",
         "programs": {
             "Mining Engineering": {
                 "duration": "4 years",
@@ -486,14 +831,13 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
             "online_portal": "https://admissions.umat.edu.gh",
         },
         "contact": {"phone": "+233-31-209-2072", "email": "admissions@umat.edu.gh"},
-        "scholarships": {
-            "mining_scholarship": "For students in mining-related programs"
-        },
+        "scholarships": {"mining_scholarship": "For students in mining-related programs"},
     },
     "University of Health and Allied Sciences": {
         "location": "Ho, Volta Region",
         "established": "2011",
         "website": "www.uhas.edu.gh",
+        "type": "Public",
         "programs": {
             "Medicine": {
                 "duration": "6 years",
@@ -526,6 +870,7 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
             "entrance_exam": "Required for Medicine and competitive programs",
             "application_deadline": "August 14, 2026",
             "online_portal": "https://admissions.uhas.edu.gh",
+            "application_fee": "GH¢ 230"
         },
         "contact": {"phone": "+233-36-202-1401", "email": "admissions@uhas.edu.gh"},
         "scholarships": {
@@ -537,6 +882,7 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
         "location": "Accra, Greater Accra",
         "established": "2005",
         "website": "www.gctu.edu.gh",
+        "type": "Public",
         "programs": {
             "Computer Science": {
                 "duration": "4 years",
@@ -563,6 +909,8 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
             "general": "WASSCE with 6 credits including English and Maths",
             "application_deadline": "August 31, 2026",
             "online_portal": "https://admissions.gctu.edu.gh",
+            "application_fee": "GH¢ 250",
+            "study_options": "Day, Evening, Weekend"
         },
         "contact": {"phone": "+233-30-295-4900", "email": "admissions@gctu.edu.gh"},
         "scholarships": {"ict_scholarship": "For outstanding ICT students"},
@@ -571,6 +919,7 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
         "location": "Takoradi, Western Region",
         "established": "1954",
         "website": "www.ttu.edu.gh",
+        "type": "Public",
         "programs": {
             "Mechanical Engineering Technology": {
                 "duration": "4 years",
@@ -604,14 +953,13 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
             "online_portal": "https://admissions.ttu.edu.gh",
         },
         "contact": {"phone": "+233-31-202-3490", "email": "admissions@ttu.edu.gh"},
-        "scholarships": {
-            "technical_scholarship": "For outstanding technical program students"
-        },
+        "scholarships": {"technical_scholarship": "For outstanding technical program students"},
     },
     "University of Professional Studies, Accra": {
         "location": "Accra, Greater Accra",
         "established": "1965",
         "website": "www.upsa.edu.gh",
+        "type": "Public",
         "programs": {
             "Accounting": {
                 "duration": "4 years",
@@ -652,29 +1000,59 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
     },
 }
 
+
 # ============================================================================
-# ORIGINAL NAME VARIATIONS - PRESERVED
+# UNI_NAME_VARIATIONS - COMPLETE
 # ============================================================================
 
 UNI_NAME_VARIATIONS = {
+    # University of Ghana
     "university of ghana": "University of Ghana",
     "ug": "University of Ghana",
     "legon": "University of Ghana",
+    "ug legon": "University of Ghana",
+    # KNUST
     "knust": "Kwame Nkrumah University of Science and Technology",
     "kwame nkrumah": "Kwame Nkrumah University of Science and Technology",
+    "kwame nkrumah university": "Kwame Nkrumah University of Science and Technology",
     "kumasi": "Kwame Nkrumah University of Science and Technology",
+    "nkrumah": "Kwame Nkrumah University of Science and Technology",
+    # UCC
     "ucc": "University of Cape Coast",
     "cape coast": "University of Cape Coast",
+    "university of cape coast": "University of Cape Coast",
+    # UDS
     "uds": "University for Development Studies",
     "tamale": "University for Development Studies",
-    "upsa": "University of Professional Studies",
+    "university for development studies": "University for Development Studies",
+    # UENR
     "uenr": "University of Energy and Natural Resources",
     "sunyani": "University of Energy and Natural Resources",
+    "energy and natural resources": "University of Energy and Natural Resources",
+    # UHAS
     "uhas": "University of Health and Allied Sciences",
     "ho": "University of Health and Allied Sciences",
+    "health and allied sciences": "University of Health and Allied Sciences",
+    # GCTU
     "gctu": "Ghana Communication Technology University",
-    "gctU": "Ghana Communication Technology University",
     "communication technology": "Ghana Communication Technology University",
+    "gctu university": "Ghana Communication Technology University",
+    # UEW
+    "uew": "University of Education, Winneba",
+    "winneba": "University of Education, Winneba",
+    "university of education": "University of Education, Winneba",
+    # UMAT
+    "umat": "University of Mines and Technology",
+    "tarkwa": "University of Mines and Technology",
+    "mines and technology": "University of Mines and Technology",
+    # UPSA
+    "upsa": "University of Professional Studies, Accra",
+    "professional studies": "University of Professional Studies, Accra",
+    # TTU
+    "ttu": "Takoradi Technical University",
+    "takoradi": "Takoradi Technical University",
+    "takoradi technical": "Takoradi Technical University",
+    # Others
     "gimpa": "Ghana Institute of Management and Public Administration",
     "ashesi": "Ashesi University",
     "berekuso": "Ashesi University",
@@ -684,668 +1062,134 @@ UNI_NAME_VARIATIONS = {
     "presbyterian": "Presbyterian University",
     "methodist": "Methodist University",
     "academic city": "Academic City University",
-    "umat": "University of Mines and Technology",
-    "tarkwa": "University of Mines and Technology",
-    "mines": "University of Mines and Technology",
-    "uew": "University of Education, Winneba",
-    "winneba": "University of Education, Winneba",
-    "education winneba": "University of Education, Winneba",
 }
 
-# ============================================================================
-# ENHANCED UNIVERSITY DATA LOADER - NEW BUT COMPATIBLE
-# ============================================================================
-
-class UniversityDataParser:
-    """Parser for university context files - keeps all existing data intact"""
-    
-    def __init__(self):
-        self.current_year = datetime.now().year
-        
-    def parse_file(self, content: str, uni_name: str) -> Dict[str, Any]:
-        """Parse a university context file into structured data."""
-        parsed = {
-            "name": uni_name,
-            "programs": {},
-            "admission_requirements": {},
-            "deadlines": {},
-            "cutoff_points": {},
-            "entrance_exams": [],
-            "fees": {},
-            "contact": {},
-            "application_fee": None,
-            "raw_content": content,
-            "study_options": [],
-            "special_notes": []
-        }
-        
-        self._parse_programs(content, parsed)
-        self._parse_cutoff_points(content, parsed)
-        self._parse_deadlines(content, parsed)
-        self._parse_requirements(content, parsed)
-        self._parse_contact_info(content, parsed)
-        self._parse_fees(content, parsed)
-        self._parse_entrance_exams(content, parsed)
-        self._parse_study_options(content, parsed)
-        self._parse_special_notes(content, parsed)
-        
-        return parsed
-    
-    def _parse_programs(self, content: str, parsed: Dict[str, Any]):
-        """Parse program information including cut-offs and requirements."""
-        lines = content.split('\n')
-        current_section = None
-        program_patterns = [
-            r'^([A-Z][a-zA-Z\s\.\-]+?)\s+(\d+(?:\(?\d*\)?)?)\s+(\d+(?:\(?\d*\)?)?|[-])\s+([-\d]+)?\s*(.*?)$',
-            r'^([A-Z][a-zA-Z\s\.\-]+?)\s+(\d+)\s+([-\d]+)\s+([-\d]+)?\s*(.*?)$',
-            r'^([A-Z][a-zA-Z\s\.\-]+?)\s+(\d+)\s+([-\d]+)\s+(.*?)$',
-        ]
-        
-        for i, line in enumerate(lines):
-            line = line.strip()
-            if not line:
-                continue
-            
-            if any(x in line for x in ['College of', 'Faculty of', 'School of', 'Department of']):
-                current_section = line
-                continue
-            
-            for pattern in program_patterns:
-                match = re.match(pattern, line)
-                if match:
-                    groups = match.groups()
-                    prog_name = groups[0].strip()
-                    
-                    cut_offs = []
-                    reqs = []
-                    
-                    for g in groups[1:]:
-                        if g and g != '-':
-                            if any(x in g for x in ['Maths', 'Science', 'Chemistry', 'Physics', 'Biology', 'English']):
-                                reqs.append(g)
-                            else:
-                                cut_offs.append(g)
-                    
-                    program_data = {
-                        "name": prog_name,
-                        "section": current_section,
-                        "cut_offs": cut_offs,
-                        "requirements": ' '.join(reqs) if reqs else '',
-                        "raw_line": line
-                    }
-                    
-                    parsed["programs"][prog_name] = program_data
-                    break
-    
-    def _parse_cutoff_points(self, content: str, parsed: Dict[str, Any]):
-        """Parse cut-off point tables specifically."""
-        cutoff_sections = re.findall(r'(CUT-OFF POINTS|CUT OFF POINTS|ADMISSIONS CUT-OFF).*?([\s\S]+?)(?=\n\n[A-Z][A-Z\s]+:|Contacts:|NB:|$)',
-                                    content, re.IGNORECASE | re.DOTALL)
-        
-        for section_title, section_content in cutoff_sections:
-            lines = section_content.strip().split('\n')
-            for line in lines:
-                line = line.strip()
-                if not line or line.startswith('NB:'):
-                    continue
-                    
-                match = re.match(r'^([A-Z][a-zA-Z\s\.\-]+?)\s+(\d+(?:\s*[/*]\s*\d+)?(?:\s*\(?\d*\)?)?)', line)
-                if match:
-                    prog_name = match.group(1).strip()
-                    cutoff = match.group(2).strip()
-                    
-                    if prog_name not in parsed["cutoff_points"]:
-                        parsed["cutoff_points"][prog_name] = []
-                    parsed["cutoff_points"][prog_name].append(cutoff)
-    
-    def _parse_deadlines(self, content: str, parsed: Dict[str, Any]):
-        """Parse application deadlines."""
-        deadline_patterns = [
-            (r'Application\s+Deadline\s*[:.]?\s*([A-Za-z]+\s+\d+,\s+\d{4})', 'application_deadline'),
-            (r'closing date for (?:submission of )?applications?\s+is\s+([A-Za-z]+\s+\d+,\s+\d{4})', 'closing_date'),
-            (r'deadline for submission of applications?\s+is\s+([A-Za-z]+\s+\d+,\s+\d{4})', 'submission_deadline'),
-            (r'application\s+opens\s+([A-Za-z]+\s+\d+,\s+\d{4})', 'application_opens'),
-            (r'application\s+closes\s+([A-Za-z]+\s+\d+,\s+\d{4})', 'application_closes'),
-        ]
-        
-        for pattern, key in deadline_patterns:
-            matches = re.findall(pattern, content, re.IGNORECASE)
-            if matches:
-                parsed["deadlines"][key] = matches[0]
-    
-    def _parse_requirements(self, content: str, parsed: Dict[str, Any]):
-        """Parse admission requirements."""
-        req_sections = re.findall(
-            r'(?:GENERAL ENTRY REQUIREMENTS|ENTRY REQUIREMENTS|ADMISSION REQUIREMENTS)[\s\S]+?(?=\n\n[A-Z][A-Z\s]+:|$)',
-            content, re.IGNORECASE
-        )
-        
-        if req_sections:
-            parsed["admission_requirements"]["general"] = req_sections[0].strip()
-        
-        qual_patterns = [
-            (r'WASSCE.*?(?:credit|pass).*?(?:\n\n|$)', 'wassce'),
-            (r'SSSCE.*?(?:credit|pass).*?(?:\n\n|$)', 'sssce'),
-            (r'GCE.*?(?:credit|pass).*?(?:\n\n|$)', 'gce'),
-            (r'HND.*?(?:credit|pass).*?(?:\n\n|$)', 'hnd'),
-            (r'Diploma.*?(?:credit|pass).*?(?:\n\n|$)', 'diploma'),
-            (r'Mature.*?(?:credit|pass).*?(?:\n\n|$)', 'mature'),
-        ]
-        
-        for pattern, key in qual_patterns:
-            matches = re.findall(pattern, content, re.IGNORECASE | re.DOTALL)
-            if matches:
-                parsed["admission_requirements"][key] = matches[0].strip()
-    
-    def _parse_contact_info(self, content: str, parsed: Dict[str, Any]):
-        """Parse contact information."""
-        contact_patterns = [
-            (r'Phone\s*[:.]?\s*([+0-9\s\-\(\)]+)', 'phone'),
-            (r'Tel\s*[:.]?\s*([+0-9\s\-\(\)]+)', 'phone'),
-            (r'WhatsApp\s*[:.]?\s*([+0-9\s\-\(\)]+)', 'whatsapp'),
-            (r'Email\s*[:.]?\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})', 'email'),
-            (r'Website\s*[:.]?\s*(?:https?://)?([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})', 'website'),
-        ]
-        
-        for pattern, key in contact_patterns:
-            matches = re.findall(pattern, content, re.IGNORECASE)
-            if matches:
-                parsed["contact"][key] = matches[0].strip()
-    
-    def _parse_fees(self, content: str, parsed: Dict[str, Any]):
-        """Parse fee information."""
-        fee_patterns = [
-            (r'(?:Cost|Application Fee|Form Fee)\s*[:.]?\s*[GH₵]?(\d+\.?\d*)', 'application_fee'),
-            (r'(?:Tuition|School)\s+Fees.*?([\d,]+\.?\d*)', 'tuition_fees'),
-            (r'(?:E-voucher|Voucher)\s*[:.]?\s*[GH₵]?(\d+\.?\d*)', 'voucher_fee'),
-        ]
-        
-        for pattern, key in fee_patterns:
-            matches = re.findall(pattern, content, re.IGNORECASE)
-            if matches:
-                parsed["fees"][key] = matches[0]
-        
-        intl_fee = re.search(r'International\s+Forms?\s*[:.]?\s*[USD$]?(\d+\.?\d*)', content, re.IGNORECASE)
-        if intl_fee:
-            parsed["fees"]["international_fee"] = intl_fee.group(1)
-    
-    def _parse_entrance_exams(self, content: str, parsed: Dict[str, Any]):
-        """Parse entrance examination information."""
-        exam_patterns = [
-            r'(entrance\s+examination|entrance\s+exam).*?(?:will be held|is scheduled for|takes place on|date is)\s+([A-Za-z]+\s+\d+\s*(?:-|to|,)\s*[A-Za-z]+\s+\d+|\d+[a-z]+\s+[A-Za-z]+\s+\d{4})',
-            r'(entrance\s+examination|entrance\s+exam).*?(?:from|on)\s+([A-Za-z]+\s+\d+\s*(?:-|to|,)\s*[A-Za-z]+\s+\d+)',
-        ]
-        
-        for pattern in exam_patterns:
-            matches = re.findall(pattern, content, re.IGNORECASE | re.DOTALL)
-            for match in matches:
-                exam_data = {
-                    "name": match[0] if isinstance(match, tuple) else match,
-                    "date": match[1] if isinstance(match, tuple) and len(match) > 1 else ""
-                }
-                parsed["entrance_exams"].append(exam_data)
-    
-    def _parse_study_options(self, content: str, parsed: Dict[str, Any]):
-        """Parse study options."""
-        study_patterns = [
-            r'(Day|Evening|Weekend|Sandwich|Distance|Regular|Full-time|Part-time)',
-        ]
-        
-        options = set()
-        for pattern in study_patterns:
-            matches = re.findall(pattern, content, re.IGNORECASE)
-            for match in matches:
-                option = match.strip().title()
-                if option in ['Day', 'Evening', 'Weekend', 'Sandwich', 'Distance', 'Regular', 'Full-time', 'Part-time']:
-                    options.add(option)
-        
-        if options:
-            parsed["study_options"] = list(options)
-    
-    def _parse_special_notes(self, content: str, parsed: Dict[str, Any]):
-        """Parse special notes."""
-        note_patterns = [
-            r'(NB:|NOTE:|NOTICE:|Important|Please note)[\s\S]+?(?=\n\n|\Z)',
-            r'(affirmative action|only female|only male|gender)',
-        ]
-        
-        for pattern in note_patterns:
-            matches = re.findall(pattern, content, re.IGNORECASE)
-            for match in matches:
-                if isinstance(match, str) and len(match) > 20:
-                    parsed["special_notes"].append(match.strip())
-                elif isinstance(match, tuple):
-                    parsed["special_notes"].append(' '.join(match).strip())
 
 # ============================================================================
-# ENHANCED KNOWLEDGE BASE - KEEPS ALL ORIGINAL DATA
+# ENHANCED HELPER FUNCTIONS
 # ============================================================================
 
-class EnhancedUniversityKnowledgeBase:
-    """Enhanced knowledge base - maintains all original data + adds enhancements"""
+def search_programs_by_criteria(query: str, university_kb: Any) -> List[Dict[str, Any]]:
+    """
+    Search for programs matching specific criteria in the query.
+    This is used to find specific programs when the user asks about them.
+    """
+    query_lower = query.lower()
+    results = []
     
-    def __init__(self):
-        self.universities: Dict[str, Dict[str, Any]] = {}
-        self.name_variations: Dict[str, str] = {}
-        self.program_index: Dict[str, List[Tuple[str, str]]] = {}
-        self.keyword_index: Dict[str, Set[str]] = {}
-        self.cutoff_index: Dict[int, List[Tuple[str, str, str]]] = {}
-        self.parser = UniversityDataParser()
-        
-        # First load from hardcoded data
-        self._load_hardcoded_data()
-        
-        # Then try to load from files (overlay)
-        self._load_from_files()
-        
-        # Build indexes
-        self._build_indexes()
-        
-        print(f"✅ Knowledge Base loaded: {len(self.universities)} universities")
-        print(f"   - {len(self.program_index)} unique programs indexed")
-        print(f"   - {len(self.keyword_index)} keywords indexed")
-        print(f"   - Cut-off points indexed for {len(self.cutoff_index)} aggregate values")
+    # Check if query mentions a specific program type
+    program_keywords = {
+        "engineering": ["BSc", "Engineering"],
+        "medicine": ["MBChB", "MB ChB", "Medicine", "Medical"],
+        "nursing": ["BSc Nursing", "Nursing"],
+        "law": ["LLB", "Law"],
+        "business": ["BSc Administration", "BBA", "Business", "Accounting", "Finance"],
+        "computer": ["BSc Computer Science", "Information Technology", "Computer Engineering"],
+        "pharmacy": ["PharmD", "Pharmacy"],
+        "education": ["B.Ed", "Education"],
+        "agriculture": ["BSc Agriculture", "Agribusiness"],
+        "dentistry": ["BDS", "Dental Surgery"],
+        "allied_health": ["Medical Laboratory", "Physiotherapy", "Optometry", "Radiography", "Dietetics"]
+    }
     
-    def _load_hardcoded_data(self):
-        """Load from the original GHANA_UNIVERSITIES_KNOWLEDGE"""
-        global GHANA_UNIVERSITIES_KNOWLEDGE
-        
-        for uni_name, data in GHANA_UNIVERSITIES_KNOWLEDGE.items():
-            # Add to universities
-            self.universities[uni_name] = data.copy()
-            
-            # Convert programs to the enhanced format
-            if "programs" in data:
-                enhanced_programs = {}
-                for prog_name, prog_data in data["programs"].items():
+    # Find matching program type
+    matched_type = None
+    for prog_type, keywords in program_keywords.items():
+        if any(kw.lower() in query_lower for kw in keywords):
+            matched_type = prog_type
+            break
+    
+    if matched_type:
+        # Search for programs of this type across all universities
+        for uni_name, uni_data in university_kb.universities.items():
+            # Check if university has 'colleges' structure (KNUST, UG, UCC)
+            if "colleges" in uni_data:
+                for college_name, college_data in uni_data.get("colleges", {}).items():
+                    for prog in college_data.get("programs", []):
+                        if isinstance(prog, dict):
+                            prog_name = prog.get("name", "")
+                            if any(kw.lower() in prog_name.lower() for kw in program_keywords.get(matched_type, [])):
+                                results.append({
+                                    "university": uni_name,
+                                    "college": college_name,
+                                    "program": prog_name,
+                                    "cutoff": prog.get("cutoff", "N/A"),
+                                    "duration": prog.get("duration", "4 years"),
+                                    "requirements": prog.get("requirements", ""),
+                                    "first_choice": prog.get("first_choice", "No"),
+                                    "entrance_exam": prog.get("entrance_exam", "No")
+                                })
+            # Check if university has 'programs' structure (other universities)
+            elif "programs" in uni_data:
+                for prog_name, prog_data in uni_data.get("programs", {}).items():
                     if isinstance(prog_data, dict):
-                        # Create enhanced program data with cut_offs extracted
-                        enhanced_programs[prog_name] = {
-                            "name": prog_name,
-                            "cut_offs": [],
-                            "requirements": prog_data.get("requirements", ""),
-                            "duration": prog_data.get("duration", ""),
-                            "career_prospects": prog_data.get("career_prospects", ""),
-                            "original_data": prog_data
-                        }
-                        
-                        # Try to extract cut-off from requirements
-                        req_text = prog_data.get("requirements", "")
-                        agg_match = re.search(r'(?:Agg|Aggregate)\s*(\d+[-–]\d+)', req_text, re.IGNORECASE)
-                        if not agg_match:
-                            agg_match = re.search(r'(\d+[-–]\d+)', req_text)
-                        if agg_match:
-                            enhanced_programs[prog_name]["cut_offs"].append(agg_match.group(1))
-                    else:
-                        enhanced_programs[prog_name] = {"name": prog_name, "data": str(prog_data)}
-                
-                self.universities[uni_name]["programs"] = enhanced_programs
-            
-            # Add name variations
-            self._add_name_variations(uni_name)
+                        if any(kw.lower() in prog_name.lower() for kw in program_keywords.get(matched_type, [])):
+                            results.append({
+                                "university": uni_name,
+                                "program": prog_name,
+                                "cutoff": prog_data.get("requirements", ""),
+                                "duration": prog_data.get("duration", "4 years"),
+                                "requirements": prog_data.get("requirements", ""),
+                            })
     
-    def _load_from_files(self):
-        """Load from context files - overlays on top of hardcoded data"""
-        context_files = {
-            "University of Ghana": "University of Ghana.txt",
-            "University for Development Studies": "University of Development studies.txt",
-            "University of Energy and Natural Resources": "University of Energy and Natural Resources.txt",
-            "University of Education Winneba": "University of education Winneba.txt",
-            "University of Mines and Technology": "University of Mines and Technology.txt",
-            "University of Health and Allied Sciences": "University of Health and Allied Sciences.txt",
-            "Ghana Communication Technology University": "Ghana Communication Technology University (GCTU),.txt",
-        }
-        
-        for uni_name, filename in context_files.items():
-            filepath = Path(filename)
-            if filepath.exists():
-                try:
-                    with open(filepath, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                    
-                    parsed_data = self.parser.parse_file(content, uni_name)
-                    if parsed_data and parsed_data.get("programs"):
-                        # Merge with existing data
-                        if uni_name in self.universities:
-                            # Preserve existing data and add parsed info
-                            existing = self.universities[uni_name]
-                            # Add raw content
-                            existing["raw_content"] = parsed_data["raw_content"]
-                            # Add parsed programs (enhanced)
-                            for prog_name, prog_data in parsed_data["programs"].items():
-                                if prog_name not in existing.get("programs", {}):
-                                    if "programs" not in existing:
-                                        existing["programs"] = {}
-                                    existing["programs"][prog_name] = prog_data
-                            # Add deadlines
-                            if parsed_data.get("deadlines"):
-                                if "deadlines" not in existing:
-                                    existing["deadlines"] = {}
-                                existing["deadlines"].update(parsed_data["deadlines"])
-                            # Add cutoff points
-                            if parsed_data.get("cutoff_points"):
-                                if "cutoff_points" not in existing:
-                                    existing["cutoff_points"] = {}
-                                existing["cutoff_points"].update(parsed_data["cutoff_points"])
-                            # Add study options
-                            if parsed_data.get("study_options"):
-                                if "study_options" not in existing:
-                                    existing["study_options"] = []
-                                existing["study_options"].extend(parsed_data["study_options"])
-                            # Add special notes
-                            if parsed_data.get("special_notes"):
-                                if "special_notes" not in existing:
-                                    existing["special_notes"] = []
-                                existing["special_notes"].extend(parsed_data["special_notes"])
-                        else:
-                            self.universities[uni_name] = parsed_data
-                            self._add_name_variations(uni_name)
-                        
-                        print(f"✅ Loaded from file: {uni_name} ({len(parsed_data['programs'])} programs)")
-                    else:
-                        print(f"⚠️ Failed to parse: {uni_name}")
-                except Exception as e:
-                    print(f"❌ Error loading {uni_name}: {e}")
-            else:
-                print(f"⚠️ File not found: {filename}")
+    return results[:10]
+
+
+def find_programs_by_cutoff(aggregate: int, university_kb: Any, within_range: int = 3) -> List[Dict[str, Any]]:
+    """
+    Find programs that match a given aggregate score.
+    """
+    results = []
     
-    def _add_name_variations(self, uni_name: str):
-        """Add comprehensive name variations."""
-        # Use the global UNI_NAME_VARIATIONS
-        global UNI_NAME_VARIATIONS
-        
-        for key, value in UNI_NAME_VARIATIONS.items():
-            if value == uni_name:
-                self.name_variations[key] = uni_name
-        
-        # Add lowercase version
-        self.name_variations[uni_name.lower()] = uni_name
-        
-        # Add short version (remove "University of")
-        if "University of" in uni_name:
-            short = uni_name.replace("University of", "").strip()
-            if short and short not in self.name_variations:
-                self.name_variations[short.lower()] = uni_name
+    for uni_name, uni_data in university_kb.universities.items():
+        # Check if university has 'colleges' structure
+        if "colleges" in uni_data:
+            for college_name, college_data in uni_data.get("colleges", {}).items():
+                for prog in college_data.get("programs", []):
+                    if isinstance(prog, dict):
+                        cutoff_str = prog.get("cutoff", "")
+                        if cutoff_str:
+                            # Parse cutoff ranges like "10-14" or "6-10"
+                            match = re.search(r'(\d+)\s*[-–]\s*(\d+)', str(cutoff_str))
+                            if match:
+                                low = int(match.group(1))
+                                high = int(match.group(2))
+                                if low - within_range <= aggregate <= high + within_range:
+                                    results.append({
+                                        "university": uni_name,
+                                        "college": college_name,
+                                        "program": prog.get("name", ""),
+                                        "cutoff": cutoff_str,
+                                        "duration": prog.get("duration", "4 years"),
+                                        "requirements": prog.get("requirements", ""),
+                                        "first_choice": prog.get("first_choice", "No"),
+                                        "match_type": "range_match"
+                                    })
+                            else:
+                                # Try single number
+                                match = re.search(r'(\d+)', str(cutoff_str))
+                                if match:
+                                    cutoff_num = int(match.group(1))
+                                    if abs(cutoff_num - aggregate) <= within_range:
+                                        results.append({
+                                            "university": uni_name,
+                                            "college": college_name,
+                                            "program": prog.get("name", ""),
+                                            "cutoff": cutoff_str,
+                                            "duration": prog.get("duration", "4 years"),
+                                            "requirements": prog.get("requirements", ""),
+                                            "first_choice": prog.get("first_choice", "No"),
+                                            "match_type": "exact_match"
+                                        })
     
-    def _build_indexes(self):
-        """Build comprehensive search indexes."""
-        self.program_index = {}
-        self.keyword_index = {}
-        self.cutoff_index = {}
-        
-        for uni_name, data in self.universities.items():
-            programs = data.get("programs", {})
-            
-            for prog_name, prog_data in programs.items():
-                # Index by program name
-                if prog_name not in self.program_index:
-                    self.program_index[prog_name] = []
-                self.program_index[prog_name].append((uni_name, prog_data))
-                
-                # Extract and index keywords
-                text = f"{prog_name} {json.dumps(prog_data)}".lower()
-                keywords = self._extract_keywords(text)
-                for keyword in keywords:
-                    if keyword not in self.keyword_index:
-                        self.keyword_index[keyword] = set()
-                    self.keyword_index[keyword].add(uni_name)
-                
-                # Index cut-off points
-                cut_offs = prog_data.get("cut_offs", []) if isinstance(prog_data, dict) else []
-                for cutoff in cut_offs:
-                    try:
-                        numeric = re.search(r'(\d+)', str(cutoff))
-                        if numeric:
-                            agg = int(numeric.group(1))
-                            if agg not in self.cutoff_index:
-                                self.cutoff_index[agg] = []
-                            self.cutoff_index[agg].append((uni_name, prog_name, cutoff))
-                    except (ValueError, AttributeError):
-                        pass
-    
-    def _extract_keywords(self, text: str) -> List[str]:
-        """Extract meaningful keywords from text."""
-        stopwords = {'the', 'a', 'an', 'and', 'or', 'but', 'for', 'on', 'at', 'to', 'in', 'of', 'with', 'by', 'from', 'for', 'be', 'is', 'are', 'was', 'were'}
-        words = re.findall(r'[a-z]{3,}', text)
-        return [w for w in words if w not in stopwords]
-    
-    # ============ SEARCH STRATEGIES ============
-    
-    def search(self, query: str, top_n: int = 5) -> List[Dict[str, Any]]:
-        """Multi-strategy search with scoring."""
-        query_lower = query.lower()
-        query_words = set(self._extract_keywords(query_lower))
-        
-        scored = {}
-        
-        # STRATEGY 1: Exact university name match
-        for variation, uni_name in self.name_variations.items():
-            if variation in query_lower:
-                if uni_name not in scored:
-                    scored[uni_name] = 0
-                scored[uni_name] += 5.0
-        
-        # STRATEGY 2: Program name match
-        for prog_name, universities in self.program_index.items():
-            if prog_name.lower() in query_lower:
-                for uni_name, prog_data in universities:
-                    if uni_name not in scored:
-                        scored[uni_name] = 0
-                    scored[uni_name] += 4.0
-        
-        # STRATEGY 3: Keyword overlap
-        for keyword, universities in self.keyword_index.items():
-            if keyword in query_words:
-                for uni_name in universities:
-                    if uni_name not in scored:
-                        scored[uni_name] = 0
-                    scored[uni_name] += 1.0
-        
-        # STRATEGY 4: Cut-off point matching
-        if any(word in query_lower for word in ["cut-off", "cutoff", "aggregate", "grade"]):
-            agg_match = re.search(r'aggregate\s*(\d+)', query_lower)
-            if agg_match:
-                agg = int(agg_match.group(1))
-                for cutoff_agg, programs in self.cutoff_index.items():
-                    if abs(cutoff_agg - agg) <= 5:
-                        for uni_name, prog_name, cutoff in programs:
-                            if uni_name not in scored:
-                                scored[uni_name] = 0
-                            scored[uni_name] += 3.0
-        
-        # Sort by score
-        sorted_results = sorted(scored.items(), key=lambda x: x[1], reverse=True)
-        
-        results = []
-        for uni_name, score in sorted_results[:top_n]:
-            if score > 0:
-                data = self.universities.get(uni_name, {})
-                results.append({
-                    "source": uni_name,
-                    "data": data,
-                    "relevance": min(score / 10.0, 0.95),
-                    "raw_content": data.get("raw_content", ""),
-                    "matched_programs": self._find_matching_programs(query_lower, uni_name)
-                })
-        
-        return results
-    
-    def _find_matching_programs(self, query: str, uni_name: str) -> List[str]:
-        """Find programs within a university that match the query."""
-        matches = []
-        data = self.universities.get(uni_name, {})
-        programs = data.get("programs", {})
-        
-        query_lower = query.lower()
-        for prog_name, prog_data in programs.items():
-            prog_lower = prog_name.lower()
-            if any(word in prog_lower for word in query_lower.split()) or \
-               any(word in json.dumps(prog_data).lower() for word in query_lower.split()):
-                matches.append(prog_name)
-        
-        return matches[:5]
-    
-    def get_university(self, name: str) -> Optional[Dict[str, Any]]:
-        """Get university data by name with variation matching."""
-        name_lower = name.lower()
-        if name_lower in self.name_variations:
-            return self.universities.get(self.name_variations[name_lower])
-        return self.universities.get(name)
-    
-    def find_programs_by_cutoff(self, aggregate: int, within_range: int = 3) -> List[Dict[str, Any]]:
-        """Find all programs within a certain range of the given aggregate."""
-        results = []
-        for cutoff_agg, programs in self.cutoff_index.items():
-            if abs(cutoff_agg - aggregate) <= within_range:
-                for uni_name, prog_name, cutoff in programs:
-                    results.append({
-                        "university": uni_name,
-                        "program": prog_name,
-                        "cutoff": cutoff,
-                        "aggregate": cutoff_agg,
-                        "difference": abs(cutoff_agg - aggregate)
-                    })
-        return sorted(results, key=lambda x: x["difference"])
+    return sorted(results, key=lambda x: int(re.search(r'(\d+)', str(x["cutoff"])).group(1)) if re.search(r'(\d+)', str(x["cutoff"])) else 999)[:10]
+
 
 # ============================================================================
-# ENHANCED SEARCH FUNCTION - KEEPS ORIGINAL SIGNATURE
-# ============================================================================
-
-def search_local_knowledge(query: str, university_name: str = None) -> Dict[str, Any]:
-    """Enhanced search using the knowledge base - maintains original interface."""
-    
-    if university_name:
-        uni_data = university_kb.get_university(university_name)
-        if uni_data:
-            return {
-                "results": [{
-                    "source": university_name,
-                    "data": uni_data,
-                    "relevance": 0.95,
-                    "raw_content": uni_data.get("raw_content", ""),
-                    "matched_programs": []
-                }],
-                "confidence": 0.95
-            }
-    
-    results = university_kb.search(query)
-    
-    agg_match = re.search(r'aggregate\s*(\d+)', query.lower())
-    if agg_match and results:
-        aggregate = int(agg_match.group(1))
-        program_matches = university_kb.find_programs_by_cutoff(aggregate)
-        if program_matches:
-            for match in program_matches[:5]:
-                uni_data = university_kb.get_university(match["university"])
-                if uni_data:
-                    results.append({
-                        "source": match["university"],
-                        "data": uni_data,
-                        "relevance": 0.85,
-                        "matched_program": match["program"],
-                        "matched_cutoff": match["cutoff"],
-                        "aggregate_match": aggregate
-                    })
-    
-    if results:
-        return {
-            "results": results[:5],
-            "confidence": max([r.get("relevance", 0) for r in results]) if results else 0.0
-        }
-    
-    return {"results": [], "confidence": 0.0}
-
-# ============================================================================
-# ORIGINAL BUILD_CONTEXT FUNCTION - MODIFIED TO USE ENHANCED DATA
-# ============================================================================
-
-def build_university_context(uni_name: str, uni_data: Dict[str, Any]) -> str:
-    """Build comprehensive context - enhanced but maintains original interface."""
-    current_year = datetime.now().year
-    
-    programs = uni_data.get("programs", {})
-    admission = uni_data.get("admission_requirements", {})
-    deadlines = uni_data.get("deadlines", {})
-    contact = uni_data.get("contact", {})
-    scholarships = uni_data.get("scholarships", {})
-    study_options = uni_data.get("study_options", [])
-    special_notes = uni_data.get("special_notes", [])
-    
-    # Build program list with cut-offs from enhanced data
-    program_lines = []
-    for prog_name, prog_data in programs.items():
-        if isinstance(prog_data, dict):
-            parts = [f"  - **{prog_name}**"]
-            if "duration" in prog_data and prog_data["duration"]:
-                parts.append(f"Duration: {prog_data['duration']}")
-            if "cut_offs" in prog_data and prog_data["cut_offs"]:
-                parts.append(f"Cut-off: {', '.join(prog_data['cut_offs'])}")
-            if "requirements" in prog_data and prog_data["requirements"]:
-                parts.append(f"Requirements: {prog_data['requirements']}")
-            if "career_prospects" in prog_data and prog_data["career_prospects"]:
-                parts.append(f"Careers: {prog_data['career_prospects']}")
-            program_lines.append(" | ".join(parts))
-        else:
-            program_lines.append(f"  - {prog_name}: {str(prog_data)[:100]}")
-    
-    # Build deadlines
-    deadline_lines = []
-    for key, val in deadlines.items():
-        if val:
-            deadline_lines.append(f"  - {key.replace('_', ' ').title()}: {val}")
-    
-    # Build study options
-    study_line = f"  - Study Options: {', '.join(study_options)}" if study_options else ""
-    
-    # Build scholarships
-    scholarship_lines = []
-    for key, val in scholarships.items():
-        if val:
-            scholarship_lines.append(f"  - {key}: {val}")
-    
-    context = f"""UNIVERSITY: {uni_name}
-Location: {uni_data.get("location", "Ghana")}
-Established: {uni_data.get("established", "N/A")}
-Website: {uni_data.get("website", "N/A")}
-
-PROGRAMS OFFERED:
-{chr(10).join(program_lines) if program_lines else "  - See university website for full list"}
-
-ADMISSION DEADLINES:
-{chr(10).join(deadline_lines) if deadline_lines else "  - Check university website"}
-
-{study_line if study_line else ""}
-
-ADMISSION REQUIREMENTS:
-  - General: {admission.get("general", "WASSCE with minimum credits")[:500] if admission.get("general") else "  - WASSCE with minimum credits"}
-  - Application Deadline: {admission.get("application_deadline", "Check university website")}
-  - Entrance Exam: {admission.get("entrance_exam", "Not specified")}
-  - Online Portal: {admission.get("online_portal", uni_data.get("website", ""))}
-
-FEES ({current_year}):
-  - Application Fee: {uni_data.get("fees", {}).get("application_fee", "Contact university")}
-  - Ghanaian Students: {uni_data.get("fees", {}).get("tuition_fees", "Contact university for current rates")}
-  - International Students: {uni_data.get("fees", {}).get("international_fee", "Contact university for current rates")}
-
-SCHOLARSHIPS:
-{chr(10).join(scholarship_lines) if scholarship_lines else "  - Contact university for scholarship information"}
-
-SPECIAL NOTES:
-{chr(10).join([f"  - {note}" for note in special_notes]) if special_notes else "  - None"}
-
-CONTACT:
-  - Phone: {contact.get("phone", "N/A")}
-  - Email: {contact.get("email", "N/A")}
-  - Address: {contact.get("address", "N/A")}
-"""
-    return context
-
-# ============================================================================
-# ORIGINAL FUNCTIONS - PRESERVED
+# ORIGINAL FUNCTIONS (Preserved)
 # ============================================================================
 
 async def initialize_services():
-    """Initialize all services on startup - preserved"""
     global embedding_model, groq_client, db_client, GHANA_UNIVERSITIES_KNOWLEDGE
 
     print(" Initializing Glinax RAG+CAG Services...")
@@ -1383,7 +1227,6 @@ async def initialize_services():
 
 
 async def seed_and_load_universities():
-    """Seed MongoDB with university data - preserved but enhanced"""
     global GHANA_UNIVERSITIES_KNOWLEDGE
     db = db_client[os.getenv("DB_NAME", "glinax_chatbot_db")]
     col = db["universities_knowledge"]
@@ -1410,12 +1253,438 @@ async def seed_and_load_universities():
         print(f" University knowledge base loaded from MongoDB ({len(loaded)} entries)")
 
 
+def build_university_context(uni_name: str, uni_data: Dict[str, Any]) -> str:
+    """Build comprehensive context from university data."""
+    current_year = datetime.now().year
+    
+    admission = uni_data.get("admission_requirements", {})
+    contact = uni_data.get("contact", {})
+    fees = uni_data.get("fees", {})
+    colleges = uni_data.get("colleges", {})
+    programs = uni_data.get("programs", {})
+    scholarships = uni_data.get("scholarships", {})
+    
+    # Build college and program information
+    college_sections = []
+    if colleges:
+        for college_name, college_data in colleges.items():
+            if not college_data or not isinstance(college_data, dict):
+                continue
+            
+            college_cutoff = college_data.get("cutoff_range", "")
+            prog_list = college_data.get("programs", [])
+            college_reqs = college_data.get("requirements", "")
+            
+            # Build program list for this college
+            prog_lines = []
+            for prog in prog_list:
+                if isinstance(prog, dict):
+                    prog_name = prog.get("name", "")
+                    cutoff = prog.get("cutoff", "")
+                    duration = prog.get("duration", "")
+                    reqs = prog.get("requirements", "")
+                    first_choice = prog.get("first_choice", "")
+                    entrance_exam = prog.get("entrance_exam", "")
+                    
+                    parts = [f"  - **{prog_name}**"]
+                    if cutoff:
+                        parts.append(f"Cut-off: {cutoff}")
+                    if duration:
+                        parts.append(f"Duration: {duration}")
+                    if reqs:
+                        parts.append(f"Requirements: {reqs}")
+                    if first_choice == "Yes":
+                        parts.append("⚠️ FIRST CHOICE ONLY")
+                    if entrance_exam == "Yes":
+                        parts.append("📝 Entrance Exam Required")
+                    prog_lines.append(" | ".join(parts))
+                else:
+                    prog_lines.append(f"  - {prog}")
+            
+            if prog_lines:
+                req_line = f"**Requirements:** {college_reqs}" if college_reqs else ""
+                college_sections.append(f"""
+### {college_name}
+**Cut-off Range:** {college_cutoff if college_cutoff else 'Varies by programme'}
+{req_line}
+
+**Programmes:**
+{chr(10).join(prog_lines)}
+""")
+    
+    # Build program information for universities without colleges
+    if not colleges and programs:
+        prog_lines = []
+        for prog_name, prog_data in programs.items():
+            if isinstance(prog_data, dict):
+                parts = [f"  - **{prog_name}**"]
+                if "duration" in prog_data:
+                    parts.append(f"Duration: {prog_data['duration']}")
+                if "requirements" in prog_data:
+                    parts.append(f"Requirements: {prog_data['requirements']}")
+                if "career_prospects" in prog_data:
+                    parts.append(f"Careers: {prog_data['career_prospects']}")
+                prog_lines.append(" | ".join(parts))
+            else:
+                prog_lines.append(f"  - {prog_name}")
+        
+        if prog_lines:
+            college_sections.append(f"""
+### Programmes Offered
+{chr(10).join(prog_lines)}
+""")
+    
+    # Build deadlines
+    deadline_lines = []
+    deadline_keys = ["application_deadline", "closing_date", "submission_deadline", "application_opens", "application_closes"]
+    for key in deadline_keys:
+        val = admission.get(key, "")
+        if val:
+            deadline_lines.append(f"  - {key.replace('_', ' ').title()}: {val}")
+    
+    # Build fee information
+    fee_lines = []
+    ghana_fees = fees.get("ghanaian_students", {})
+    if ghana_fees:
+        for category, amount in ghana_fees.items():
+            if isinstance(amount, str):
+                fee_lines.append(f"  - {category}: {amount}")
+    
+    # Build mandatory levies
+    mandatory_levies = fees.get("mandatory_levies", {})
+    if mandatory_levies:
+        fee_lines.append("  - **Mandatory Levies:**")
+        for levy, amount in mandatory_levies.items():
+            fee_lines.append(f"    - {levy}: {amount}")
+    
+    # Build scholarship information
+    scholarship_lines = []
+    for key, val in scholarships.items():
+        if val:
+            scholarship_lines.append(f"  - {key.replace('_', ' ').title()}: {val}")
+    
+    # Build contact information
+    contact_lines = []
+    if contact.get("phone"):
+        contact_lines.append(f"  - Phone: {contact['phone']}")
+    if contact.get("email"):
+        contact_lines.append(f"  - Email: {contact['email']}")
+    if contact.get("address"):
+        contact_lines.append(f"  - Address: {contact['address']}")
+    if contact.get("whatsapp"):
+        contact_lines.append(f"  - WhatsApp: {contact['whatsapp']}")
+    
+    context = f"""
+# {uni_name}
+
+**Location:** {uni_data.get('location', 'Ghana')}
+**Established:** {uni_data.get('established', 'N/A')}
+**Type:** {uni_data.get('type', 'Public')}
+**Website:** {uni_data.get('website', 'N/A')}
+
+## Admission Requirements
+- **General:** {admission.get('general', 'WASSCE with minimum credits')[:600] if admission.get('general') else 'WASSCE with minimum credits'}
+- **Application Deadline:** {admission.get('application_deadline', 'Check university website')}
+- **Application Fee:** {admission.get('application_fee', 'Contact university')}
+- **Entrance Exam:** {admission.get('entrance_exam', 'Not specified')}
+- **Online Portal:** {admission.get('online_portal', uni_data.get('website', ''))}
+{chr(10).join([f'  - {key.replace("_", " ").title()}: {val}' for key, val in admission.items() if key not in ["general", "application_deadline", "application_fee", "entrance_exam", "online_portal"] and val])}
+
+{''.join(college_sections)}
+
+## Application Deadlines
+{chr(10).join(deadline_lines) if deadline_lines else '  - Check university website'}
+
+## Fees ({current_year})
+{chr(10).join(fee_lines) if fee_lines else '  - Contact university for current rates'}
+
+**Payment Policy:** {fees.get('payment_policy', 'Contact university for payment details')}
+
+## Scholarships
+{chr(10).join(scholarship_lines) if scholarship_lines else '  - Contact university for scholarship information'}
+
+## Contact Information
+{chr(10).join(contact_lines) if contact_lines else '  - Contact university directly'}
+
+---
+**Note:** Cut-off points change annually. Meeting minimum cut-offs does NOT guarantee admission. Always verify current information on the official university website.
+"""
+    return context
+
+
 # ============================================================================
-# OTHER ORIGINAL FUNCTIONS - PRESERVED
+# ENHANCED KNOWLEDGE BASE CLASS
+# ============================================================================
+
+class EnhancedUniversityKnowledgeBase:
+    """Enhanced knowledge base with search and retrieval capabilities."""
+    
+    def __init__(self):
+        self.universities: Dict[str, Dict[str, Any]] = {}
+        self.name_variations: Dict[str, str] = {}
+        self.program_index: Dict[str, List[Tuple[str, str]]] = {}
+        self.keyword_index: Dict[str, Set[str]] = {}
+        self.cutoff_index: Dict[int, List[Tuple[str, str, str]]] = {}
+        
+        # Load from hardcoded data
+        self._load_hardcoded_data()
+        
+        # Build indexes
+        self._build_indexes()
+        
+        print(f"✅ Knowledge Base loaded: {len(self.universities)} universities")
+        print(f"   - {len(self.program_index)} unique programs indexed")
+        print(f"   - {len(self.keyword_index)} keywords indexed")
+        print(f"   - Cut-off points indexed for {len(self.cutoff_index)} aggregate values")
+    
+    def _load_hardcoded_data(self):
+        """Load from the GHANA_UNIVERSITIES_KNOWLEDGE."""
+        global GHANA_UNIVERSITIES_KNOWLEDGE
+        
+        for uni_name, data in GHANA_UNIVERSITIES_KNOWLEDGE.items():
+            self.universities[uni_name] = data.copy()
+            self._add_name_variations(uni_name)
+    
+    def _add_name_variations(self, uni_name: str):
+        """Add name variations for a university."""
+        global UNI_NAME_VARIATIONS
+        
+        for key, value in UNI_NAME_VARIATIONS.items():
+            if value == uni_name:
+                self.name_variations[key] = uni_name
+        
+        self.name_variations[uni_name.lower()] = uni_name
+        
+        # Add short version
+        if "University of" in uni_name:
+            short = uni_name.replace("University of", "").strip()
+            if short and short not in self.name_variations:
+                self.name_variations[short.lower()] = uni_name
+    
+    def _build_indexes(self):
+        """Build comprehensive search indexes."""
+        self.program_index = {}
+        self.keyword_index = {}
+        self.cutoff_index = {}
+        
+        for uni_name, data in self.universities.items():
+            # Index programs from 'colleges' structure
+            if "colleges" in data:
+                for college_name, college_data in data["colleges"].items():
+                    for prog in college_data.get("programs", []):
+                        if isinstance(prog, dict):
+                            prog_name = prog.get("name", "")
+                            self._index_program(uni_name, prog_name, prog)
+                            self._index_cutoff(uni_name, prog_name, prog)
+            
+            # Index programs from 'programs' structure
+            if "programs" in data:
+                for prog_name, prog_data in data["programs"].items():
+                    self._index_program(uni_name, prog_name, prog_data)
+                    self._index_cutoff(uni_name, prog_name, prog_data)
+    
+    def _index_program(self, uni_name: str, prog_name: str, prog_data: Any):
+        """Index a program for search."""
+        if prog_name not in self.program_index:
+            self.program_index[prog_name] = []
+        self.program_index[prog_name].append((uni_name, prog_data))
+        
+        # Index keywords
+        text = f"{prog_name} {json.dumps(prog_data)}".lower()
+        keywords = self._extract_keywords(text)
+        for keyword in keywords:
+            if keyword not in self.keyword_index:
+                self.keyword_index[keyword] = set()
+            self.keyword_index[keyword].add(uni_name)
+    
+    def _index_cutoff(self, uni_name: str, prog_name: str, prog_data: Any):
+        """Index cut-off points for a program."""
+        if isinstance(prog_data, dict):
+            cutoff = prog_data.get("cutoff", "")
+            if cutoff:
+                try:
+                    numbers = re.findall(r'(\d+)', str(cutoff))
+                    for num in numbers:
+                        agg = int(num)
+                        if agg not in self.cutoff_index:
+                            self.cutoff_index[agg] = []
+                        self.cutoff_index[agg].append((uni_name, prog_name, cutoff))
+                except (ValueError, AttributeError):
+                    pass
+    
+    def _extract_keywords(self, text: str) -> List[str]:
+        """Extract meaningful keywords from text."""
+        stopwords = {'the', 'a', 'an', 'and', 'or', 'but', 'for', 'on', 'at', 'to', 'in', 'of', 'with', 'by', 'from', 'be', 'is', 'are', 'was', 'were'}
+        words = re.findall(r'[a-z]{3,}', text)
+        return [w for w in words if w not in stopwords]
+    
+    def search(self, query: str, top_n: int = 5) -> List[Dict[str, Any]]:
+        """Multi-strategy search with scoring."""
+        query_lower = query.lower()
+        query_words = set(self._extract_keywords(query_lower))
+        
+        scored = {}
+        
+        # Strategy 1: Exact university name match
+        for variation, uni_name in self.name_variations.items():
+            if variation in query_lower:
+                if uni_name not in scored:
+                    scored[uni_name] = 0
+                scored[uni_name] += 5.0
+        
+        # Strategy 2: Program name match
+        for prog_name, universities in self.program_index.items():
+            if prog_name.lower() in query_lower or any(word in prog_name.lower() for word in query_words):
+                for uni_name, prog_data in universities:
+                    if uni_name not in scored:
+                        scored[uni_name] = 0
+                    scored[uni_name] += 4.0
+        
+        # Strategy 3: Keyword overlap
+        for keyword, universities in self.keyword_index.items():
+            if keyword in query_words:
+                for uni_name in universities:
+                    if uni_name not in scored:
+                        scored[uni_name] = 0
+                    scored[uni_name] += 1.0
+        
+        # Strategy 4: Cut-off point matching
+        if any(word in query_lower for word in ["cut-off", "cutoff", "aggregate", "grade"]):
+            agg_match = re.search(r'aggregate\s*(\d+)', query_lower)
+            if agg_match:
+                agg = int(agg_match.group(1))
+                for cutoff_agg, programs in self.cutoff_index.items():
+                    if abs(cutoff_agg - agg) <= 5:
+                        for uni_name, prog_name, cutoff in programs:
+                            if uni_name not in scored:
+                                scored[uni_name] = 0
+                            scored[uni_name] += 3.0
+        
+        # Sort by score
+        sorted_results = sorted(scored.items(), key=lambda x: x[1], reverse=True)
+        
+        results = []
+        for uni_name, score in sorted_results[:top_n]:
+            if score > 0:
+                data = self.universities.get(uni_name, {})
+                results.append({
+                    "source": uni_name,
+                    "data": data,
+                    "relevance": min(score / 10.0, 0.95),
+                    "raw_content": data.get("raw_content", ""),
+                    "matched_programs": self._find_matching_programs(query_lower, uni_name)
+                })
+        
+        return results
+    
+    def _find_matching_programs(self, query: str, uni_name: str) -> List[str]:
+        """Find programs within a university that match the query."""
+        matches = []
+        data = self.universities.get(uni_name, {})
+        
+        # Search in colleges
+        if "colleges" in data:
+            for college_name, college_data in data["colleges"].items():
+                for prog in college_data.get("programs", []):
+                    if isinstance(prog, dict):
+                        prog_name = prog.get("name", "")
+                        if any(word in prog_name.lower() for word in query.split()) or \
+                           any(word in json.dumps(prog).lower() for word in query.split()):
+                            matches.append(prog_name)
+        
+        # Search in programs
+        if "programs" in data:
+            for prog_name, prog_data in data["programs"].items():
+                if any(word in prog_name.lower() for word in query.split()):
+                    matches.append(prog_name)
+        
+        return matches[:5]
+    
+    def get_university(self, name: str) -> Optional[Dict[str, Any]]:
+        """Get university data by name with variation matching."""
+        name_lower = name.lower()
+        if name_lower in self.name_variations:
+            return self.universities.get(self.name_variations[name_lower])
+        return self.universities.get(name)
+
+
+# ============================================================================
+# ENHANCED SEARCH FUNCTION
+# ============================================================================
+
+# Initialize knowledge base
+university_kb = EnhancedUniversityKnowledgeBase()
+
+
+def search_local_knowledge(query: str, university_name: str = None) -> Dict[str, Any]:
+    """Enhanced search using the knowledge base."""
+    
+    if university_name:
+        uni_data = university_kb.get_university(university_name)
+        if uni_data:
+            return {
+                "results": [{
+                    "source": university_name,
+                    "data": uni_data,
+                    "relevance": 0.95,
+                    "raw_content": uni_data.get("raw_content", ""),
+                    "matched_programs": []
+                }],
+                "confidence": 0.95
+            }
+    
+    results = university_kb.search(query)
+    
+    # Check for cut-off based queries
+    agg_match = re.search(r'aggregate\s*(\d+)', query.lower())
+    if agg_match and results:
+        aggregate = int(agg_match.group(1))
+        program_matches = find_programs_by_cutoff(aggregate, university_kb)
+        if program_matches:
+            for match in program_matches[:5]:
+                uni_data = university_kb.get_university(match["university"])
+                if uni_data:
+                    results.append({
+                        "source": match["university"],
+                        "data": uni_data,
+                        "relevance": 0.85,
+                        "matched_program": match["program"],
+                        "matched_cutoff": match["cutoff"],
+                        "aggregate_match": aggregate,
+                        "duration": match.get("duration", ""),
+                        "first_choice": match.get("first_choice", "")
+                    })
+    
+    # Check for program type queries
+    if not results or results[0].get("relevance", 0) < 0.5:
+        program_results = search_programs_by_criteria(query, university_kb)
+        for pr in program_results[:3]:
+            uni_data = university_kb.get_university(pr["university"])
+            if uni_data and not any(r.get("source") == pr["university"] for r in results):
+                results.append({
+                    "source": pr["university"],
+                    "data": uni_data,
+                    "relevance": 0.7,
+                    "matched_program": pr["program"],
+                    "matched_cutoff": pr.get("cutoff", ""),
+                    "duration": pr.get("duration", ""),
+                    "first_choice": pr.get("first_choice", "")
+                })
+    
+    if results:
+        return {
+            "results": results[:5],
+            "confidence": max([r.get("relevance", 0) for r in results]) if results else 0.0
+        }
+    
+    return {"results": [], "confidence": 0.0}
+
+
+# ============================================================================
+# WEB SEARCH FUNCTIONS (Preserved)
 # ============================================================================
 
 async def search_web_realtime(query: str) -> Dict[str, Any]:
-    """Original search_web_realtime function - preserved"""
     try:
         serpapi_key = os.getenv("SERPAPI_KEY")
         if serpapi_key:
@@ -1449,6 +1718,10 @@ async def search_web_realtime(query: str) -> Dict[str, Any]:
                         "upsa.edu.gh",
                         "uenr.edu.gh",
                         "uhas.edu.gh",
+                        "gctu.edu.gh",
+                        "umat.edu.gh",
+                        "uew.edu.gh",
+                        "ttu.edu.gh",
                     ]
                 )
                 else "web_search"
@@ -1471,7 +1744,6 @@ async def search_web_realtime(query: str) -> Dict[str, Any]:
 
 
 async def search_with_serpapi(query: str, api_key: str) -> Dict[str, Any]:
-    """Original search_with_serpapi function - preserved"""
     try:
         current_year = datetime.now().year
         enhanced_query = f"{query} Ghana universities admission {current_year} latest"
@@ -1531,13 +1803,13 @@ async def search_with_serpapi(query: str, api_key: str) -> Dict[str, Any]:
 
 
 # ============================================================================
-# ENHANCED RESPONSE GENERATION - KEEPS ORIGINAL SIGNATURE
+# RESPONSE GENERATION (Enhanced)
 # ============================================================================
 
 async def generate_response_with_groq(
     query: str, context: str, sources: List[Dict], user_profile: Dict = None, chat_history: List[Dict] = None
 ) -> str:
-    """Enhanced response generation - maintains original signature"""
+    """Generate response using Groq LLM."""
     try:
         if not groq_client:
             return generate_smart_fallback_response(
@@ -1546,28 +1818,23 @@ async def generate_response_with_groq(
 
         current_year = datetime.now().year
         
-        system_prompt = f"""You are Cerkyl — a smart, friendly, and knowledgeable AI admission counsellor built specifically for Ghanaian SHS graduates.
+        system_prompt = f"""You are Cerkyl — a smart, friendly, and knowledgeable AI admission counsellor built specifically for Ghanaian SHS graduates. You have access to detailed information about Ghanaian universities including programs with cut-off points, subject requirements, application deadlines, entrance exam dates, and fees.
 
-You have access to detailed information about Ghanaian universities including:
-- Program names with cut-off points
-- Subject requirements for each program  
-- Application deadlines
-- Entrance exam dates
-- Entry requirements for different qualifications
-- Study options
+**CRITICAL RULES - STRICTLY FOLLOW:**
 
-**CRITICAL RULES:**
 1. **USE ONLY PROVIDED DATA**: Only state specific numbers, dates, or requirements if they appear in the "Available university information" section.
-2. **CUT-OFF POINTS**: Provide exact cut-off points from the data. Mention multiple cut-offs if available.
-3. **SUBJECT REQUIREMENTS**: Always mention specific subject requirements.
-4. **DEADLINES**: Always include application deadlines when discussing programs.
-5. **HONESTY**: If a student's aggregate doesn't meet the cut-off, say so clearly and suggest alternatives.
-6. **BE CONCISE**: Answer what was asked. Don't dump all information.
+2. **CUT-OFF POINTS**: Provide exact cut-off points from the data. If a range is given (e.g., "10-14"), mention the range.
+3. **FIRST CHOICE**: If a program is marked "FIRST CHOICE ONLY", clearly state this.
+4. **ENTRANCE EXAMS**: Mention if a program requires an entrance exam.
+5. **BE CONVERSATIONAL**: Answer like you're having a friendly conversation. Don't just dump raw data — explain it.
+6. **BE HONEST**: If a student's aggregate doesn't meet the cut-off, say so kindly and suggest alternatives.
+7. **BE CONCISE**: Answer what was asked. Don't share all information if not requested.
 
-**RESPONSE FORMAT:**
-- Use markdown for readability
-- Include specific numbers when available
-- End with a helpful follow-up question
+**CONVERSATIONAL STYLE:**
+- Use "you" and "I" naturally
+- Use phrases like "That's a great question!", "Let me check that for you", "Here's what I found"
+- Be encouraging and supportive
+- Ask helpful follow-up questions
 
 Current year: {current_year}"""
 
@@ -1603,7 +1870,7 @@ Current year: {current_year}"""
 Available university information:
 {context}
 
-Respond naturally and helpfully. Base your answer strictly on the information provided above."""
+Respond naturally and helpfully like you're having a conversation with a student. Base your answer strictly on the information provided above."""
         
         messages_array = [{"role": "system", "content": system_prompt}]
         if chat_history:
@@ -1630,7 +1897,7 @@ Respond naturally and helpfully. Base your answer strictly on the information pr
 def generate_smart_fallback_response(
     query: str, context: str, sources: List[Dict], user_profile: Dict = None
 ) -> str:
-    """Enhanced fallback response - uses knowledge base"""
+    """Generate fallback response using the knowledge base directly."""
     query_lower = query.lower()
     
     results = university_kb.search(query)
@@ -1641,112 +1908,92 @@ def generate_smart_fallback_response(
         for result in results[:3]:
             uni_name = result["source"]
             uni_data = result["data"]
-            matched_progs = result.get("matched_programs", [])
             
             if result.get("matched_program"):
+                # This is a program match
                 prog_name = result["matched_program"]
-                cutoff = result["matched_cutoff"]
-                prog_data = uni_data.get("programs", {}).get(prog_name, {})
-                reqs = prog_data.get("requirements", "See university website")
+                cutoff = result.get("matched_cutoff", "N/A")
+                duration = result.get("duration", "4 years")
+                first_choice = result.get("first_choice", "")
                 
                 response_parts.append(f"""
 ### {prog_name} at {uni_name}
-- **Cut-off Point:** {cutoff}
-- **Subject Requirements:** {reqs}
-- **Study Options:** {', '.join(uni_data.get('study_options', ['See website'])) if uni_data.get('study_options') else 'See website'}
-""")
-            elif matched_progs:
-                prog_list = []
-                for p in matched_progs[:3]:
-                    p_data = uni_data.get("programs", {}).get(p, {})
-                    if isinstance(p_data, dict):
-                        cutoff = ', '.join(p_data.get("cut_offs", ["N/A"]))
-                        prog_list.append(f"  - {p}: {cutoff}")
-                    else:
-                        prog_list.append(f"  - {p}")
-                
-                response_parts.append(f"""
-### {uni_name}
-**Programs matching your query:**
-{chr(10).join(prog_list)}
 
-**Application Deadline:** {uni_data.get('deadlines', {}).get('application_deadline', 'Check website')}
-**Contact:** {uni_data.get('contact', {}).get('phone', 'N/A')}
+**Cut-off Range:** {cutoff}
+**Duration:** {duration}
+{f'**⚠️ FIRST CHOICE ONLY**' if first_choice == 'Yes' else ''}
+
+Let me know if you'd like more details about this program!
 """)
             else:
-                programs = uni_data.get("programs", {})
-                program_list = []
-                for pname, pdata in list(programs.items())[:5]:
-                    if isinstance(pdata, dict):
-                        cutoff = ', '.join(pdata.get("cut_offs", ["N/A"]))
-                        program_list.append(f"  - {pname}: {cutoff}")
-                    else:
-                        program_list.append(f"  - {pname}")
+                # General university info
+                programs = []
+                if "colleges" in uni_data:
+                    for college_name, college_data in uni_data["colleges"].items():
+                        for prog in college_data.get("programs", [])[:3]:
+                            if isinstance(prog, dict):
+                                prog_name = prog.get("name", "")
+                                cutoff = prog.get("cutoff", "")
+                                programs.append(f"  - {prog_name}: {cutoff}")
+                elif "programs" in uni_data:
+                    for prog_name, prog_data in list(uni_data["programs"].items())[:3]:
+                        if isinstance(prog_data, dict):
+                            programs.append(f"  - {prog_name}")
+                        else:
+                            programs.append(f"  - {prog_name}")
                 
                 response_parts.append(f"""
 ### {uni_name}
-**Programs with Cut-off Points:**
-{chr(10).join(program_list) if program_list else "  - See website for full list"}
 
-**Application Deadline:** {uni_data.get('deadlines', {}).get('application_deadline', 'Check website')}
-**Contact:** {uni_data.get('contact', {}).get('phone', 'N/A')}
+**Programs:**
+{chr(10).join(programs) if programs else "  - See website for full list"}
+
+**Deadline:** {uni_data.get('admission_requirements', {}).get('application_deadline', 'Check website')}
+
+Would you like more information about any specific program at {uni_name}?
 """)
         
         if response_parts:
-            return "\n\n---\n\n".join(response_parts)
+            return "Here's what I found based on your question:\n\n" + "\n\n---\n\n".join(response_parts)
     
     # Ultimate fallback - list all universities
     uni_list = []
     for uni_name, data in university_kb.universities.items():
-        prog_count = len(data.get("programs", {}))
-        deadlines = data.get("deadlines", {})
-        deadline = deadlines.get("application_deadline", deadlines.get("closing_date", "Check website"))
+        prog_count = len(data.get("programs", {})) or sum(len(c.get("programs", [])) for c in data.get("colleges", {}).values())
+        deadlines = data.get("admission_requirements", {})
+        deadline = deadlines.get("application_deadline", "Check website")
         uni_list.append(f"- **{uni_name}**: {prog_count} programs | Deadline: {deadline}")
     
     return f"""
-I understand you're asking about: "{query}"
-
-Here are the universities I have detailed information about:
+That's a great question! I have detailed information about these Ghanaian universities:
 
 {chr(10).join(uni_list)}
 
-For specific information, please ask about:
+What specific information would you like to know about any of these universities? I can help with:
 - **Cut-off points** for specific programs
 - **Subject requirements** for admission
 - **Application deadlines**
 - **Entrance exam dates**
 - **Program recommendations** based on your aggregate
-- **Study options** (Day/Evening/Weekend)
+- **Fees** and scholarships
 
-What specific information would you like about any of these universities?
+Just let me know what you're looking for! 😊
 """
 
 
 # ============================================================================
-# INITIALIZE KNOWLEDGE BASE
-# ============================================================================
-
-university_kb = EnhancedUniversityKnowledgeBase()
-
-# ============================================================================
-# FASTAPI STARTUP EVENT - PRESERVED
+# FASTAPI APP ENDPOINTS (Preserved)
 # ============================================================================
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize services when app starts"""
     await initialize_services()
 
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
     return {"status": "healthy", "service": "glinax-rag", "version": "2.0.0"}
 
-
-# ============================================================================
-# ORIGINAL FASTAPI ENDPOINTS - PRESERVED
-# ============================================================================
 
 @app.get("/api/chat/conversations")
 async def list_conversations(current=Depends(get_current_user)):
@@ -1909,7 +2156,6 @@ async def get_conversation(conversation_id: str):
 
 @app.post("/respond", response_model=ChatResponse)
 async def respond_to_query(request: ChatRequest):
-    """Main RAG+CAG endpoint - preserved"""
     start_time = datetime.now()
 
     try:
@@ -1968,7 +2214,7 @@ async def respond_to_query(request: ChatRequest):
         if local_matches.get("confidence", 0.0) > 0.95:
             print("⚡ Fast Path: Skipping web search due to exact university match")
             combined_context = "\n\n".join(context_segments)
-            combined_context = combined_context[:6000]
+            combined_context = combined_context[:8000]
             final_confidence = local_matches.get("confidence", 0.8)
             if groq_client and (final_confidence > 0.3 or combined_context):
                 response_text = await generate_response_with_groq(
@@ -1998,7 +2244,7 @@ async def respond_to_query(request: ChatRequest):
                 context_segments.append(f"Web Result: {snippet}")
 
             combined_context = "\n\n".join(context_segments)
-            combined_context = combined_context[:6000]
+            combined_context = combined_context[:8000]
             final_confidence = max(
                 local_matches.get("confidence", 0.0), web_matches.get("confidence", 0.0)
             )
@@ -2089,7 +2335,6 @@ async def respond_with_files(
     user_context: str = Form(None),
     files: List[UploadFile] = File(None),
 ):
-    """Enhanced endpoint for handling file uploads - preserved"""
     start_time = datetime.now()
 
     try:
@@ -2307,7 +2552,7 @@ I have received your document and will analyze it in the context of Ghanaian uni
             context_parts.append(f"Web Result: {result.get('snippet', '')}")
 
         combined_context = "\n\n".join(context_parts)
-        combined_context = combined_context[:6000]
+        combined_context = combined_context[:8000]
         final_confidence = max(local_results["confidence"], web_results["confidence"])
         if file_info:
             final_confidence = max(final_confidence, 0.8)
@@ -2339,6 +2584,8 @@ I have processed {len(file_info)} file(s): {', '.join([f['name'] for f in file_i
 - Subject requirements?
 - Application deadlines?
 - Program recommendations?
+
+Just let me know! 😊
 """
             response_text = sanitize_markdown_urls(response_text)
 
