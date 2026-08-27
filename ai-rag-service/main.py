@@ -1670,13 +1670,17 @@ class EnhancedUniversityKnowledgeBase:
         query_words = set(self._extract_keywords(query_lower))
         
         scored = {}
+        name_matched_universities = set()
         
-        # Strategy 1: Exact university name match
+        # Strategy 1: Exact university name match (word-boundary match, not a raw
+        # substring check - short abbreviations like "ug" or "ho" would otherwise
+        # false-positive inside ordinary words like "though" or "how")
         for variation, uni_name in self.name_variations.items():
-            if variation in query_lower:
+            if re.search(r'\b' + re.escape(variation) + r'\b', query_lower):
                 if uni_name not in scored:
                     scored[uni_name] = 0
                 scored[uni_name] += 5.0
+                name_matched_universities.add(uni_name)
         
         # Strategy 2: Program name match
         for prog_name, universities in self.program_index.items():
@@ -1706,6 +1710,14 @@ class EnhancedUniversityKnowledgeBase:
                                 scored[uni_name] = 0
                             scored[uni_name] += 3.0
         
+        # If the query explicitly names one or more universities, don't let
+        # generic keyword overlap from unrelated universities dilute or crowd
+        # out the results - scope the results down to just the named
+        # university/universities, since that's a far stronger signal than a
+        # shared word like "science" or "programme".
+        if name_matched_universities:
+            scored = {uni: s for uni, s in scored.items() if uni in name_matched_universities}
+        
         # Sort by score
         sorted_results = sorted(scored.items(), key=lambda x: x[1], reverse=True)
         
@@ -1724,24 +1736,44 @@ class EnhancedUniversityKnowledgeBase:
         return results
     
     def _find_matching_programs(self, query: str, uni_name: str) -> List[str]:
-        """Find programs within a university that match the query."""
+        """Find programs within a university that match the query. Uses filtered
+        keywords (3+ letters, stopwords removed) matched against a program's real
+        text fields - not a raw substring check against the program's whole JSON
+        dump, which used to false-match almost anything (e.g. the word "at"
+        matching inside "Geomatic Engineering", or a JSON key like "cutoff")."""
         matches = []
         data = self.universities.get(uni_name, {})
-        
+        query_words = set(self._extract_keywords(query))
+        if not query_words:
+            return matches
+
+        def text_matches(text: str) -> bool:
+            return bool(query_words & set(self._extract_keywords(text.lower())))
+
         # Search in colleges
         if "colleges" in data:
             for college_name, college_data in data["colleges"].items():
                 for prog in college_data.get("programs", []):
                     if isinstance(prog, dict):
                         prog_name = prog.get("name", "")
-                        if any(word in prog_name.lower() for word in query.split()) or \
-                           any(word in json.dumps(prog).lower() for word in query.split()):
+                        # A shared keyword with the program's actual NAME is a strong,
+                        # reliable signal. A shared keyword with the secondary fields
+                        # (electives/requirements/etc.) is much noisier - domain-generic
+                        # words like "science" show up in nearly every programme's
+                        # requirements text (e.g. "Integrated Science"), so require at
+                        # least two shared keywords there to avoid one generic word
+                        # matching almost everything.
+                        name_overlap = query_words & set(self._extract_keywords(prog_name.lower()))
+                        other_text = " ".join(str(prog.get(f, "")) for f in
+                                               ("school", "electives", "requirements", "backgrounds"))
+                        other_overlap = query_words & set(self._extract_keywords(other_text.lower()))
+                        if name_overlap or len(other_overlap) >= 2:
                             matches.append(prog_name)
         
         # Search in programs
         if "programs" in data:
             for prog_name, prog_data in data["programs"].items():
-                if any(word in prog_name.lower() for word in query.split()):
+                if text_matches(prog_name):
                     matches.append(prog_name)
         
         return matches[:5]
@@ -2041,91 +2073,264 @@ Respond naturally and helpfully like you're having a conversation with a student
         return generate_smart_fallback_response(query, context, sources, user_profile)
 
 
+def _find_program_detail(uni_data: Dict[str, Any], prog_name: str) -> Optional[Dict[str, Any]]:
+    """Look up the full dict for a named program inside a university's colleges."""
+    if "colleges" in uni_data:
+        for college_name, college_data in uni_data["colleges"].items():
+            for prog in college_data.get("programs", []):
+                if isinstance(prog, dict) and prog.get("name") == prog_name:
+                    enriched = dict(prog)
+                    enriched["_college"] = college_name
+                    return enriched
+    return None
+
+
+def _format_program_card(uni_name: str, prog: Dict[str, Any]) -> str:
+    """Render one program as a detailed card."""
+    lines = [f"### {prog.get('name', '')} at {uni_name}"]
+    if prog.get("_college"):
+        lines.append(f"**College:** {prog['_college']}")
+    if prog.get("school"):
+        lines.append(f"**School/Department:** {prog['school']}")
+    if prog.get("cutoff"):
+        lines.append(f"**Cut-off:** {prog['cutoff']}")
+    if prog.get("duration"):
+        lines.append(f"**Duration:** {prog['duration']}")
+    if prog.get("electives"):
+        lines.append(f"**Electives:** {prog['electives']}")
+    if prog.get("requirements"):
+        lines.append(f"**Requirements:** {prog['requirements']}")
+    if prog.get("backgrounds"):
+        lines.append(f"**Accepted backgrounds:** {prog['backgrounds']}")
+    if prog.get("campuses"):
+        lines.append(f"**Campus:** {prog['campuses']}")
+    if prog.get("notes"):
+        lines.append(f"**Note:** {prog['notes']}")
+    if prog.get("first_choice") == "Yes":
+        lines.append("⚠️ **FIRST CHOICE ONLY**")
+    if prog.get("entrance_exam") and prog.get("entrance_exam") != "No":
+        exam = prog["entrance_exam"]
+        lines.append("📝 **Entrance Exam Required**" if exam == "Yes" else f"📝 **Entrance Exam:** {exam}")
+    return "\n".join(lines)
+
+
+def _format_colleges_section(uni_name: str, uni_data: Dict[str, Any]) -> str:
+    """List every college/faculty at a university with its cut-off range and requirements."""
+    colleges = uni_data.get("colleges", {})
+    if not colleges:
+        return f"### {uni_name}\n\nI don't have a college breakdown for {uni_name} yet - check the official website for the full faculty structure."
+
+    lines = [f"### Colleges at {uni_name}"]
+    for college_name, college_data in colleges.items():
+        prog_count = len(college_data.get("programs", []))
+        cutoff = college_data.get("cutoff_range", "")
+        lines.append(f"\n**{college_name}**")
+        if cutoff:
+            lines.append(f"- Cut-off range: {cutoff}")
+        lines.append(f"- Programmes offered: {prog_count}")
+        reqs = college_data.get("requirements", "")
+        if reqs:
+            lines.append(f"- Requirements: {reqs}")
+    return "\n".join(lines)
+
+
+def _format_fees_section(uni_name: str, uni_data: Dict[str, Any]) -> str:
+    """Summarize fee information for a university."""
+    fees = uni_data.get("fees", {})
+    if not fees:
+        return f"### {uni_name}\n\nI don't have fee details for {uni_name} yet - check the official website."
+
+    lines = [f"### Fees at {uni_name}"]
+    ghanaian = fees.get("ghanaian_students", {})
+    if ghanaian:
+        lines.append("\n**Ghanaian students (approximate annual fees):**")
+        for category, amount in ghanaian.items():
+            lines.append(f"- {category}: {amount}")
+    for key in ("mandatory_levies",):
+        levies = fees.get(key, {})
+        if levies:
+            lines.append("\n**Mandatory/optional levies:**")
+            for levy, amount in levies.items():
+                lines.append(f"- {levy}: {amount}")
+    for key, label in (
+        ("payment_policy", "Payment policy"),
+        ("residential_note", "Residential fees"),
+        ("approved_banks", "Approved banks"),
+        ("international_students", "International students"),
+    ):
+        if fees.get(key):
+            lines.append(f"\n**{label}:** {fees[key]}")
+    return "\n".join(lines)
+
+
+def _format_admission_section(uni_name: str, uni_data: Dict[str, Any]) -> str:
+    """Summarize admission requirements and how-to-apply steps for a university."""
+    admission = uni_data.get("admission_requirements", {})
+    if not admission:
+        return f"### {uni_name}\n\nI don't have admission details for {uni_name} yet - check the official website."
+
+    lines = [f"### Admission Requirements at {uni_name}"]
+    if admission.get("general"):
+        lines.append(f"\n{admission['general']}")
+    for key, label in (
+        ("how_to_apply", "How to apply"),
+        ("study_modes", "Study modes"),
+        ("campuses", "Campuses"),
+        ("first_choice_policy", "First-choice policy"),
+        ("international_applicants", "International applicants"),
+        ("application_deadline", "Application deadline"),
+        ("online_portal", "Application portal"),
+        ("application_fee", "Application fee"),
+        ("entrance_exam", "Entrance exam"),
+    ):
+        if admission.get(key):
+            lines.append(f"\n**{label}:** {admission[key]}")
+    return "\n".join(lines)
+
+
+def _format_contact_section(uni_name: str, uni_data: Dict[str, Any]) -> str:
+    """Summarize contact details and portals for a university."""
+    contact = uni_data.get("contact", {})
+    if not contact:
+        return f"### {uni_name}\n\nI don't have contact details for {uni_name} yet - check the official website."
+
+    lines = [f"### Contact - {uni_name}"]
+    for key, value in contact.items():
+        label = key.replace("_", " ").title()
+        lines.append(f"- **{label}:** {value}")
+    if uni_data.get("website"):
+        lines.append(f"- **Website:** {uni_data['website']}")
+    return "\n".join(lines)
+
+
+def _format_scholarships_section(uni_name: str, uni_data: Dict[str, Any]) -> str:
+    """Summarize scholarship info for a university."""
+    scholarships = uni_data.get("scholarships", {})
+    if not scholarships:
+        return f"### {uni_name}\n\nI don't have scholarship details for {uni_name} yet - check the official website."
+
+    lines = [f"### Scholarships at {uni_name}"]
+    for name, desc in scholarships.items():
+        label = name.replace("_", " ").title()
+        lines.append(f"- **{label}:** {desc}")
+    return "\n".join(lines)
+
+
+def _format_programs_overview(uni_name: str, uni_data: Dict[str, Any]) -> str:
+    """Give a college-by-college programme summary, without dumping every single line."""
+    colleges = uni_data.get("colleges", {})
+    if not colleges:
+        return f"### {uni_name}\n\nI don't have a full programme list for {uni_name} yet - check the official website."
+
+    lines = [f"### Programmes at {uni_name}"]
+    for college_name, college_data in colleges.items():
+        programs = college_data.get("programs", [])
+        names = [p.get("name", "") for p in programs if isinstance(p, dict)]
+        lines.append(f"\n**{college_name}** ({len(names)} programmes)")
+        preview = ", ".join(names[:5])
+        if len(names) > 5:
+            preview += f", and {len(names) - 5} more"
+        lines.append(f"- {preview}")
+    lines.append(f"\nAsk me about a specific college to see its full programme list and cut-offs for {uni_name}.")
+    return "\n".join(lines)
+
+
+def _format_general_overview(uni_name: str, uni_data: Dict[str, Any]) -> str:
+    """A short general overview used when the query names a university but no clearer intent is detected."""
+    lines = [f"### {uni_name}"]
+    if uni_data.get("overview"):
+        lines.append(f"\n{uni_data['overview']}")
+    lines.append(f"\n**Location:** {uni_data.get('location', 'Ghana')} | **Established:** {uni_data.get('established', 'N/A')} | **Type:** {uni_data.get('type', 'Public')}")
+    lines.append("\n" + _format_colleges_section(uni_name, uni_data))
+    admission = uni_data.get("admission_requirements", {})
+    if admission.get("application_deadline"):
+        lines.append(f"\n**Application deadline:** {admission['application_deadline']}")
+    lines.append(f"\nAsk me about colleges, programmes, cut-offs, fees, admission requirements, or scholarships for {uni_name} and I'll go into detail.")
+    return "\n".join(lines)
+
+
 def generate_smart_fallback_response(
     query: str, context: str, sources: List[Dict], user_profile: Dict = None
 ) -> str:
-    """Generate fallback response using the knowledge base directly."""
+    """Generate a fallback response directly from the knowledge base (used when
+    the LLM is unavailable). Detects what the person is actually asking about
+    (colleges, programmes, fees, admission steps, contact, scholarships, or a
+    specific programme) and answers that, instead of always dumping a generic
+    program list - and, thanks to the university-scoped search(), a query that
+    names one university stays scoped to that university."""
     query_lower = query.lower()
-    
+
     results = university_kb.search(query)
-    
+
     if results:
+        # Detect intent from the query text
+        wants_colleges = any(w in query_lower for w in ["college", "colleges", "faculty", "faculties", "school of", "schools does"])
+        wants_fees = any(w in query_lower for w in ["fee", "fees", "cost", "tuition", "how much"])
+        wants_admission = any(w in query_lower for w in ["admission", "how to apply", "apply", "e-voucher", "evoucher", "how do i apply"])
+        wants_contact = any(w in query_lower for w in ["contact", "phone number", "email address", "website"])
+        wants_scholarships = any(w in query_lower for w in ["scholarship", "scholarships", "financial aid", "bursary"])
+        wants_programs = any(w in query_lower for w in ["program", "programme", "course", "courses", "what can i study", "what can i do"])
+        any_explicit_intent = wants_colleges or wants_fees or wants_admission or wants_contact or wants_scholarships or wants_programs
+
         response_parts = []
-        
+
         for result in results[:3]:
             uni_name = result["source"]
             uni_data = result["data"]
-            
-            if result.get("matched_program"):
-                # This is a program match
-                prog_name = result["matched_program"]
-                cutoff = result.get("matched_cutoff", "N/A")
-                duration = result.get("duration", "4 years")
-                first_choice = result.get("first_choice", "")
-                
-                response_parts.append(f"""
-### {prog_name} at {uni_name}
 
-**Cut-off Range:** {cutoff}
-**Duration:** {duration}
-{f'**⚠️ FIRST CHOICE ONLY**' if first_choice == 'Yes' else ''}
+            # A specific program name was matched in the query text - give full detail
+            # on it, but only when there's no clearer explicit intent (e.g. a fees
+            # question about a named program should get the fees section, not just
+            # that program's cut-off card with no fee info in it).
+            matched_names = result.get("matched_programs") or []
+            if matched_names and not any_explicit_intent:
+                cards = []
+                for prog_name in matched_names[:3]:
+                    detail = _find_program_detail(uni_data, prog_name)
+                    if detail:
+                        cards.append(_format_program_card(uni_name, detail))
+                if cards:
+                    response_parts.append("\n\n".join(cards))
+                    continue
 
-Let me know if you'd like more details about this program!
-""")
+            if wants_colleges:
+                response_parts.append(_format_colleges_section(uni_name, uni_data))
+            elif wants_fees:
+                response_parts.append(_format_fees_section(uni_name, uni_data))
+            elif wants_admission:
+                response_parts.append(_format_admission_section(uni_name, uni_data))
+            elif wants_contact:
+                response_parts.append(_format_contact_section(uni_name, uni_data))
+            elif wants_scholarships:
+                response_parts.append(_format_scholarships_section(uni_name, uni_data))
+            elif wants_programs:
+                response_parts.append(_format_programs_overview(uni_name, uni_data))
             else:
-                # General university info
-                programs = []
-                if "colleges" in uni_data:
-                    for college_name, college_data in uni_data["colleges"].items():
-                        for prog in college_data.get("programs", [])[:3]:
-                            if isinstance(prog, dict):
-                                prog_name = prog.get("name", "")
-                                cutoff = prog.get("cutoff", "")
-                                programs.append(f"  - {prog_name}: {cutoff}")
-                elif "programs" in uni_data:
-                    for prog_name, prog_data in list(uni_data["programs"].items())[:3]:
-                        if isinstance(prog_data, dict):
-                            programs.append(f"  - {prog_name}")
-                        else:
-                            programs.append(f"  - {prog_name}")
-                
-                response_parts.append(f"""
-### {uni_name}
+                response_parts.append(_format_general_overview(uni_name, uni_data))
 
-**Programs:**
-{chr(10).join(programs) if programs else "  - See website for full list"}
-
-**Deadline:** {uni_data.get('admission_requirements', {}).get('application_deadline', 'Check website')}
-
-Would you like more information about any specific program at {uni_name}?
-""")
-        
         if response_parts:
-            return "Here's what I found based on your question:\n\n" + "\n\n---\n\n".join(response_parts)
-    
-    # Ultimate fallback - list all universities
+            return "\n\n---\n\n".join(response_parts)
+
+    # Ultimate fallback - no specific match, list all universities
     uni_list = []
     for uni_name, data in university_kb.universities.items():
         prog_count = len(data.get("programs", {})) or sum(len(c.get("programs", [])) for c in data.get("colleges", {}).values())
         deadlines = data.get("admission_requirements", {})
         deadline = deadlines.get("application_deadline", "Check website")
         uni_list.append(f"- **{uni_name}**: {prog_count} programs | Deadline: {deadline}")
-    
-    return f"""
-That's a great question! I have detailed information about these Ghanaian universities:
+
+    return f"""That's a great question! I have detailed information about these Ghanaian universities:
 
 {chr(10).join(uni_list)}
 
 What specific information would you like to know about any of these universities? I can help with:
+- **Colleges/faculties** and their programmes
 - **Cut-off points** for specific programs
 - **Subject requirements** for admission
-- **Application deadlines**
-- **Entrance exam dates**
-- **Program recommendations** based on your aggregate
+- **Application deadlines and how to apply**
 - **Fees** and scholarships
 
-Just let me know what you're looking for! 😊
-"""
+Just let me know what you're looking for! 😊"""
 
 
 # ============================================================================
