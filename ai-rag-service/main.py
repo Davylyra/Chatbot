@@ -19,9 +19,46 @@ from pydantic import BaseModel
 load_dotenv()
 
 
+_HTML_TAG_PATTERN = re.compile(r"</?[a-zA-Z][a-zA-Z0-9]*(?:\s+[^<>]*?)?/?>")
+
+
+def strip_stray_html_tags(text: str) -> str:
+    """Remove stray HTML tags (e.g. <br>, <br/>, <table>, <li>, <b>) that an LLM
+    can leak into an otherwise-Markdown reply. The chat UI renders Markdown, not
+    HTML, so any raw tag that slips through shows up as literal text like "<br>"
+    in the response. This converts the common ones to their Markdown/plain-text
+    equivalent and strips anything else that still looks like a tag."""
+    if not text:
+        return text
+
+    # Line-break tags (including HTML-escaped forms) become real newlines
+    text = re.sub(r"(?i)(&lt;|<)\s*br\s*/?\s*(&gt;|>)", "\n", text)
+
+    # List-item tags become Markdown bullets
+    text = re.sub(r"(?i)<li[^>]*>\s*", "- ", text)
+
+    # Bold/italic tags become Markdown emphasis
+    text = re.sub(r"(?i)</?(b|strong)>", "**", text)
+    text = re.sub(r"(?i)</?(i|em)>", "*", text)
+
+    # Paragraph/div/table/etc. block tags: drop the tag, keep the inner text,
+    # and add a line break so content doesn't run together
+    text = re.sub(r"(?i)</(p|div|tr|table)>", "\n", text)
+
+    # Anything else that still looks like a tag (e.g. <span>, <td>, <h2>) is stripped
+    text = _HTML_TAG_PATTERN.sub("", text)
+
+    # Collapse blank lines left behind by removed block tags
+    text = re.sub(r"\n{3,}", "\n\n", text)
+
+    return text.strip()
+
+
 def sanitize_markdown_urls(text: str) -> str:
     if not text:
         return text
+
+    text = strip_stray_html_tags(text)
 
     text = re.sub(r"\[+", "[", text)
 
@@ -230,14 +267,19 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
         "established": "1952",
         "website": "www.knust.edu.gh",
         "type": "Public",
+        "overview": "KNUST is Ghana's premier science and technology university, offering over 100 undergraduate programmes across 6 colleges.",
         "admission_requirements": {
-            "general": "WASSCE: Credit passes (A1-C6) in 6 subjects (3 Core + 3 Electives). Aggregate 24 or better for regular admission. Fee-Paying up to 30-36. D7, E8, F9 NOT accepted.",
+            "general": "WASSCE: Credit passes (A1-C6) in 6 subjects (3 Core + 3 Electives). Aggregate 24 or better for regular admission. Fee-Paying/Parallel up to 30-36 depending on programme. D7, E8, F9 are NOT accepted for any programme.",
             "wassce": "Credit passes A1-C6 in English, Core Maths, Integrated Science/Social Studies + 3 relevant electives",
             "sssce": "Credit passes A-D in English, Core Maths, Integrated Science/Social Studies + 3 relevant electives",
+            "aggregate_calculation": "Science disciplines: English + Core Maths + Integrated Science + 3 Science Electives (Social Studies excluded). Non-Science disciplines: English + Core Maths + Social Studies + 3 Electives (Integrated Science excluded).",
             "gce": "5 'O' Level credits + 3 'A' Level passes in relevant subjects",
             "ib": "Grade 4+ in 3 HL subjects",
             "mature": "25+ years old, 2-3 years work experience, entrance exam/interview",
-            "application_deadline": "August 31, 2026",
+            "how_to_apply": "1) Purchase an E-Voucher by dialling *415*55# (Mobile Money) or online via Visa/Mastercard. 2) Register at the admissions portal with a valid email and validate the voucher. 3) Upload your birth certificate, Ghana Card/Passport, and academic results. 4) Submit before the deadline.",
+            "international_applicants": "Select the 'International' application mode - no e-voucher needed via mobile; purchase online instead and provide certified transcripts.",
+            "campuses": "Main Campus (Kumasi) and Obuasi Campus (selected programmes)",
+            "application_deadline": "August 31, 2026 (may extend for candidates awaiting results)",
             "online_portal": "https://apps.knust.edu.gh/admissions/",
             "application_fee": "GH¢ 220 (via *415*55#)",
             "entrance_exam": "Required for Medicine, Dentistry, and some competitive programmes"
@@ -245,128 +287,134 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
         "contact": {
             "phone": "+233-32-206-0331",
             "email": "admissions@knust.edu.gh",
-            "address": "Private Mail Bag, Kumasi, Ghana"
+            "address": "Private Mail Bag, Kumasi, Ghana",
+            "admissions_portal": "https://apps.knust.edu.gh/admissions/",
+            "e_voucher_dial_code": "*415*55#",
+            "school_of_business_website": "https://ksb.knust.edu.gh"
         },
         "colleges": {
             "Engineering": {
                 "cutoff_range": "10-20",
-                "requirements": "Elective Mathematics, Physics, and Chemistry required",
+                "requirements": "Core: English, Core Maths, Integrated Science (all A1-C6). Electives: Elective Mathematics + Physics + Chemistry (all A1-C6). Social Studies is excluded from the aggregate calculation.",
                 "programs": [
-                    {"name": "BSc Civil Engineering", "cutoff": "10-14", "campuses": "Main/Obuasi"},
-                    {"name": "BSc Geological Engineering", "cutoff": "10-16", "campuses": "Main/Obuasi"},
-                    {"name": "BSc Geomatic Engineering", "cutoff": "12-18", "campuses": "Main/Obuasi"},
-                    {"name": "BSc Petroleum Engineering", "cutoff": "10-16", "campuses": "Main"},
-                    {"name": "BSc Electrical/Electronic Engineering", "cutoff": "10-14", "campuses": "Main/Obuasi"},
-                    {"name": "BSc Computer Engineering", "cutoff": "10-14", "campuses": "Main"},
-                    {"name": "BSc Biomedical Engineering", "cutoff": "10-14", "campuses": "Main"},
-                    {"name": "BSc Telecommunications Engineering", "cutoff": "12-16", "campuses": "Main"},
-                    {"name": "BSc Mechanical Engineering", "cutoff": "10-16", "campuses": "Main/Obuasi"},
-                    {"name": "BSc Aerospace Engineering", "cutoff": "10-16", "campuses": "Main"},
-                    {"name": "BSc Chemical Engineering", "cutoff": "10-16", "campuses": "Main"},
-                    {"name": "BSc Petrochemical Engineering", "cutoff": "12-18", "campuses": "Main"},
-                    {"name": "BSc Automobile Engineering", "cutoff": "12-18", "campuses": "Main"},
-                    {"name": "BSc Industrial Engineering", "cutoff": "12-18", "campuses": "Main"},
-                    {"name": "BSc Marine Engineering", "cutoff": "14-20", "campuses": "Main"},
-                    {"name": "BSc Agricultural Engineering", "cutoff": "14-20", "campuses": "Main"},
-                    {"name": "BSc Materials Engineering", "cutoff": "14-20", "campuses": "Main/Obuasi"},
-                    {"name": "BSc Metallurgical Engineering", "cutoff": "14-20", "campuses": "Main/Obuasi"}
+                    {"name": "BSc Civil Engineering", "school": "Civil & Geo-Engineering", "cutoff": "10-14", "campuses": "Main/Obuasi"},
+                    {"name": "BSc Geological Engineering", "school": "Civil & Geo-Engineering", "cutoff": "10-16", "campuses": "Main/Obuasi"},
+                    {"name": "BSc Geomatic Engineering", "school": "Civil & Geo-Engineering", "cutoff": "12-18", "campuses": "Main/Obuasi"},
+                    {"name": "BSc Petroleum Engineering", "school": "Civil & Geo-Engineering", "cutoff": "10-16", "campuses": "Main"},
+                    {"name": "BSc Electrical/Electronic Engineering", "school": "Electrical & Computer Engineering", "cutoff": "10-14", "campuses": "Main/Obuasi"},
+                    {"name": "BSc Computer Engineering", "school": "Electrical & Computer Engineering", "cutoff": "10-14", "campuses": "Main"},
+                    {"name": "BSc Biomedical Engineering", "school": "Electrical & Computer Engineering", "cutoff": "10-14", "campuses": "Main"},
+                    {"name": "BSc Telecommunications Engineering", "school": "Electrical & Computer Engineering", "cutoff": "12-16", "campuses": "Main"},
+                    {"name": "BSc Mechanical Engineering", "school": "Mechanical & Related Engineering", "cutoff": "10-16", "campuses": "Main/Obuasi"},
+                    {"name": "BSc Aerospace Engineering", "school": "Mechanical & Related Engineering", "cutoff": "10-16", "campuses": "Main"},
+                    {"name": "BSc Chemical Engineering", "school": "Mechanical & Related Engineering", "cutoff": "10-16", "campuses": "Main"},
+                    {"name": "BSc Petrochemical Engineering", "school": "Mechanical & Related Engineering", "cutoff": "12-18", "campuses": "Main"},
+                    {"name": "BSc Automobile Engineering", "school": "Mechanical & Related Engineering", "cutoff": "12-18", "campuses": "Main"},
+                    {"name": "BSc Industrial Engineering", "school": "Mechanical & Related Engineering", "cutoff": "12-18", "campuses": "Main"},
+                    {"name": "BSc Marine Engineering", "school": "Mechanical & Related Engineering", "cutoff": "14-20", "campuses": "Main"},
+                    {"name": "BSc Agricultural Engineering", "school": "Mechanical & Related Engineering", "cutoff": "14-20", "campuses": "Main"},
+                    {"name": "BSc Materials Engineering", "school": "Materials Engineering", "cutoff": "14-20", "campuses": "Main/Obuasi"},
+                    {"name": "BSc Metallurgical Engineering", "school": "Materials Engineering", "cutoff": "14-20", "campuses": "Main/Obuasi"}
                 ]
             },
             "Health Sciences": {
                 "cutoff_range": "6-22",
-                "requirements": "Biology, Chemistry + Physics/Elective Maths",
+                "requirements": "Biology, Chemistry + Physics/Elective Maths. Medicine and Dentistry require a mandatory entrance examination and interview.",
                 "programs": [
-                    {"name": "MBChB (Medicine & Surgery)", "duration": "6 years", "cutoff": "6-10", "entrance_exam": "Yes", "first_choice": "Yes"},
-                    {"name": "BDS (Dental Surgery)", "duration": "6 years", "cutoff": "8-12", "entrance_exam": "Yes", "first_choice": "Yes"},
-                    {"name": "PharmD (Doctor of Pharmacy)", "duration": "6 years", "cutoff": "8-14", "first_choice": "Yes"},
-                    {"name": "BSc Nursing", "duration": "4 years", "cutoff": "14-20"},
-                    {"name": "BSc Midwifery", "duration": "4 years", "cutoff": "14-20"},
-                    {"name": "BSc Medical Laboratory Technology", "duration": "4 years", "cutoff": "12-16"},
-                    {"name": "BSc Physiotherapy & Sports Science", "duration": "4 years", "cutoff": "12-16"},
-                    {"name": "BSc Optometry", "duration": "4 years", "cutoff": "10-14"},
-                    {"name": "BSc Sonography", "duration": "4 years", "cutoff": "14-18"},
-                    {"name": "BSc Disability & Rehabilitation Studies", "duration": "4 years", "cutoff": "16-22"},
-                    {"name": "BSc Herbal Medicine", "duration": "4 years", "cutoff": "14-20"},
-                    {"name": "BSc Emergency Nursing (Top-Up)", "duration": "2 years"}
+                    {"name": "MBChB (Medicine & Surgery)", "school": "School of Medicine", "duration": "6 years", "cutoff": "6-10", "entrance_exam": "Yes (plus interview)", "first_choice": "Yes", "notes": "Grade Point of 3.25+ noted for competitive entry"},
+                    {"name": "BDS (Dental Surgery)", "school": "School of Dentistry", "duration": "6 years", "cutoff": "8-12", "entrance_exam": "Yes (plus interview)", "first_choice": "Yes"},
+                    {"name": "PharmD (Doctor of Pharmacy)", "school": "School of Pharmacy", "duration": "6 years", "cutoff": "8-14", "first_choice": "Yes"},
+                    {"name": "BSc Nursing", "school": "School of Nursing and Midwifery", "duration": "4 years", "cutoff": "14-20", "requirements": "Science and Non-Science backgrounds accepted"},
+                    {"name": "BSc Midwifery", "school": "School of Nursing and Midwifery", "duration": "4 years", "cutoff": "14-20", "requirements": "Science and Non-Science backgrounds accepted"},
+                    {"name": "BSc Emergency Nursing (Top-Up)", "school": "School of Nursing and Midwifery", "duration": "2 years", "requirements": "Diploma + NMC registration + national clinical rotation"},
+                    {"name": "BSc Medical Laboratory Technology", "school": "Faculty of Allied Health Sciences", "duration": "4 years", "cutoff": "12-16"},
+                    {"name": "BSc Physiotherapy & Sports Science", "school": "Faculty of Allied Health Sciences", "duration": "4 years", "cutoff": "12-16"},
+                    {"name": "BSc Optometry", "school": "Faculty of Allied Health Sciences", "duration": "4 years", "cutoff": "10-14"},
+                    {"name": "BSc Sonography", "school": "Faculty of Allied Health Sciences", "duration": "4 years", "cutoff": "14-18"},
+                    {"name": "BSc Disability & Rehabilitation Studies", "school": "Faculty of Allied Health Sciences", "duration": "4 years", "cutoff": "16-22"},
+                    {"name": "BSc Herbal Medicine", "school": "Faculty of Allied Health Sciences", "duration": "4 years", "cutoff": "14-20"}
                 ]
             },
             "Humanities and Social Sciences": {
                 "cutoff_range": "6-24",
                 "programs": [
-                    {"name": "BSc Business Administration - Accounting", "cutoff": "14-20", "backgrounds": "Business, Arts, Science"},
-                    {"name": "BSc Business Administration - Banking & Finance", "cutoff": "14-20", "backgrounds": "Business, Arts, Science"},
-                    {"name": "BSc Business Administration - Marketing", "cutoff": "14-20", "backgrounds": "Business, Arts, Science, Vocational"},
-                    {"name": "BSc Business Administration - International Business", "cutoff": "14-20", "backgrounds": "Business, Arts, Science, Vocational"},
-                    {"name": "BSc Business Administration - Human Resource Management", "cutoff": "14-20", "backgrounds": "Business, Arts, Science, Vocational"},
-                    {"name": "BSc Business Administration - Management", "cutoff": "14-20", "backgrounds": "Business, Arts, Science, Vocational"},
-                    {"name": "BSc Business Administration - Logistics & Supply Chain", "cutoff": "14-20", "backgrounds": "Business, Arts, Science"},
-                    {"name": "BSc Business Administration - Business IT", "cutoff": "14-20", "backgrounds": "Business, Arts, Science"},
-                    {"name": "BSc Hospitality & Tourism Management", "cutoff": "16-22"},
-                    {"name": "LLB (4-year Full-Time)", "duration": "4 years", "cutoff": "6-8", "first_choice": "Yes"},
-                    {"name": "LLB Post-First-Degree (3-year)", "duration": "3 years", "requirements": "Degree + entrance exam"},
-                    {"name": "BA Political Studies", "cutoff": "12-18"},
-                    {"name": "BA Economics", "cutoff": "14-20"},
-                    {"name": "BA English", "cutoff": "14-20"},
-                    {"name": "BA Communication Studies", "cutoff": "14-20"},
-                    {"name": "BA Sociology / Social Work", "cutoff": "16-22"},
-                    {"name": "BA French", "cutoff": "16-24"},
-                    {"name": "BA History", "cutoff": "16-24"},
-                    {"name": "BA Geography & Rural Development", "cutoff": "16-24"},
-                    {"name": "BA Religious Studies", "cutoff": "18-24"},
-                    {"name": "BA Culture & Tourism", "cutoff": "18-24"}
-                ]
+                    {"name": "BSc Business Administration - Accounting", "school": "KNUST School of Business (KSB)", "cutoff": "14-20", "backgrounds": "Business, Arts, Science"},
+                    {"name": "BSc Business Administration - Banking & Finance", "school": "KNUST School of Business (KSB)", "cutoff": "14-20", "backgrounds": "Business, Arts, Science"},
+                    {"name": "BSc Business Administration - Marketing", "school": "KNUST School of Business (KSB)", "cutoff": "14-20", "backgrounds": "Business, Arts, Science, Vocational"},
+                    {"name": "BSc Business Administration - International Business", "school": "KNUST School of Business (KSB)", "cutoff": "14-20", "backgrounds": "Business, Arts, Science, Vocational"},
+                    {"name": "BSc Business Administration - Human Resource Management", "school": "KNUST School of Business (KSB)", "cutoff": "14-20", "backgrounds": "Business, Arts, Science, Vocational"},
+                    {"name": "BSc Business Administration - Management", "school": "KNUST School of Business (KSB)", "cutoff": "14-20", "backgrounds": "Business, Arts, Science, Vocational"},
+                    {"name": "BSc Business Administration - Logistics & Supply Chain", "school": "KNUST School of Business (KSB)", "cutoff": "14-20", "backgrounds": "Business, Arts, Science"},
+                    {"name": "BSc Business Administration - Business IT", "school": "KNUST School of Business (KSB)", "cutoff": "14-20", "backgrounds": "Business, Arts, Science"},
+                    {"name": "BSc Hospitality & Tourism Management", "school": "KNUST School of Business (KSB)", "cutoff": "16-22"},
+                    {"name": "LLB (4-year Full-Time)", "school": "Faculty of Law", "duration": "4 years", "cutoff": "6-8", "first_choice": "Yes", "electives": "Government, History, Literature in English, Economics preferred", "backgrounds": "Arts, Business, Visual Arts, and Science accepted"},
+                    {"name": "LLB Post-First-Degree (3-year)", "school": "Faculty of Law", "duration": "3 years", "requirements": "Degree + entrance exam"},
+                    {"name": "LLB Post-First-Degree (4-year Part-Time)", "school": "Faculty of Law", "duration": "4 years", "requirements": "Degree + entrance exam"},
+                    {"name": "BA Political Studies", "school": "Faculty of Social Sciences", "cutoff": "12-18"},
+                    {"name": "BA Economics", "school": "Faculty of Social Sciences", "cutoff": "14-20"},
+                    {"name": "BA English", "school": "Faculty of Social Sciences", "cutoff": "14-20"},
+                    {"name": "BA Communication Studies", "school": "Faculty of Social Sciences", "cutoff": "14-20"},
+                    {"name": "BA Sociology / Social Work", "school": "Faculty of Social Sciences", "cutoff": "16-22"},
+                    {"name": "BA French", "school": "Faculty of Social Sciences", "cutoff": "16-24"},
+                    {"name": "BA History", "school": "Faculty of Social Sciences", "cutoff": "16-24"},
+                    {"name": "BA Geography & Rural Development", "school": "Faculty of Social Sciences", "cutoff": "16-24"},
+                    {"name": "BA Religious Studies", "school": "Faculty of Social Sciences", "cutoff": "18-24"},
+                    {"name": "BA Culture & Tourism", "school": "Faculty of Social Sciences", "cutoff": "18-24"}
+                ],
+                "notes": "All Faculty of Social Sciences/Arts programmes require 3 relevant Arts/Business/Social Science electives."
             },
             "Science": {
                 "cutoff_range": "10-24",
                 "programs": [
-                    {"name": "BSc Computer Science", "cutoff": "12-18", "requirements": "Maths, Physics + Chemistry/Applied Electricity/Electronics"},
-                    {"name": "BSc Actuarial Science", "cutoff": "10-16", "requirements": "Maths, Physics, Chemistry"},
-                    {"name": "BSc Mathematics", "cutoff": "16-22", "requirements": "Maths, Physics, Chemistry"},
-                    {"name": "BSc Statistics", "cutoff": "16-22", "requirements": "Maths, Physics, Chemistry"},
-                    {"name": "BSc Physics", "cutoff": "16-24", "requirements": "Maths, Physics, Chemistry"},
-                    {"name": "BSc Chemistry", "cutoff": "16-24", "requirements": "Maths, Physics, Chemistry"},
-                    {"name": "BSc Meteorology & Climate Science", "cutoff": "18-24", "requirements": "Maths, Physics, Chemistry"},
-                    {"name": "BSc Biochemistry", "cutoff": "12-18", "requirements": "Biology, Chemistry + Physics/Maths"},
-                    {"name": "BSc Biotechnology", "cutoff": "14-20", "requirements": "Biology, Chemistry + Physics/Maths"},
-                    {"name": "BSc Food Science & Technology", "cutoff": "14-20", "requirements": "Biology, Chemistry + Physics/Maths"},
-                    {"name": "BSc Environmental Science", "cutoff": "16-22", "requirements": "Biology/Agric, Chemistry + Physics/Maths"},
-                    {"name": "BSc Biological Science", "cutoff": "16-22", "requirements": "Biology, Chemistry + Physics/Maths"}
+                    {"name": "BSc Computer Science", "school": "Faculty of Physical and Computational Sciences", "cutoff": "12-18", "requirements": "Maths, Physics + Chemistry/Applied Electricity/Electronics"},
+                    {"name": "BSc Actuarial Science", "school": "Faculty of Physical and Computational Sciences", "cutoff": "10-16", "requirements": "Maths, Physics, Chemistry"},
+                    {"name": "BSc Mathematics", "school": "Faculty of Physical and Computational Sciences", "cutoff": "16-22", "requirements": "Maths, Physics, Chemistry"},
+                    {"name": "BSc Statistics", "school": "Faculty of Physical and Computational Sciences", "cutoff": "16-22", "requirements": "Maths, Physics, Chemistry"},
+                    {"name": "BSc Physics", "school": "Faculty of Physical and Computational Sciences", "cutoff": "16-24", "requirements": "Maths, Physics, Chemistry"},
+                    {"name": "BSc Chemistry", "school": "Faculty of Physical and Computational Sciences", "cutoff": "16-24", "requirements": "Maths, Physics, Chemistry"},
+                    {"name": "BSc Meteorology & Climate Science", "school": "Faculty of Physical and Computational Sciences", "cutoff": "18-24", "requirements": "Maths, Physics, Chemistry"},
+                    {"name": "BSc Biochemistry", "school": "Faculty of Biosciences", "cutoff": "12-18", "requirements": "Biology, Chemistry + Physics/Maths"},
+                    {"name": "BSc Biotechnology", "school": "Faculty of Biosciences", "cutoff": "14-20", "requirements": "Biology, Chemistry + Physics/Maths"},
+                    {"name": "BSc Food Science & Technology", "school": "Faculty of Biosciences", "cutoff": "14-20", "requirements": "Biology, Chemistry + Physics/Maths"},
+                    {"name": "BSc Environmental Science", "school": "Faculty of Biosciences", "cutoff": "16-22", "requirements": "Biology/Agric, Chemistry + Physics/Maths"},
+                    {"name": "BSc Biological Science", "school": "Faculty of Biosciences", "cutoff": "16-22", "requirements": "Biology, Chemistry + Physics/Maths"}
                 ]
             },
             "Agriculture and Natural Resources": {
                 "cutoff_range": "16-24",
                 "programs": [
-                    {"name": "BSc Agriculture", "cutoff": "18-24", "options": "Crop Science, Soil Science, Agric Economics, Agric Extension"},
-                    {"name": "BSc Agricultural Biotechnology", "cutoff": "16-22"},
-                    {"name": "BSc Agribusiness Management", "cutoff": "18-24"},
-                    {"name": "BSc Post Harvest Technology", "cutoff": "18-24"},
-                    {"name": "BSc Natural Resources Management", "cutoff": "18-24"},
-                    {"name": "BSc Forest Resources Technology", "cutoff": "18-24"},
-                    {"name": "BSc Landscape Design & Management", "cutoff": "18-24"},
-                    {"name": "BSc Aquaculture & Water Resources Management", "cutoff": "18-24"}
+                    {"name": "BSc Agriculture", "school": "Faculty of Agriculture", "cutoff": "18-24", "options": "Crop Science, Soil Science, Agric Economics, Agric Extension", "requirements": "Chemistry, Physics/Maths + Biology/General Agriculture"},
+                    {"name": "BSc Agricultural Biotechnology", "school": "Faculty of Agriculture", "cutoff": "16-22", "requirements": "Chemistry, Physics/Maths + Biology"},
+                    {"name": "BSc Agribusiness Management", "school": "Faculty of Agriculture", "cutoff": "18-24", "notes": "Multiple entry paths - Science: Chemistry, Physics/Maths + Biology/General Agriculture; Business: Economics, Accounting, Business Management, Elective Maths; Arts: Economics, Geography + Elective Maths. Business/Arts applicants need B3+ in Integrated Science."},
+                    {"name": "BSc Post Harvest Technology", "school": "Faculty of Agriculture", "cutoff": "18-24", "requirements": "Chemistry, Biology + Physics/Maths"},
+                    {"name": "BSc Natural Resources Management", "school": "Faculty of Natural Resource Management", "cutoff": "18-24", "requirements": "Chemistry, Biology + Physics/Maths"},
+                    {"name": "BSc Forest Resources Technology", "school": "Faculty of Natural Resource Management", "cutoff": "18-24", "requirements": "Chemistry, Biology + Physics/Maths/Agric"},
+                    {"name": "BSc Landscape Design & Management", "school": "Faculty of Natural Resource Management", "cutoff": "18-24", "requirements": "Science, Arts, or Visual Arts background"},
+                    {"name": "BSc Aquaculture & Water Resources Management", "school": "Faculty of Natural Resource Management", "cutoff": "18-24", "requirements": "Chemistry, Biology + Physics/Maths"}
                 ]
             },
             "Art and Built Environment": {
                 "cutoff_range": "9-24",
                 "programs": [
-                    {"name": "BSc Architecture", "cutoff": "9-14", "requirements": "Elective Maths + 2 from Tech/Science/Visual Arts"},
-                    {"name": "BSc Construction Tech & Management", "cutoff": "12-18"},
-                    {"name": "BSc Quantity Surveying", "cutoff": "12-18"},
-                    {"name": "BSc Development Planning", "cutoff": "14-20", "requirements": "Geography, Economics, Maths, History, Government"},
-                    {"name": "BSc Land Economy (Real Estate)", "cutoff": "14-20"},
-                    {"name": "BA Communication Design", "cutoff": "12-18"},
-                    {"name": "BSc Fashion Design", "cutoff": "14-22"},
-                    {"name": "BSc Industrial Art", "cutoff": "14-22"},
-                    {"name": "BFA Painting & Sculpture", "cutoff": "16-24"},
-                    {"name": "BA Publishing Studies", "cutoff": "16-24"},
-                    {"name": "BA Integrated Rural Art & Industry", "cutoff": "18-24"},
-                    {"name": "B.Ed JHS Education", "cutoff": "18-24", "specializations": "Maths, Science, ICT, Agric, History, Visual Arts, Geography"}
-                ]
+                    {"name": "BSc Architecture", "school": "Faculty of Built Environment", "cutoff": "9-14", "requirements": "Elective Maths + 2 from Tech/Science/Visual Arts"},
+                    {"name": "BSc Construction Tech & Management", "school": "Faculty of Built Environment", "cutoff": "12-18", "requirements": "Maths + 2 from Tech/Science/Arts"},
+                    {"name": "BSc Quantity Surveying", "school": "Faculty of Built Environment", "cutoff": "12-18", "requirements": "Elective Maths + 2 relevant"},
+                    {"name": "BSc Development Planning", "school": "Faculty of Built Environment", "cutoff": "14-20", "requirements": "Geography, Economics, Maths, History, Government"},
+                    {"name": "BSc Land Economy (Real Estate)", "school": "Faculty of Built Environment", "cutoff": "14-20", "requirements": "Arts, Business, or Science background"},
+                    {"name": "BA Communication Design", "school": "Faculty of Art", "cutoff": "12-18"},
+                    {"name": "BSc Fashion Design", "school": "Faculty of Art", "cutoff": "14-22"},
+                    {"name": "BSc Industrial Art", "school": "Faculty of Art", "cutoff": "14-22", "options": "Ceramics, Metal, Textile"},
+                    {"name": "BFA Painting & Sculpture", "school": "Faculty of Art", "cutoff": "16-24"},
+                    {"name": "BA Publishing Studies", "school": "Faculty of Art", "cutoff": "16-24"},
+                    {"name": "BA Integrated Rural Art & Industry", "school": "Faculty of Art", "cutoff": "18-24"},
+                    {"name": "B.Ed JHS Education", "school": "Faculty of Educational Studies", "cutoff": "18-24", "specializations": "Maths, Science, ICT, Agric, History, Visual Arts, Geography"}
+                ],
+                "notes": "Some Art programmes require practical exams or portfolio submissions."
             }
         },
         "fees": {
             "ghanaian_students": {
-                "Humanities & Social Sciences": "~GH¢ 1,948",
+                "Humanities & Social Sciences (General)": "~GH¢ 1,948",
                 "Business/Law": "~GH¢ 2,501",
                 "Hospitality & Tourism": "~GH¢ 2,921",
                 "Science (General)": "~GH¢ 2,821",
@@ -377,13 +425,15 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
                 "Health Sciences (Medicine/Dentistry/Pharmacy)": "~GH¢ 4,141+",
                 "Health Sciences (Nursing/Allied Health)": "~GH¢ 3,200-3,800",
                 "Freshmen Fee-Paying/Humanities": "~GH¢ 4,543",
-                "Freshmen Fee-Paying/Business": "~GH¢ 5,740-6,160",
+                "Freshmen Fee-Paying/Business/Hospitality": "~GH¢ 5,740-6,160",
                 "Freshmen Fee-Paying/Science/Engineering": "~GH¢ 5,000-6,500",
                 "Freshmen Fee-Paying/Health Sciences": "~GH¢ 6,000-8,000",
-                "Freshmen Residential": "~GH¢ 2,168"
+                "Freshmen Residential (total)": "~GH¢ 2,168"
             },
-            "international_students": "Contact Students' Financial Services - fees in USD",
-            "payment_policy": "1st Semester: 50% before registration; 2nd Semester: 100% before registration"
+            "residential_note": "Residential and academic fees are paid separately with different pay-in-slips.",
+            "approved_banks": "GCB Bank, Ecobank, UBA, and other approved partners",
+            "international_students": "Fees are significantly higher and benchmarked in USD; vary by college and programme. Pay into the KNUST Main Fees Collection Account. Contact Students' Financial Services for exact amounts.",
+            "payment_policy": "1st Semester: at least 50% before course registration; 2nd Semester: 100% before registration"
         },
         "scholarships": {
             "knust_excellence": "Merit-based full scholarships for outstanding students",
@@ -401,116 +451,145 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
         "established": "1948",
         "website": "www.ug.edu.gh",
         "type": "Public",
+        "overview": "UG is Ghana's oldest and largest public university, offering over 90 undergraduate programmes across 4 colleges.",
         "admission_requirements": {
             "general": "WASSCE: Credit passes (A1-C6) in 6 subjects (4 Core + 3 Electives). Aggregate 24 or better for regular admission. Distance Education: Aggregate 30.",
             "wassce": "Credit passes A1-C6 in English, Core Maths, Integrated Science, Social Studies + 3 relevant electives",
             "sssce": "Credit passes A-D in English, Core Maths, Integrated Science, Social Studies + 3 relevant electives",
+            "aggregate_calculation": "Science-related disciplines: English + Core Maths + Integrated Science + 3 Science Electives (Social Studies excluded). Non-Science disciplines: English + Core Maths + Social Studies + 3 Electives (Integrated Science excluded). A lower aggregate is a better/more competitive score.",
             "gce": "3 'A' Level passes + 5 'O' Level credits including English and Maths",
             "ib": "Grade 4+ in 3 HL subjects",
             "mature": "25+ years old, entrance exam, relevant work experience",
+            "how_to_apply": "1) Purchase an E-Voucher from an approved bank - Consolidated Bank Ghana (*924*200*25#), Fidelity Bank (*776*108#), or Prudential Bank (*772*100#); costs about GH¢250. 2) Access the Admissions Portal and complete the online application with personal details, academic records, and programme choices. 3) Upload transcripts, certificates, and result slips. 4) Submit before the deadline (application window typically runs March-June).",
+            "international_applicants": "Do NOT purchase an e-voucher. Apply through the International Programmes Office and pay a non-refundable application fee of US$55.",
             "application_deadline": "August 31, 2026 (Pending WASSCE release)",
             "online_portal": "https://admissions.ug.edu.gh",
             "application_fee": "GH¢ 250 (via *924*200*25#)",
             "entrance_exam": "Required for Medicine, Law, and other competitive programmes",
-            "first_choice_policy": "Many competitive programmes (Medicine, Law, Business, Computer Science, Engineering) are strictly 'First Choice Only'"
+            "first_choice_policy": "Many competitive programmes (Medicine, Law, Business, Computer Science, Engineering, etc.) are strictly 'First Choice Only'. Selecting them as second or third choice drastically reduces admission chances - always select competitive programmes as your first choice. If selecting LLB as first choice, select a BA bouquet as your second choice.",
+            "fee_schedule_status": "The official 2026/2027 fee schedule had not been published as of August 2026. Figures here are based on the 2024/2025 and 2025/2026 schedules; Academic Facility User Fees (AFUF) have been maintained at the same rates since 2023/2024."
         },
         "contact": {
             "phone": "+233-30-213-8501",
             "email": "admissions@ug.edu.gh",
-            "address": "P.O. Box LG 25, Legon, Accra"
+            "address": "P.O. Box LG 25, Legon, Accra",
+            "admissions_portal": "https://admissions.ug.edu.gh",
+            "cutoff_points_portal": "https://admissions.ug.edu.gh/undergraduate/cut-off",
+            "fees_schedule_portal": "https://sts.ug.edu.gh/services/fees",
+            "international_programmes_portal": "https://ip.ug.edu.gh",
+            "business_school_website": "https://ugbs.ug.edu.gh"
         },
         "colleges": {
             "Humanities": {
                 "cutoff_range": "7-24",
+                "requirements": "Credit passes in 4 core subjects + 3 elective subjects relevant to the chosen programme. Houses 6 schools: UG Business School, School of Law, School of Arts, School of Social Sciences, School of Languages, School of Performing Arts.",
                 "programs": [
-                    {"name": "LLB (Law)", "duration": "4 years", "cutoff": "7", "first_choice": "Yes"},
-                    {"name": "BSc Administration - Accounting", "cutoff": "9", "first_choice": "Yes"},
-                    {"name": "BSc Administration - Banking & Finance", "cutoff": "9", "first_choice": "Yes"},
-                    {"name": "BSc Administration - Marketing", "cutoff": "9", "first_choice": "Yes"},
-                    {"name": "BSc Administration - Human Resource Management", "cutoff": "9", "first_choice": "Yes"},
-                    {"name": "BSc Administration - Public Administration", "cutoff": "9", "first_choice": "Yes"},
-                    {"name": "BSc Administration - Insurance", "cutoff": "9", "first_choice": "Yes"},
-                    {"name": "BSc Administration - Health Services Management", "cutoff": "9", "first_choice": "Yes"},
-                    {"name": "BSc Administration - E-Commerce & Customer Management", "cutoff": "9", "first_choice": "Yes"},
-                    {"name": "BA Political Science", "cutoff": "24"},
-                    {"name": "BA Economics", "cutoff": "24"},
-                    {"name": "BA Geography & Resource Development", "cutoff": "24"},
-                    {"name": "BA Psychology", "cutoff": "24"},
-                    {"name": "BA Social Work", "cutoff": "24"},
-                    {"name": "BA Sociology", "cutoff": "24"},
-                    {"name": "BA English", "cutoff": "24"},
-                    {"name": "BA French", "cutoff": "24"},
-                    {"name": "BA History", "cutoff": "24"},
-                    {"name": "BA Archaeology & Heritage Studies", "cutoff": "24"},
-                    {"name": "BA Information Studies", "cutoff": "24"},
-                    {"name": "BA Music", "cutoff": "24", "requirements": "Audition"},
-                    {"name": "BA Theatre Arts", "cutoff": "24", "requirements": "Audition"},
-                    {"name": "BA Dance Studies", "cutoff": "24", "requirements": "Audition"}
-                ]
+                    {"name": "LLB (Law)", "school": "School of Law", "duration": "4 years", "cutoff": "7", "first_choice": "Yes", "electives": "Government/History, Literature in English, Economics, French, Business Management preferred", "backgrounds": "Both Arts and Science backgrounds accepted"},
+                    {"name": "BSc Administration - Accounting", "school": "UG Business School (UGBS)", "cutoff": "9", "first_choice": "Yes"},
+                    {"name": "BSc Administration - Banking & Finance", "school": "UG Business School (UGBS)", "cutoff": "9", "first_choice": "Yes"},
+                    {"name": "BSc Administration - Marketing", "school": "UG Business School (UGBS)", "cutoff": "9", "first_choice": "Yes"},
+                    {"name": "BSc Administration - Human Resource Management", "school": "UG Business School (UGBS)", "cutoff": "9", "first_choice": "Yes"},
+                    {"name": "BSc Administration - Public Administration", "school": "UG Business School (UGBS)", "cutoff": "9", "first_choice": "Yes"},
+                    {"name": "BSc Administration - Insurance", "school": "UG Business School (UGBS)", "cutoff": "9", "first_choice": "Yes"},
+                    {"name": "BSc Administration - Health Services Management", "school": "UG Business School (UGBS)", "cutoff": "9", "first_choice": "Yes"},
+                    {"name": "BSc Administration - E-Commerce & Customer Management", "school": "UG Business School (UGBS)", "cutoff": "9", "first_choice": "Yes"},
+                    {"name": "BA Political Science", "school": "School of Social Sciences", "cutoff": "24"},
+                    {"name": "BA Economics", "school": "School of Social Sciences", "cutoff": "24"},
+                    {"name": "BA Geography & Resource Development", "school": "School of Social Sciences", "cutoff": "24"},
+                    {"name": "BA Psychology", "school": "School of Social Sciences", "cutoff": "24"},
+                    {"name": "BA Social Work", "school": "School of Social Sciences", "cutoff": "24"},
+                    {"name": "BA Sociology", "school": "School of Social Sciences", "cutoff": "24"},
+                    {"name": "BA English (English Literature / Creative Writing)", "school": "School of Arts - Dept. of English", "cutoff": "24"},
+                    {"name": "BA Philosophy", "school": "School of Arts - Dept. of Philosophy & Classics", "cutoff": "24"},
+                    {"name": "BA Classics", "school": "School of Arts - Dept. of Philosophy & Classics", "cutoff": "24"},
+                    {"name": "BA History", "school": "School of Arts - Dept. of History", "cutoff": "24"},
+                    {"name": "BA Study of Religions", "school": "School of Arts - Dept. of Study of Religions", "cutoff": "24"},
+                    {"name": "BA Archaeology", "school": "School of Arts - Dept. of Archaeology & Heritage Studies", "cutoff": "24"},
+                    {"name": "BA Information Studies", "school": "School of Arts - Dept. of Information Studies", "cutoff": "24"},
+                    {"name": "BA French", "school": "School of Languages - Dept. of French", "cutoff": "24"},
+                    {"name": "BA Linguistics", "school": "School of Languages - Dept. of Linguistics", "cutoff": "24"},
+                    {"name": "BA Spanish / Chinese (Mandarin) / Swahili / Russian", "school": "School of Languages - Dept. of Modern Languages", "cutoff": "24", "notes": "Offered as bouquet subjects alongside another discipline; short proficiency courses also available in Arabic, Chinese, French, Russian, Spanish, and Swahili"},
+                    {"name": "BA/BFA Music", "school": "School of Performing Arts", "cutoff": "24", "requirements": "Auditions and/or portfolio submissions may be required"},
+                    {"name": "BA/BFA Theatre Arts", "school": "School of Performing Arts", "cutoff": "24", "requirements": "Auditions and/or portfolio submissions may be required"},
+                    {"name": "BA/BFA Dance Studies", "school": "School of Performing Arts", "cutoff": "24", "requirements": "Auditions and/or portfolio submissions may be required"}
+                ],
+                "notes": "Most School of Arts and School of Social Sciences programmes are offered through a subject bouquet system - students select combinations of 2-3 subjects (e.g. Political Science, Philosophy & Classics, Archaeology or Sociology, English & Study of Religions)."
             },
             "Basic and Applied Sciences": {
                 "cutoff_range": "6-24",
+                "requirements": "Credit passes in English, Core Maths, Integrated Science + 3 Science electives (Social Studies excluded from aggregate). Houses 6 schools across engineering, physical/mathematical sciences, biological sciences, agriculture, computer science, earth science, and veterinary medicine.",
                 "programs": [
-                    {"name": "BSc Biomedical Engineering", "cutoff": "6-7", "first_choice": "Yes", "requirements": "Elective Maths (B3+)"},
-                    {"name": "BSc Computer Engineering", "cutoff": "7", "first_choice": "Yes", "requirements": "Elective Maths (B3+)"},
-                    {"name": "BSc Computer Science", "cutoff": "7-9", "first_choice": "Yes", "requirements": "Elective Maths (B3+)"},
-                    {"name": "BSc Information Technology", "cutoff": "12", "first_choice": "Yes", "requirements": "Core Maths (C4+)"},
-                    {"name": "BSc Actuarial Science", "cutoff": "11", "requirements": "Elective Maths (B3+)"},
-                    {"name": "BSc Agricultural Engineering", "cutoff": "15", "requirements": "Elective Maths (B3+)"},
-                    {"name": "BSc Food Process Engineering", "cutoff": "14", "requirements": "Elective Maths (B3+)"},
-                    {"name": "BSc Materials Science & Engineering", "cutoff": "14", "requirements": "Elective Maths (B3+)"},
-                    {"name": "Doctor of Veterinary Medicine", "duration": "6 years", "cutoff": "14", "first_choice": "Yes"},
-                    {"name": "BSc Agriculture", "cutoff": "24"},
-                    {"name": "BSc Earth Science", "cutoff": "24"},
-                    {"name": "BSc Mathematics", "cutoff": "24"},
-                    {"name": "BSc Statistics", "cutoff": "24"},
-                    {"name": "BSc Physics", "cutoff": "24"},
-                    {"name": "BSc Chemistry", "cutoff": "24"},
-                    {"name": "BSc Biochemistry", "cutoff": "24"},
-                    {"name": "BSc Nutrition & Food Science", "cutoff": "24"},
-                    {"name": "BSc Animal Biology & Conservation Science", "cutoff": "24"},
-                    {"name": "BSc Plant & Environmental Biology", "cutoff": "24"},
-                    {"name": "BSc Marine & Fisheries Sciences", "cutoff": "24"}
-                ]
+                    {"name": "BSc Biomedical Engineering", "school": "School of Engineering Sciences", "cutoff": "6-7", "first_choice": "Yes", "requirements": "Elective Maths (B3+), Physics, Chemistry"},
+                    {"name": "BSc Computer Engineering", "school": "School of Engineering Sciences", "cutoff": "7", "first_choice": "Yes", "requirements": "Elective Maths (B3+), Physics, Chemistry"},
+                    {"name": "BSc Computer Science", "school": "Department of Computer Science", "cutoff": "7-9", "first_choice": "Yes", "requirements": "Elective Mathematics (B3+) critical"},
+                    {"name": "BSc Information Technology", "school": "Department of Computer Science", "cutoff": "12", "first_choice": "Yes", "requirements": "Core Mathematics (C4+)"},
+                    {"name": "BSc Actuarial Science", "school": "School of Physical and Mathematical Sciences - Dept. of Statistics & Actuarial Science", "cutoff": "12", "requirements": "Elective Maths (high grade required)"},
+                    {"name": "BSc Agricultural Engineering", "school": "School of Engineering Sciences", "cutoff": "15", "requirements": "Elective Maths (B3+), Physics, Chemistry"},
+                    {"name": "BSc Food Process Engineering", "school": "School of Engineering Sciences", "cutoff": "14", "requirements": "Elective Maths (B3+), Physics, Chemistry"},
+                    {"name": "BSc Materials Science & Engineering", "school": "School of Engineering Sciences", "cutoff": "14", "requirements": "Elective Maths (B3+), Physics, Chemistry"},
+                    {"name": "Doctor of Veterinary Medicine (DVM)", "school": "School of Veterinary Medicine", "duration": "6 years", "cutoff": "14", "first_choice": "Yes", "notes": "Professional doctorate, not a BSc. Electives: Biology, Chemistry + Physics or Elective Maths. Degree holders (BSc in Biological Science, Allied Health, or Animal Science) may enter at Level 100; Diploma in Animal Health with Distinction also accepted."},
+                    {"name": "BSc Agriculture", "school": "School of Agriculture", "cutoff": "24", "options": "Crop Science, Animal Science, Soil Science, Agribusiness/Agricultural Economics, Agricultural Extension"},
+                    {"name": "BSc Earth Science", "school": "Department of Earth Science", "cutoff": "24", "options": "Geology, Hydrogeology, Mineral Exploration, Petroleum Geoscience, Engineering Geology, Environmental Earth Science", "requirements": "Chemistry and Physics typically required"},
+                    {"name": "BSc Mathematics", "school": "School of Physical and Mathematical Sciences - Dept. of Mathematics", "cutoff": "24", "requirements": "Elective Maths required"},
+                    {"name": "BSc Statistics", "school": "School of Physical and Mathematical Sciences - Dept. of Statistics & Actuarial Science", "cutoff": "24", "requirements": "Elective Maths required"},
+                    {"name": "BSc Mathematical Sciences", "school": "School of Physical and Mathematical Sciences (combined departments)", "cutoff": "24", "requirements": "Elective Maths required"},
+                    {"name": "BSc Physics", "school": "School of Physical and Mathematical Sciences - Dept. of Physics", "cutoff": "24", "requirements": "Physics, Elective Maths required"},
+                    {"name": "BSc Geophysics", "school": "School of Physical and Mathematical Sciences - Dept. of Physics", "cutoff": "24", "requirements": "Physics, Elective Maths required"},
+                    {"name": "BSc Chemistry", "school": "School of Physical and Mathematical Sciences - Dept. of Chemistry", "cutoff": "24", "requirements": "Chemistry required"},
+                    {"name": "BSc Biochemistry, Cell & Molecular Biology", "school": "School of Biological Sciences", "cutoff": "24"},
+                    {"name": "BSc Nutrition & Food Science", "school": "School of Biological Sciences", "cutoff": "24"},
+                    {"name": "BSc Animal Biology & Conservation Science", "school": "School of Biological Sciences", "cutoff": "24"},
+                    {"name": "BSc Plant & Environmental Biology", "school": "School of Biological Sciences", "cutoff": "24"},
+                    {"name": "BSc Marine & Fisheries Sciences", "school": "School of Biological Sciences", "cutoff": "24"}
+                ],
+                "notes": "School of Physical and Mathematical Sciences programmes can be taken as a Single Major, Combined Major, or Major-Minor. School of Nuclear and Allied Sciences (SNAS) is a graduate-only school (MPhil/PhD in Nuclear Engineering, Radiation Protection, Applied Nuclear Physics, Medical Physics, Nuclear Earth Science, Nuclear Agriculture & Radiation Processing, Nuclear & Radiochemistry, run with the Ghana Atomic Energy Commission and IAEA) - it does not offer undergraduate programmes."
             },
             "Health Sciences": {
                 "cutoff_range": "8-16",
                 "first_choice_only": "Yes",
+                "requirements": "All programmes are First Choice programmes and are extremely competitive. Applicants must select science-based subjects for their second and third choices. Houses 6 schools.",
                 "programs": [
-                    {"name": "MB ChB (Medicine & Surgery)", "duration": "6 years", "cutoff": "8", "first_choice": "Yes", "entrance_exam": "Yes"},
-                    {"name": "BDS (Dental Surgery)", "duration": "6 years", "cutoff": "10", "first_choice": "Yes", "entrance_exam": "Yes"},
-                    {"name": "Pharm.D (Doctor of Pharmacy)", "duration": "6 years", "cutoff": "10", "first_choice": "Yes"},
-                    {"name": "BSc Nursing", "duration": "4 years", "cutoff": "15", "first_choice": "Yes"},
-                    {"name": "BSc Midwifery", "duration": "4 years", "cutoff": "15", "first_choice": "Yes"},
-                    {"name": "BSc Medical Laboratory Science", "duration": "4 years", "cutoff": "12", "first_choice": "Yes"},
-                    {"name": "BSc Diagnostic Radiography", "duration": "4 years", "cutoff": "13", "first_choice": "Yes"},
-                    {"name": "BSc Physiotherapy", "duration": "4 years", "cutoff": "14", "first_choice": "Yes"},
-                    {"name": "BSc Dietetics", "duration": "4 years", "cutoff": "14", "first_choice": "Yes"},
-                    {"name": "BSc Occupational Therapy", "duration": "4 years", "cutoff": "14-15", "first_choice": "Yes"},
-                    {"name": "BSc Respiratory Therapy", "duration": "4 years", "cutoff": "14", "first_choice": "Yes"},
-                    {"name": "BPH (Bachelor of Public Health)", "duration": "4 years", "cutoff": "16", "first_choice": "Yes"}
+                    {"name": "MB ChB (Medicine & Surgery)", "school": "Medical School", "duration": "6 years", "cutoff": "8", "first_choice": "Yes", "entrance_exam": "Computer-based entrance exam may be required", "requirements": "Biology, Chemistry, Physics or Elective Maths"},
+                    {"name": "Graduate Entry Medical Programme (GEMP)", "school": "Medical School", "duration": "4 years", "cutoff": "N/A (degree required)", "requirements": "Good first degree (minimum 2nd Class Lower) in a relevant science field (Biological Sciences, Biochemistry, Pharmacy, Nursing, etc.), good grades in 3 core + 3 science electives including Chemistry, national service completion, entrance exam and interview"},
+                    {"name": "BDS (Dental Surgery)", "school": "Dental School", "duration": "6 years", "cutoff": "10", "first_choice": "Yes", "entrance_exam": "May be required", "requirements": "Same as MB ChB: Biology, Chemistry, Physics/Elective Maths"},
+                    {"name": "Graduate Entry Dental Programme (GEDP)", "school": "Dental School", "duration": "4 years", "cutoff": "N/A (degree required)"},
+                    {"name": "Pharm.D (Doctor of Pharmacy)", "school": "School of Pharmacy", "duration": "6 years", "cutoff": "10", "first_choice": "Yes", "requirements": "Chemistry (mandatory), Biology, Physics or Elective Maths"},
+                    {"name": "BSc Nursing", "school": "School of Nursing and Midwifery", "duration": "4 years", "cutoff": "15", "first_choice": "Yes", "requirements": "Science: Biology, Chemistry, Physics, Elective Maths. Non-Science applicants may be considered from General Arts, Home Economics, or Business backgrounds if core requirements are met. Entrance exam and/or interview possible."},
+                    {"name": "BSc Midwifery", "school": "School of Nursing and Midwifery", "duration": "4 years", "cutoff": "15", "first_choice": "Yes"},
+                    {"name": "BSc Medical Laboratory Science", "school": "School of Biomedical and Allied Health Sciences (SBAHS)", "duration": "4 years", "cutoff": "12", "first_choice": "Yes", "electives": "Chemistry, Physics, Biology/Elective Maths"},
+                    {"name": "BSc Diagnostic Radiography", "school": "School of Biomedical and Allied Health Sciences (SBAHS)", "duration": "4 years", "cutoff": "13", "first_choice": "Yes"},
+                    {"name": "BSc Physiotherapy", "school": "School of Biomedical and Allied Health Sciences (SBAHS)", "duration": "4 years", "cutoff": "14", "first_choice": "Yes"},
+                    {"name": "BSc Dietetics", "school": "School of Biomedical and Allied Health Sciences (SBAHS)", "duration": "4 years", "cutoff": "14", "first_choice": "Yes"},
+                    {"name": "BSc Occupational Therapy", "school": "School of Biomedical and Allied Health Sciences (SBAHS)", "duration": "4 years", "cutoff": "14-15", "first_choice": "Yes", "electives": "Chemistry, Physics, Biology/Elective Maths"},
+                    {"name": "BSc Respiratory Therapy", "school": "School of Biomedical and Allied Health Sciences (SBAHS)", "duration": "4 years", "cutoff": "14", "first_choice": "Yes"},
+                    {"name": "BSc Physiotherapy (Top-Up)", "school": "School of Biomedical and Allied Health Sciences (SBAHS)", "notes": "For diploma holders"},
+                    {"name": "BSc Occupational Therapy (Top-Up)", "school": "School of Biomedical and Allied Health Sciences (SBAHS)", "notes": "For diploma holders"},
+                    {"name": "BSc Radiography (Top-Up)", "school": "School of Biomedical and Allied Health Sciences (SBAHS)", "notes": "For diploma holders"},
+                    {"name": "BPH (Bachelor of Public Health)", "school": "School of Public Health", "duration": "4 years", "cutoff": "16", "first_choice": "Yes", "requirements": "Science students: Chemistry, Physics, Biology or Elective Maths. Non-Science students: relevant electives in General Arts, Agricultural Science, or Home Economics.", "notes": "Diploma holders (Level 200 entry) need a Diploma in health/related sciences with FGPA 3.2+, plus entrance exam and interview"}
                 ]
             },
             "Education": {
                 "cutoff_range": "24-30",
+                "requirements": "Credit passes in 4 core subjects + 3 relevant elective subjects. Aggregate 24 or better (regular), 30 or better (distance). Houses 3 main schools.",
                 "programs": [
-                    {"name": "B.Ed Education", "cutoff": "24"},
-                    {"name": "B.Ed Early Grade Specialism", "cutoff": "24"},
-                    {"name": "B.Ed Upper Primary Specialism", "cutoff": "24"},
-                    {"name": "B.Ed JHS Specialism", "cutoff": "24"},
-                    {"name": "B.Ed Arabic", "cutoff": "24", "requirements": "C6 in French"},
-                    {"name": "B.Ed Computer Science", "cutoff": "24"},
-                    {"name": "B.Ed Consumer Sciences", "cutoff": "24"},
-                    {"name": "B.Ed English", "cutoff": "24", "requirements": "C6 in Literature in English"},
-                    {"name": "B.Ed French", "cutoff": "24", "requirements": "C6 in French"},
-                    {"name": "B.Ed Ghanaian Language", "cutoff": "24"},
-                    {"name": "B.Ed Mathematics", "cutoff": "24", "requirements": "C6 in Elective Mathematics"},
-                    {"name": "B.Ed Science", "cutoff": "24", "requirements": "C6 in relevant science subject"},
-                    {"name": "B.Ed Social Studies", "cutoff": "24"},
-                    {"name": "BA Information Studies", "cutoff": "24"},
+                    {"name": "B.Ed Education", "school": "School of Education and Leadership", "cutoff": "24"},
+                    {"name": "B.Ed Early Grade Specialism", "school": "School of Education and Leadership", "cutoff": "24"},
+                    {"name": "B.Ed Upper Primary Specialism", "school": "School of Education and Leadership", "cutoff": "24"},
+                    {"name": "B.Ed JHS Specialism", "school": "School of Education and Leadership", "cutoff": "24"},
+                    {"name": "B.Ed Arabic", "school": "School of Education and Leadership", "cutoff": "24", "requirements": "C6 in French"},
+                    {"name": "B.Ed Computer Science", "school": "School of Education and Leadership", "cutoff": "24"},
+                    {"name": "B.Ed Consumer Sciences", "school": "School of Education and Leadership", "cutoff": "24"},
+                    {"name": "B.Ed English", "school": "School of Education and Leadership", "cutoff": "24", "requirements": "C6 in Literature in English"},
+                    {"name": "B.Ed French", "school": "School of Education and Leadership", "cutoff": "24", "requirements": "C6 in French"},
+                    {"name": "B.Ed Ghanaian Language", "school": "School of Education and Leadership", "cutoff": "24"},
+                    {"name": "B.Ed Mathematics", "school": "School of Education and Leadership", "cutoff": "24", "requirements": "C6 in Elective Mathematics"},
+                    {"name": "B.Ed Science", "school": "School of Education and Leadership", "cutoff": "24", "requirements": "C6 in relevant science subject"},
+                    {"name": "B.Ed Social Studies", "school": "School of Education and Leadership", "cutoff": "24"},
+                    {"name": "BA Information Studies", "school": "School of Information and Communication Studies", "cutoff": "24"},
                     {"name": "BSc Administration (Accra City Campus)", "cutoff": "24"},
                     {"name": "BA (Accra City Campus)", "cutoff": "24"}
-                ]
+                ],
+                "notes": "School of Continuing and Distance Education offers distance-learning versions of programmes from other colleges for working professionals - aggregate requirement 30 or better, learning centres across Ghana, weekend and evening classes."
             }
         },
         "fees": {
@@ -528,11 +607,12 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
                 "SRC Dues": "GH¢ 50",
                 "SRC Development Levy": "GH¢ 150",
                 "75th Anniversary Legacy Project Levy": "GH¢ 100",
-                "Telecel Broadband Levy": "GH¢ 122 (optional)",
+                "Telecel Broadband Levy": "GH¢ 122 (optional - students may opt out)",
+                "GRASAG Development Levy": "GH¢ 250 (graduate students only)",
                 "Reprographic Fees": "GH¢ 5"
             },
-            "payment_policy": "1st Semester: 50% before registration; 2nd Semester: 100% before registration",
-            "international_students": "Contact International Programmes Office - fees in USD"
+            "payment_policy": "1st Semester: at least 50% of total fees before registration; 2nd Semester: 100% of total fees before registration; Residential Fees: 100% before hostel registration",
+            "international_students": "Fees are significantly higher and quoted in USD. Payment via approved banks (Ecobank Ghana, Access Bank) or the online portal https://sts.ug.edu.gh/ugpay. Application processing fee: US$55 (non-refundable). Contact the International Programmes Office (IPO) for exact amounts."
         },
         "scholarships": {
             "ug_excellence": "Up to 100% tuition coverage for outstanding students",
@@ -550,139 +630,183 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
         "established": "1962",
         "website": "www.ucc.edu.gh",
         "type": "Public",
+        "overview": "UCC is Ghana's foremost university for teacher education and one of the most prestigious public universities, offering over 150 undergraduate programmes across 5 colleges.",
         "admission_requirements": {
-            "general": "WASSCE: Credit passes (A1-C6) in 6 subjects (3 Core + 3 Electives). Maximum aggregate 36 (more accessible than UG/KNUST). SSSCE: Maximum aggregate 24.",
-            "wassce": "Credit passes A1-C6 in English, Core Maths, Integrated Science/Social Studies + 3 relevant electives. Aggregate 36 or better.",
+            "general": "WASSCE: Credit passes (A1-C6) in 6 subjects (3 Core + 3 Electives). Maximum aggregate 36 - more accessible than UG/KNUST, which cap at 24. SSSCE: Maximum aggregate 24.",
+            "wassce": "Credit passes A1-C6 in English Language, Core Mathematics, Integrated Science OR Social Studies (depending on programme) + 3 relevant electives. Aggregate 36 or better.",
             "sssce": "Credit passes A-D in English, Core Maths, Integrated Science/Social Studies + 3 relevant electives. Aggregate 24 or better.",
-            "gce": "5 'O' Level credits + 3 'A' Level passes in relevant subjects",
-            "gce_business": "GBCE/ABCE credits in relevant subjects",
+            "gce_a_levels": "5 'O' Level credits + 3 'A' Level passes in relevant subjects",
+            "gbce_abce": "Credits in relevant subjects",
             "igcse": "Equivalent grade requirements in relevant subjects",
-            "ib": "Grade 4+ in relevant subjects",
+            "ib": "International Baccalaureate: Grade 4+ in relevant subjects",
             "american_high_school": "Grade 12 certificate with equivalent grades",
-            "diploma_hnd": "Assessed individually for Level 100/200/300 placement",
+            "diploma_hnd": "Diploma/HND assessed individually for Level 100/200/300 placement",
             "mature": "25+ years by June 30, SHS certificate or equivalent, 5+ years work experience, entrance exam",
-            "application_deadline": "August 31, 2026",
+            "how_to_apply": "1) Purchase an E-Voucher from GCB Bank, ADB, Fidelity Bank, Ecobank, or Ghana Post. 2) Complete the application at the portal - fill in personal details, academic records, and programme choices. 3) Upload documents - result slips, certificates, identification. 4) Check application status using the voucher serial number and PIN.",
+            "study_modes": "Regular (Full-time on-campus); Distance Learning via the College of Distance Education (CoDE); Sandwich/Part-time programmes",
+            "application_deadline": "Check the admissions portal - deadlines change annually",
             "online_portal": "https://apply.ucc.edu.gh",
+            "status_check_portal": "https://admissions.ucc.edu.gh",
             "application_fee": "Contact university for current fee"
         },
         "contact": {
             "phone": "+233-33-213-2440",
             "email": "admissions@ucc.edu.gh",
-            "address": "University of Cape Coast, Cape Coast, Central Region"
+            "academic_affairs_email": "academic.affairs@ucc.edu.gh",
+            "address": "University of Cape Coast, Cape Coast, Central Region",
+            "application_portal": "https://apply.ucc.edu.gh",
+            "admissions_status_portal": "https://admissions.ucc.edu.gh",
+            "student_portal": "https://portal.ucc.edu.gh"
         },
         "colleges": {
-            "Health and Allied Sciences": {
-                "cutoff_range": "8-22",
+            "Health and Allied Sciences (CoHAS)": {
+                "cutoff_range": "8-16",
+                "requirements": "Credit passes in English, Core Maths, Integrated Science + 3 Science electives (Biology, Chemistry, Physics/Elective Maths). Interview or selection exam may be required for some programmes. The most competitive college at UCC.",
                 "programs": [
-                    {"name": "MBChB (Medicine & Surgery)", "duration": "6 years", "cutoff": "8", "entrance_exam": "Yes"},
-                    {"name": "Doctor of Pharmacy (PharmD)", "duration": "6 years", "cutoff": "9"},
-                    {"name": "BSc Physician Assistant Studies", "duration": "4 years", "cutoff": "11"},
-                    {"name": "BSc Nursing", "duration": "4 years", "cutoff": "12"},
-                    {"name": "BSc Midwifery", "duration": "4 years", "cutoff": "12"},
-                    {"name": "Doctor of Optometry", "duration": "6 years", "cutoff": "12"},
-                    {"name": "BSc Medical Laboratory Science", "duration": "4 years", "cutoff": "12"},
-                    {"name": "BSc Mental Health Nursing", "duration": "4 years", "cutoff": "14"},
-                    {"name": "BSc Clinical Nutrition & Dietetics", "duration": "4 years", "cutoff": "14"},
-                    {"name": "BSc Biomedical Sciences", "duration": "4 years", "cutoff": "14"},
-                    {"name": "BSc Diagnostic Imaging Technology", "duration": "4 years", "cutoff": "14"},
-                    {"name": "BSc Diagnostic Medical Sonography", "duration": "4 years", "cutoff": "14"},
-                    {"name": "BSc Health Information Management", "duration": "4 years", "cutoff": "16"},
-                    {"name": "BSc Sports & Exercise Science", "duration": "4 years", "cutoff": "16"}
+                    {"name": "MBChB (Medicine & Surgery)", "school": "School of Medical Sciences", "duration": "6 years", "cutoff": "8", "electives": "Biology, Chemistry + Physics/Elective Maths", "entrance_exam": "May be required", "notes": "Extremely competitive"},
+                    {"name": "Doctor of Pharmacy (PharmD)", "school": "School of Pharmacy and Pharmaceutical Sciences", "duration": "6 years", "cutoff": "9", "electives": "Biology, Chemistry + Physics/Elective Maths"},
+                    {"name": "BSc Nursing", "school": "School of Nursing and Midwifery", "duration": "4 years", "cutoff": "12", "requirements": "Credit in English, Core Maths, Integrated Science + 3 relevant electives. Science and Non-Science backgrounds accepted."},
+                    {"name": "BSc Midwifery", "school": "School of Nursing and Midwifery", "duration": "4 years", "cutoff": "12"},
+                    {"name": "BSc Mental Health Nursing", "school": "School of Nursing and Midwifery", "duration": "4 years", "cutoff": "14"},
+                    {"name": "BSc Community Mental Health Nursing", "school": "School of Nursing and Midwifery", "duration": "4 years", "cutoff": "14"},
+                    {"name": "Doctor of Optometry", "school": "School of Allied Health Sciences", "duration": "6 years", "cutoff": "12"},
+                    {"name": "BSc Physician Assistant Studies", "school": "School of Allied Health Sciences", "duration": "4 years", "cutoff": "11"},
+                    {"name": "BSc Medical Laboratory Science/Technology", "school": "School of Allied Health Sciences", "duration": "4 years", "cutoff": "12"},
+                    {"name": "BSc Clinical Nutrition & Dietetics", "school": "School of Allied Health Sciences", "duration": "4 years", "cutoff": "14"},
+                    {"name": "BSc Biomedical Sciences", "school": "School of Allied Health Sciences", "duration": "4 years", "cutoff": "14"},
+                    {"name": "BSc Diagnostic Imaging Technology", "school": "School of Allied Health Sciences", "duration": "4 years", "cutoff": "14"},
+                    {"name": "BSc Diagnostic Medical Sonography", "school": "School of Allied Health Sciences", "duration": "4 years", "cutoff": "14"},
+                    {"name": "BSc Health Information Management", "school": "School of Allied Health Sciences", "duration": "4 years", "cutoff": "16"},
+                    {"name": "BSc Sports & Exercise Science", "school": "School of Allied Health Sciences", "duration": "4 years", "cutoff": "16"}
                 ]
             },
-            "Humanities and Legal Studies": {
+            "Humanities and Legal Studies (CHLS)": {
                 "cutoff_range": "8-25",
+                "requirements": "Houses the Faculty of Arts, Faculty of Law, Faculty of Social Sciences, School of Business, and School of Economics. Credit passes in English, Core Maths, Social Studies + 3 relevant electives (backgrounds vary by programme).",
                 "programs": [
-                    {"name": "LLB (Law)", "duration": "4 years", "cutoff": "8-10"},
-                    {"name": "LLB (3-year Post-First-Degree)", "duration": "3 years", "requirements": "Degree + entrance exam"},
-                    {"name": "BSc Economics", "cutoff": "15"},
-                    {"name": "BSc Economics with Finance", "cutoff": "15"},
-                    {"name": "BA Economics", "cutoff": "16"},
-                    {"name": "BBA Accounting", "cutoff": "15"},
-                    {"name": "BBA Human Resource Management", "cutoff": "16"},
-                    {"name": "BBA Management", "cutoff": "16"},
-                    {"name": "B.Com Finance", "cutoff": "15"},
-                    {"name": "B.Com Marketing", "cutoff": "16"},
-                    {"name": "B.Com Procurement & Supply Chain Management", "cutoff": "16"},
-                    {"name": "BSc Hospitality Management", "cutoff": "16"},
-                    {"name": "BSc Tourism Management", "cutoff": "16"},
-                    {"name": "BA Communication Studies", "cutoff": "17"},
-                    {"name": "BA English", "cutoff": "18"},
-                    {"name": "BA Sociology", "cutoff": "18"},
-                    {"name": "BA Population & Health", "cutoff": "18"},
-                    {"name": "BSc Geography & Regional Planning", "cutoff": "18"},
-                    {"name": "BA History", "cutoff": "19"},
-                    {"name": "BA African Studies", "cutoff": "19"},
-                    {"name": "BA French", "cutoff": "20"},
-                    {"name": "BA Theatre Studies", "cutoff": "20"},
-                    {"name": "BA Film Studies", "cutoff": "20"},
-                    {"name": "BA Social Behaviour & Conflict Management", "cutoff": "20"},
-                    {"name": "BA Anthropology", "cutoff": "22"},
-                    {"name": "BA Dance", "cutoff": "22"},
-                    {"name": "Bachelor of Music (B.Mus)", "cutoff": "22"},
-                    {"name": "BA Ghanaian Language & Linguistics", "cutoff": "22"},
-                    {"name": "BA Chinese", "cutoff": "25"}
-                ]
+                    {"name": "LLB (4-year First Degree)", "school": "Faculty of Law", "duration": "4 years", "cutoff": "8-10", "requirements": "Excellent grades in English + relevant electives. Highly competitive."},
+                    {"name": "LLB (3-year Post-First-Degree)", "school": "Faculty of Law", "duration": "3 years", "requirements": "Bachelor's degree in another discipline + entrance exam"},
+                    {"name": "BSc Economics", "school": "School of Economics", "cutoff": "15"},
+                    {"name": "BSc Economics with Finance", "school": "School of Economics", "cutoff": "15"},
+                    {"name": "BA Economics", "school": "School of Economics", "cutoff": "16"},
+                    {"name": "BBA Accounting", "school": "School of Business", "cutoff": "15"},
+                    {"name": "BBA Human Resource Management", "school": "School of Business", "cutoff": "16"},
+                    {"name": "BBA Management", "school": "School of Business", "cutoff": "16"},
+                    {"name": "B.Com Finance", "school": "School of Business", "cutoff": "15"},
+                    {"name": "B.Com Marketing", "school": "School of Business", "cutoff": "16"},
+                    {"name": "B.Com Management", "school": "School of Business", "cutoff": "16"},
+                    {"name": "B.Com Procurement & Supply Chain Management", "school": "School of Business", "cutoff": "16"},
+                    {"name": "B.Com Commerce", "school": "School of Business", "cutoff": "16"},
+                    {"name": "BSc Hospitality Management", "school": "Faculty of Social Sciences", "cutoff": "16"},
+                    {"name": "BSc Tourism Management", "school": "Faculty of Social Sciences", "cutoff": "16"},
+                    {"name": "BA Communication Studies", "school": "Faculty of Arts", "cutoff": "17"},
+                    {"name": "BA English", "school": "Faculty of Arts", "cutoff": "18"},
+                    {"name": "BA Sociology", "school": "Faculty of Social Sciences", "cutoff": "18"},
+                    {"name": "BA Population & Health", "school": "Faculty of Social Sciences", "cutoff": "18"},
+                    {"name": "BSc Geography & Regional Planning", "school": "Faculty of Social Sciences", "cutoff": "18"},
+                    {"name": "BA History", "school": "Faculty of Arts", "cutoff": "19"},
+                    {"name": "BA African Studies", "school": "Faculty of Arts", "cutoff": "19"},
+                    {"name": "BA French", "school": "Faculty of Arts", "cutoff": "20"},
+                    {"name": "BA Theatre Studies", "school": "Faculty of Arts", "cutoff": "20"},
+                    {"name": "BA Film Studies", "school": "Faculty of Arts", "cutoff": "20"},
+                    {"name": "BA Social Behaviour & Conflict Management", "school": "Faculty of Social Sciences", "cutoff": "20"},
+                    {"name": "BA Anthropology", "school": "Faculty of Social Sciences", "cutoff": "22"},
+                    {"name": "BA Dance", "school": "Faculty of Arts", "cutoff": "22"},
+                    {"name": "Bachelor of Music (B.Mus)", "school": "Faculty of Arts", "cutoff": "22"},
+                    {"name": "BA Ghanaian Language & Linguistics", "school": "Faculty of Arts", "cutoff": "22"},
+                    {"name": "BA Classics & Philosophy", "school": "Faculty of Arts", "cutoff": "22"},
+                    {"name": "BA Religious Studies", "school": "Faculty of Arts", "cutoff": "22"},
+                    {"name": "BA Chinese", "school": "Faculty of Arts", "cutoff": "25"}
+                ],
+                "notes": "School for Development Studies focuses primarily on postgraduate research and teaching; undergraduates interested in development studies typically pursue BA Social Sciences."
             },
-            "Education Studies": {
+            "Education Studies (CES)": {
                 "cutoff_range": "18-24",
+                "requirements": "UCC's flagship college - the university was originally established as a teacher training institution. Credit passes in English, Core Maths, Integrated Science/Social Studies + 3 electives matching the teaching specialization.",
                 "programs": [
-                    {"name": "B.Ed Accounting", "cutoff": "18"},
-                    {"name": "B.Ed Mathematics", "cutoff": "18"},
-                    {"name": "B.Ed Computer Science / ICT", "cutoff": "18"},
-                    {"name": "B.Ed Robotics & Intelligent Systems", "cutoff": "18"},
-                    {"name": "B.Ed Arts", "cutoff": "20"},
-                    {"name": "B.Ed Social Science", "cutoff": "20"},
-                    {"name": "B.Ed Social Studies", "cutoff": "20"},
-                    {"name": "B.Ed Management", "cutoff": "20"},
-                    {"name": "B.Ed Science", "cutoff": "20"},
-                    {"name": "B.Ed Health Science", "cutoff": "20"},
-                    {"name": "B.Ed Health, Physical Education & Recreation", "cutoff": "22"},
-                    {"name": "B.Ed Home Economics", "cutoff": "22"},
-                    {"name": "B.Ed Basic Education", "cutoff": "22"},
-                    {"name": "B.Ed Early Childhood Education", "cutoff": "24"}
+                    {"name": "B.Ed Accounting", "school": "Faculty of Humanities and Social Sciences Education", "cutoff": "18"},
+                    {"name": "B.Ed Mathematics", "school": "Faculty of Science and Technology Education", "cutoff": "18"},
+                    {"name": "B.Ed Computer Science / ICT", "school": "Faculty of Science and Technology Education", "cutoff": "18"},
+                    {"name": "B.Ed Robotics and Intelligent Systems", "school": "Faculty of Science and Technology Education", "cutoff": "18"},
+                    {"name": "B.Ed Arts", "school": "Faculty of Humanities and Social Sciences Education", "cutoff": "20"},
+                    {"name": "B.Ed Social Science", "school": "Faculty of Humanities and Social Sciences Education", "cutoff": "20"},
+                    {"name": "B.Ed Social Studies", "school": "Faculty of Humanities and Social Sciences Education", "cutoff": "20"},
+                    {"name": "B.Ed Management", "school": "Faculty of Humanities and Social Sciences Education", "cutoff": "20"},
+                    {"name": "B.Ed Science", "school": "Faculty of Science and Technology Education", "cutoff": "20"},
+                    {"name": "B.Ed Health Science", "school": "Faculty of Science and Technology Education", "cutoff": "20"},
+                    {"name": "B.Ed Health, Physical Education & Recreation", "school": "Faculty of Science and Technology Education", "cutoff": "22"},
+                    {"name": "B.Ed Home Economics", "school": "Faculty of Science and Technology Education", "cutoff": "22"},
+                    {"name": "B.Ed Basic Education", "school": "Faculty of Educational Foundations", "cutoff": "22"},
+                    {"name": "B.Ed Early Childhood Education", "school": "Faculty of Educational Foundations", "cutoff": "24"}
+                ],
+                "notes": "School of Educational Development and Outreach manages distance learning, sandwich, and outreach education in coordination with CoDE."
+            },
+            "Agriculture and Natural Sciences (CANS)": {
+                "cutoff_range": "14-24",
+                "requirements": "Credit passes in English, Core Maths, Integrated Science + 3 Science electives. Most require Elective Maths/Physics/Chemistry; Computer Science needs Maths + Physics + Chemistry/Electronics.",
+                "programs": [
+                    {"name": "BSc Actuarial Science", "school": "School of Physical Sciences", "cutoff": "14"},
+                    {"name": "BSc Forensic Science", "school": "School of Biological Sciences", "cutoff": "14"},
+                    {"name": "BSc Computer Science", "school": "School of Physical Sciences", "cutoff": "15"},
+                    {"name": "BSc Biochemistry", "school": "School of Biological Sciences", "cutoff": "16"},
+                    {"name": "BSc Molecular Biology & Biotechnology", "school": "School of Biological Sciences", "cutoff": "16"},
+                    {"name": "BSc Information Technology", "school": "School of Physical Sciences", "cutoff": "16"},
+                    {"name": "BSc Agribusiness", "school": "School of Agriculture", "cutoff": "18"},
+                    {"name": "BSc Fisheries & Aquatic Science", "school": "School of Biological Sciences", "cutoff": "18"},
+                    {"name": "BSc Environmental Science", "school": "School of Biological Sciences", "cutoff": "18"},
+                    {"name": "BSc Mathematics", "school": "School of Physical Sciences", "cutoff": "18"},
+                    {"name": "BSc Statistics", "school": "School of Physical Sciences", "cutoff": "18"},
+                    {"name": "BSc Mathematics & Statistics", "school": "School of Physical Sciences", "cutoff": "18"},
+                    {"name": "BSc Mathematics with Business", "school": "School of Physical Sciences", "cutoff": "18"},
+                    {"name": "BSc Mathematics with Economics", "school": "School of Physical Sciences", "cutoff": "18"},
+                    {"name": "BSc Engineering Physics", "school": "School of Physical Sciences", "cutoff": "18"},
+                    {"name": "BSc Industrial Chemistry", "school": "School of Physical Sciences", "cutoff": "18"},
+                    {"name": "BSc Laboratory Technology", "school": "School of Physical Sciences", "cutoff": "18"},
+                    {"name": "BSc Agriculture", "school": "School of Agriculture", "cutoff": "20"},
+                    {"name": "BSc Agro-Processing", "school": "School of Agriculture", "cutoff": "20"},
+                    {"name": "BSc Animal Health", "school": "School of Agriculture", "cutoff": "20"},
+                    {"name": "BSc Physics", "school": "School of Physical Sciences", "cutoff": "20"},
+                    {"name": "BSc Chemistry", "school": "School of Physical Sciences", "cutoff": "20"},
+                    {"name": "BSc Entomology & Wildlife", "school": "School of Biological Sciences", "cutoff": "20"},
+                    {"name": "BSc Agricultural Extension & Community Development", "school": "School of Agriculture", "cutoff": "22"},
+                    {"name": "BSc Meteorology & Atmospheric Physics", "school": "School of Physical Sciences", "cutoff": "22"},
+                    {"name": "BSc Water & Sanitation", "school": "School of Physical Sciences", "cutoff": "22"}
                 ]
             },
-            "Agriculture and Natural Sciences": {
-                "cutoff_range": "14-24",
+            "Distance Education (CoDE)": {
+                "cutoff_range": "Generally higher aggregate thresholds than regular admission (more accessible entry)",
+                "requirements": "Provides distance learning versions of programmes from other colleges, enabling working professionals and remote students to study part-time. Study centres across all regions of Ghana. Weekend/evening classes with online components. Awards the same UCC degree upon completion.",
                 "programs": [
-                    {"name": "BSc Actuarial Science", "cutoff": "14"},
-                    {"name": "BSc Forensic Science", "cutoff": "14"},
-                    {"name": "BSc Computer Science", "cutoff": "15"},
-                    {"name": "BSc Biochemistry", "cutoff": "16"},
-                    {"name": "BSc Molecular Biology & Biotechnology", "cutoff": "16"},
-                    {"name": "BSc Information Technology", "cutoff": "16"},
-                    {"name": "BSc Agribusiness", "cutoff": "18"},
-                    {"name": "BSc Fisheries & Aquatic Science", "cutoff": "18"},
-                    {"name": "BSc Environmental Science", "cutoff": "18"},
-                    {"name": "BSc Mathematics", "cutoff": "18"},
-                    {"name": "BSc Statistics", "cutoff": "18"},
-                    {"name": "BSc Engineering Physics", "cutoff": "18"},
-                    {"name": "BSc Industrial Chemistry", "cutoff": "18"},
-                    {"name": "BSc Laboratory Technology", "cutoff": "18"},
-                    {"name": "BSc Agriculture", "cutoff": "20"},
-                    {"name": "BSc Agro-Processing", "cutoff": "20"},
-                    {"name": "BSc Animal Health", "cutoff": "20"},
-                    {"name": "BSc Physics", "cutoff": "20"},
-                    {"name": "BSc Chemistry", "cutoff": "20"},
-                    {"name": "BSc Agricultural Extension & Community Development", "cutoff": "22"},
-                    {"name": "BSc Entomology & Wildlife", "cutoff": "20"},
-                    {"name": "BSc Meteorology & Atmospheric Physics", "cutoff": "22"},
-                    {"name": "BSc Water & Sanitation", "cutoff": "22"}
+                    {"name": "B.Ed Basic Education (Distance)", "notes": "Popular distance learning programme"},
+                    {"name": "B.Ed Arts (Distance)"},
+                    {"name": "B.Ed Science (Distance)"},
+                    {"name": "B.Ed Social Studies (Distance)"},
+                    {"name": "B.Ed Accounting (Distance)"},
+                    {"name": "B.Ed Management (Distance)"},
+                    {"name": "BBA/B.Com Accounting (Distance)"},
+                    {"name": "BBA/B.Com Human Resource Management (Distance)"},
+                    {"name": "BBA/B.Com Marketing (Distance)"},
+                    {"name": "BBA/B.Com Finance (Distance)"},
+                    {"name": "BA Social Sciences (Distance)"},
+                    {"name": "BA Communication Studies (Distance)"},
+                    {"name": "BSc Computer Science (Distance)"},
+                    {"name": "BSc Information Technology (Distance)"},
+                    {"name": "BSc Mathematics (Distance)"}
                 ]
             }
         },
         "fees": {
             "ghanaian_students": {
-                "Humanities/Arts/Education": "~GH¢ 1,300-2,400",
-                "Social Sciences/Business/Economics": "~GH¢ 1,500-2,500",
-                "Sciences/Agriculture": "~GH¢ 1,600-3,000",
-                "Health Sciences (Nursing/Allied Health)": "~GH¢ 2,500-3,500+",
-                "Health Sciences (Medicine/Pharmacy)": "~GH¢ 3,000-4,000+",
+                "Humanities/Arts/Education (Non-Resident)": "~GH¢ 1,300-2,400",
+                "Social Sciences/Business/Economics (Non-Resident)": "~GH¢ 1,500-2,500",
+                "Sciences/Agriculture (Non-Resident)": "~GH¢ 1,600-3,000",
+                "Health Sciences - Nursing/Allied Health (Non-Resident)": "~GH¢ 2,500-3,500+",
+                "Health Sciences - Medicine/Pharmacy (Non-Resident)": "~GH¢ 3,000-4,000+",
                 "Distance Education": "Varies by programme"
             },
-            "payment_policy": "1st Semester: 50% before registration; 2nd Semester: 100% before registration",
-            "international_students": "Contact International Programmes Office - fees in USD"
+            "payment_policy": "Minimum Payment (1st Semester): typically at least 50% of fees before registration. Full Payment (2nd Semester): 100% before registration. Fee amount confirmed via the admission letter (freshmen) or Student Portal (continuing students). Residential students pay additional accommodation fees on top of tuition.",
+            "official_fee_portal": "https://portal.ucc.edu.gh",
+            "international_students": "Fees are higher and typically quoted in USD equivalents; they vary significantly by programme and college. Contact the International Programmes Office for exact amounts."
         },
         "scholarships": {
             "teacher_training": "Government scholarships for teacher trainees",
@@ -1274,6 +1398,7 @@ def build_university_context(uni_name: str, uni_data: Dict[str, Any]) -> str:
             college_cutoff = college_data.get("cutoff_range", "")
             prog_list = college_data.get("programs", [])
             college_reqs = college_data.get("requirements", "")
+            college_notes = college_data.get("notes", "")
             
             # Build program list for this college
             prog_lines = []
@@ -1282,31 +1407,49 @@ def build_university_context(uni_name: str, uni_data: Dict[str, Any]) -> str:
                     prog_name = prog.get("name", "")
                     cutoff = prog.get("cutoff", "")
                     duration = prog.get("duration", "")
+                    school = prog.get("school", "")
                     reqs = prog.get("requirements", "")
+                    electives = prog.get("electives", "")
+                    campuses = prog.get("campuses", "")
+                    backgrounds = prog.get("backgrounds", "")
+                    notes = prog.get("notes", "")
                     first_choice = prog.get("first_choice", "")
                     entrance_exam = prog.get("entrance_exam", "")
-                    
+
                     parts = [f"  - **{prog_name}**"]
+                    if school:
+                        parts.append(f"School/Dept: {school}")
                     if cutoff:
                         parts.append(f"Cut-off: {cutoff}")
                     if duration:
                         parts.append(f"Duration: {duration}")
+                    if electives:
+                        parts.append(f"Electives: {electives}")
                     if reqs:
                         parts.append(f"Requirements: {reqs}")
+                    if backgrounds:
+                        parts.append(f"Accepted backgrounds: {backgrounds}")
+                    if campuses:
+                        parts.append(f"Campus: {campuses}")
+                    if notes:
+                        parts.append(f"Note: {notes}")
                     if first_choice == "Yes":
                         parts.append("⚠️ FIRST CHOICE ONLY")
-                    if entrance_exam == "Yes":
-                        parts.append("📝 Entrance Exam Required")
+                    if entrance_exam and entrance_exam not in ("No",):
+                        exam_note = "📝 Entrance Exam Required" if entrance_exam == "Yes" else f"📝 Entrance Exam: {entrance_exam}"
+                        parts.append(exam_note)
                     prog_lines.append(" | ".join(parts))
                 else:
                     prog_lines.append(f"  - {prog}")
             
             if prog_lines:
                 req_line = f"**Requirements:** {college_reqs}" if college_reqs else ""
+                notes_line = f"**Note:** {college_notes}" if college_notes else ""
                 college_sections.append(f"""
 ### {college_name}
 **Cut-off Range:** {college_cutoff if college_cutoff else 'Varies by programme'}
 {req_line}
+{notes_line}
 
 **Programmes:**
 {chr(10).join(prog_lines)}
@@ -1374,6 +1517,8 @@ def build_university_context(uni_name: str, uni_data: Dict[str, Any]) -> str:
     if contact.get("whatsapp"):
         contact_lines.append(f"  - WhatsApp: {contact['whatsapp']}")
     
+    overview = uni_data.get("overview", "")
+
     context = f"""
 # {uni_name}
 
@@ -1381,6 +1526,7 @@ def build_university_context(uni_name: str, uni_data: Dict[str, Any]) -> str:
 **Established:** {uni_data.get('established', 'N/A')}
 **Type:** {uni_data.get('type', 'Public')}
 **Website:** {uni_data.get('website', 'N/A')}
+{f'**Overview:** {overview}' if overview else ''}
 
 ## Admission Requirements
 - **General:** {admission.get('general', 'WASSCE with minimum credits')[:600] if admission.get('general') else 'WASSCE with minimum credits'}
@@ -1829,6 +1975,7 @@ async def generate_response_with_groq(
 5. **BE CONVERSATIONAL**: Answer like you're having a friendly conversation. Don't just dump raw data — explain it.
 6. **BE HONEST**: If a student's aggregate doesn't meet the cut-off, say so kindly and suggest alternatives.
 7. **BE CONCISE**: Answer what was asked. Don't share all information if not requested.
+8. **PLAIN MARKDOWN ONLY - NO HTML**: Never output raw HTML tags such as <br>, <br/>, <table>, <tr>, <td>, <div>, <p>, <b>, <li>, etc. This chat renders Markdown, not HTML. For a line break, just start a new line. For emphasis use **bold** or *italic*. For lists use "-" or "1." For tables, use Markdown pipe tables ( | Column | Column | ) or plain bullet points instead of any HTML table tags.
 
 **CONVERSATIONAL STYLE:**
 - Use "you" and "I" naturally
@@ -2214,7 +2361,7 @@ async def respond_to_query(request: ChatRequest):
         if local_matches.get("confidence", 0.0) > 0.95:
             print("⚡ Fast Path: Skipping web search due to exact university match")
             combined_context = "\n\n".join(context_segments)
-            combined_context = combined_context[:8000]
+            combined_context = combined_context[:24000]  # generous cap so a data-rich university (multiple colleges) isn't cut off before reaching the LLM
             final_confidence = local_matches.get("confidence", 0.8)
             if groq_client and (final_confidence > 0.3 or combined_context):
                 response_text = await generate_response_with_groq(
@@ -2244,7 +2391,7 @@ async def respond_to_query(request: ChatRequest):
                 context_segments.append(f"Web Result: {snippet}")
 
             combined_context = "\n\n".join(context_segments)
-            combined_context = combined_context[:8000]
+            combined_context = combined_context[:24000]  # generous cap so a data-rich university (multiple colleges) isn't cut off before reaching the LLM
             final_confidence = max(
                 local_matches.get("confidence", 0.0), web_matches.get("confidence", 0.0)
             )
@@ -2283,7 +2430,7 @@ async def respond_to_query(request: ChatRequest):
 
         return ChatResponse(
             success=True,
-            reply=response_text,
+            reply=sanitize_markdown_urls(response_text),
             sources=source_documents,
             confidence=final_confidence,
             timestamp=datetime.now().isoformat(),
@@ -2301,7 +2448,7 @@ async def respond_to_query(request: ChatRequest):
 
             return ChatResponse(
                 success=True,
-                reply=fallback_response,
+                reply=sanitize_markdown_urls(fallback_response),
                 sources=[
                     {
                         "source": "Local Knowledge Base",
@@ -2552,7 +2699,7 @@ I have received your document and will analyze it in the context of Ghanaian uni
             context_parts.append(f"Web Result: {result.get('snippet', '')}")
 
         combined_context = "\n\n".join(context_parts)
-        combined_context = combined_context[:8000]
+        combined_context = combined_context[:24000]  # generous cap so a data-rich university (multiple colleges) isn't cut off before reaching the LLM
         final_confidence = max(local_results["confidence"], web_results["confidence"])
         if file_info:
             final_confidence = max(final_confidence, 0.8)
