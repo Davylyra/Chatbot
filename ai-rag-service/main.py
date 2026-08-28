@@ -19,9 +19,46 @@ from pydantic import BaseModel
 load_dotenv()
 
 
+_HTML_TAG_PATTERN = re.compile(r"</?[a-zA-Z][a-zA-Z0-9]*(?:\s+[^<>]*?)?/?>")
+
+
+def strip_stray_html_tags(text: str) -> str:
+    """Remove stray HTML tags (e.g. <br>, <br/>, <table>, <li>, <b>) that can
+    otherwise leak into an AI reply. The chat UI renders Markdown, not HTML, so
+    any raw tag that slips through would show up as literal text like "<br>"
+    in the response. This converts the common ones to their Markdown/plain-text
+    equivalent and strips anything else that still looks like a tag."""
+    if not text:
+        return text
+
+    # Line-break tags (including HTML-escaped forms) become real newlines
+    text = re.sub(r"(?i)(&lt;|<)\s*br\s*/?\s*(&gt;|>)", "\n", text)
+
+    # List-item tags become Markdown bullets
+    text = re.sub(r"(?i)<li[^>]*>\s*", "- ", text)
+
+    # Bold/italic tags become Markdown emphasis
+    text = re.sub(r"(?i)</?(b|strong)>", "**", text)
+    text = re.sub(r"(?i)</?(i|em)>", "*", text)
+
+    # Paragraph/div/table/etc. block tags: drop the tag, keep the inner text,
+    # and add a line break so content doesn't run together
+    text = re.sub(r"(?i)</(p|div|tr|table)>", "\n", text)
+
+    # Anything else that still looks like a tag (e.g. <span>, <td>, <h2>) is stripped
+    text = _HTML_TAG_PATTERN.sub("", text)
+
+    # Collapse blank lines left behind by removed block tags
+    text = re.sub(r"\n{3,}", "\n\n", text)
+
+    return text.strip()
+
+
 def sanitize_markdown_urls(text: str) -> str:
     if not text:
         return text
+
+    text = strip_stray_html_tags(text)
 
     text = re.sub(r"\[+", "[", text)
 
@@ -234,10 +271,14 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
             "general": "WASSCE: Credit passes (A1-C6) in 6 subjects (3 Core + 3 Electives). Aggregate 24 or better for regular admission. Fee-Paying up to 30-36. D7, E8, F9 NOT accepted.",
             "wassce": "Credit passes A1-C6 in English, Core Maths, Integrated Science/Social Studies + 3 relevant electives",
             "sssce": "Credit passes A-D in English, Core Maths, Integrated Science/Social Studies + 3 relevant electives",
+            "aggregate_calculation": "Science disciplines: English + Core Maths + Integrated Science + 3 Science Electives (Social Studies excluded). Non-Science disciplines: English + Core Maths + Social Studies + 3 Electives (Integrated Science excluded).",
             "gce": "5 'O' Level credits + 3 'A' Level passes in relevant subjects",
             "ib": "Grade 4+ in 3 HL subjects",
             "mature": "25+ years old, 2-3 years work experience, entrance exam/interview",
-            "application_deadline": "August 31, 2026",
+            "how_to_apply": "Purchase an E-Voucher by dialling *415*55# (Mobile Money) or online via Visa/Mastercard, register at the admissions portal with a valid email, validate the voucher, then upload your birth certificate, Ghana Card/Passport, and academic results before the deadline.",
+            "international_applicants": "Select the 'International' application mode - no e-voucher needed via mobile; purchase online instead and provide certified transcripts.",
+            "campuses": "Main Campus (Kumasi) and Obuasi Campus (selected programmes)",
+            "application_deadline": "August 31, 2026 (may extend for candidates awaiting results)",
             "online_portal": "https://apps.knust.edu.gh/admissions/",
             "application_fee": "GH¢ 220 (via *415*55#)",
             "entrance_exam": "Required for Medicine, Dentistry, and some competitive programmes"
@@ -276,18 +317,18 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
                 "cutoff_range": "6-22",
                 "requirements": "Biology, Chemistry + Physics/Elective Maths",
                 "programs": [
-                    {"name": "MBChB (Medicine & Surgery)", "duration": "6 years", "cutoff": "6-10", "entrance_exam": "Yes", "first_choice": "Yes"},
-                    {"name": "BDS (Dental Surgery)", "duration": "6 years", "cutoff": "8-12", "entrance_exam": "Yes", "first_choice": "Yes"},
+                    {"name": "MBChB (Medicine & Surgery)", "duration": "6 years", "cutoff": "6-10", "entrance_exam": "Yes", "first_choice": "Yes", "requirements": "Entrance exam plus interview required. Grade Point of 3.25+ noted for competitive entry."},
+                    {"name": "BDS (Dental Surgery)", "duration": "6 years", "cutoff": "8-12", "entrance_exam": "Yes", "first_choice": "Yes", "requirements": "Entrance exam plus interview required."},
                     {"name": "PharmD (Doctor of Pharmacy)", "duration": "6 years", "cutoff": "8-14", "first_choice": "Yes"},
-                    {"name": "BSc Nursing", "duration": "4 years", "cutoff": "14-20"},
-                    {"name": "BSc Midwifery", "duration": "4 years", "cutoff": "14-20"},
+                    {"name": "BSc Nursing", "duration": "4 years", "cutoff": "14-20", "requirements": "Science and Non-Science backgrounds accepted"},
+                    {"name": "BSc Midwifery", "duration": "4 years", "cutoff": "14-20", "requirements": "Science and Non-Science backgrounds accepted"},
                     {"name": "BSc Medical Laboratory Technology", "duration": "4 years", "cutoff": "12-16"},
                     {"name": "BSc Physiotherapy & Sports Science", "duration": "4 years", "cutoff": "12-16"},
                     {"name": "BSc Optometry", "duration": "4 years", "cutoff": "10-14"},
                     {"name": "BSc Sonography", "duration": "4 years", "cutoff": "14-18"},
                     {"name": "BSc Disability & Rehabilitation Studies", "duration": "4 years", "cutoff": "16-22"},
                     {"name": "BSc Herbal Medicine", "duration": "4 years", "cutoff": "14-20"},
-                    {"name": "BSc Emergency Nursing (Top-Up)", "duration": "2 years"}
+                    {"name": "BSc Emergency Nursing (Top-Up)", "duration": "2 years", "requirements": "Diploma + NMC registration + national clinical rotation required"}
                 ]
             },
             "Humanities and Social Sciences": {
@@ -302,8 +343,9 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
                     {"name": "BSc Business Administration - Logistics & Supply Chain", "cutoff": "14-20", "backgrounds": "Business, Arts, Science"},
                     {"name": "BSc Business Administration - Business IT", "cutoff": "14-20", "backgrounds": "Business, Arts, Science"},
                     {"name": "BSc Hospitality & Tourism Management", "cutoff": "16-22"},
-                    {"name": "LLB (4-year Full-Time)", "duration": "4 years", "cutoff": "6-8", "first_choice": "Yes"},
+                    {"name": "LLB (4-year Full-Time)", "duration": "4 years", "cutoff": "6-8", "first_choice": "Yes", "requirements": "Preferred electives: Government, History, Literature in English, Economics. Accepts Arts, Business, Visual Arts, and Science backgrounds."},
                     {"name": "LLB Post-First-Degree (3-year)", "duration": "3 years", "requirements": "Degree + entrance exam"},
+                    {"name": "LLB Post-First-Degree (4-year Part-Time)", "duration": "4 years", "requirements": "Degree + entrance exam"},
                     {"name": "BA Political Studies", "cutoff": "12-18"},
                     {"name": "BA Economics", "cutoff": "14-20"},
                     {"name": "BA English", "cutoff": "14-20"},
@@ -338,7 +380,7 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
                 "programs": [
                     {"name": "BSc Agriculture", "cutoff": "18-24", "options": "Crop Science, Soil Science, Agric Economics, Agric Extension"},
                     {"name": "BSc Agricultural Biotechnology", "cutoff": "16-22"},
-                    {"name": "BSc Agribusiness Management", "cutoff": "18-24"},
+                    {"name": "BSc Agribusiness Management", "cutoff": "18-24", "requirements": "Multiple entry paths - Science: Chemistry, Physics/Maths + Biology/General Agriculture; Business: Economics, Accounting, Business Management, Elective Maths; Arts: Economics, Geography + Elective Maths. Business/Arts applicants need B3+ in Integrated Science."},
                     {"name": "BSc Post Harvest Technology", "cutoff": "18-24"},
                     {"name": "BSc Natural Resources Management", "cutoff": "18-24"},
                     {"name": "BSc Forest Resources Technology", "cutoff": "18-24"},
@@ -382,8 +424,8 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
                 "Freshmen Fee-Paying/Health Sciences": "~GH¢ 6,000-8,000",
                 "Freshmen Residential": "~GH¢ 2,168"
             },
-            "international_students": "Contact Students' Financial Services - fees in USD",
-            "payment_policy": "1st Semester: 50% before registration; 2nd Semester: 100% before registration"
+            "international_students": "Fees are significantly higher and benchmarked in USD; vary by college and programme. Pay into the KNUST Main Fees Collection Account. Contact Students' Financial Services for exact amounts.",
+            "payment_policy": "1st Semester: at least 50% before course registration; 2nd Semester: 100% before registration. Approved banks: GCB Bank, Ecobank, UBA, and other approved partners. Residential and academic fees are paid separately with different pay-in-slips."
         },
         "scholarships": {
             "knust_excellence": "Merit-based full scholarships for outstanding students",
@@ -405,14 +447,18 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
             "general": "WASSCE: Credit passes (A1-C6) in 6 subjects (4 Core + 3 Electives). Aggregate 24 or better for regular admission. Distance Education: Aggregate 30.",
             "wassce": "Credit passes A1-C6 in English, Core Maths, Integrated Science, Social Studies + 3 relevant electives",
             "sssce": "Credit passes A-D in English, Core Maths, Integrated Science, Social Studies + 3 relevant electives",
+            "aggregate_calculation": "Science-related disciplines: English + Core Maths + Integrated Science + 3 Science Electives (Social Studies excluded). Non-Science disciplines: English + Core Maths + Social Studies + 3 Electives (Integrated Science excluded). A lower aggregate is a better/more competitive score.",
             "gce": "3 'A' Level passes + 5 'O' Level credits including English and Maths",
             "ib": "Grade 4+ in 3 HL subjects",
             "mature": "25+ years old, entrance exam, relevant work experience",
+            "how_to_apply": "Purchase an E-Voucher from an approved bank - Consolidated Bank Ghana (*924*200*25#), Fidelity Bank (*776*108#), or Prudential Bank (*772*100#), costing about GH¢250. Access the Admissions Portal, complete the application with personal details, academic records, and programme choices, then upload transcripts, certificates, and result slips before the deadline (application window typically runs March-June).",
+            "international_applicants": "Do NOT purchase an e-voucher. Apply through the International Programmes Office and pay a non-refundable application fee of US$55.",
+            "fee_schedule_status": "The official 2026/2027 fee schedule had not been published as of August 2026; figures here are based on the 2024/2025 and 2025/2026 schedules. Academic Facility User Fees (AFUF) have been maintained at the same rates since 2023/2024.",
             "application_deadline": "August 31, 2026 (Pending WASSCE release)",
             "online_portal": "https://admissions.ug.edu.gh",
             "application_fee": "GH¢ 250 (via *924*200*25#)",
             "entrance_exam": "Required for Medicine, Law, and other competitive programmes",
-            "first_choice_policy": "Many competitive programmes (Medicine, Law, Business, Computer Science, Engineering) are strictly 'First Choice Only'"
+            "first_choice_policy": "Many competitive programmes (Medicine, Law, Business, Computer Science, Engineering) are strictly 'First Choice Only'. If selecting LLB as first choice, select a BA bouquet as your second choice."
         },
         "contact": {
             "phone": "+233-30-213-8501",
@@ -450,23 +496,26 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
             },
             "Basic and Applied Sciences": {
                 "cutoff_range": "6-24",
+                "requirements": "Credit passes in English, Core Maths, Integrated Science + 3 Science electives (Social Studies excluded from aggregate). Houses 6 schools across engineering, physical/mathematical sciences, biological sciences, agriculture, computer science, earth science, and veterinary medicine. Note: the School of Nuclear and Allied Sciences (SNAS) is graduate-only (MPhil/PhD, run with the Ghana Atomic Energy Commission and IAEA) and does not offer undergraduate programmes.",
                 "programs": [
                     {"name": "BSc Biomedical Engineering", "cutoff": "6-7", "first_choice": "Yes", "requirements": "Elective Maths (B3+)"},
                     {"name": "BSc Computer Engineering", "cutoff": "7", "first_choice": "Yes", "requirements": "Elective Maths (B3+)"},
                     {"name": "BSc Computer Science", "cutoff": "7-9", "first_choice": "Yes", "requirements": "Elective Maths (B3+)"},
                     {"name": "BSc Information Technology", "cutoff": "12", "first_choice": "Yes", "requirements": "Core Maths (C4+)"},
-                    {"name": "BSc Actuarial Science", "cutoff": "11", "requirements": "Elective Maths (B3+)"},
+                    {"name": "BSc Actuarial Science", "cutoff": "12", "requirements": "Elective Maths (high grade required)"},
                     {"name": "BSc Agricultural Engineering", "cutoff": "15", "requirements": "Elective Maths (B3+)"},
                     {"name": "BSc Food Process Engineering", "cutoff": "14", "requirements": "Elective Maths (B3+)"},
                     {"name": "BSc Materials Science & Engineering", "cutoff": "14", "requirements": "Elective Maths (B3+)"},
                     {"name": "Doctor of Veterinary Medicine", "duration": "6 years", "cutoff": "14", "first_choice": "Yes"},
                     {"name": "BSc Agriculture", "cutoff": "24"},
                     {"name": "BSc Earth Science", "cutoff": "24"},
-                    {"name": "BSc Mathematics", "cutoff": "24"},
+                    {"name": "BSc Mathematics", "cutoff": "24", "requirements": "Elective Maths required"},
+                    {"name": "BSc Mathematical Sciences", "cutoff": "24", "requirements": "Combined departments; Elective Maths required"},
                     {"name": "BSc Statistics", "cutoff": "24"},
-                    {"name": "BSc Physics", "cutoff": "24"},
+                    {"name": "BSc Physics", "cutoff": "24", "requirements": "Physics, Elective Maths required"},
+                    {"name": "BSc Geophysics", "cutoff": "24", "requirements": "Physics, Elective Maths required"},
                     {"name": "BSc Chemistry", "cutoff": "24"},
-                    {"name": "BSc Biochemistry", "cutoff": "24"},
+                    {"name": "BSc Biochemistry, Cell & Molecular Biology", "cutoff": "24"},
                     {"name": "BSc Nutrition & Food Science", "cutoff": "24"},
                     {"name": "BSc Animal Biology & Conservation Science", "cutoff": "24"},
                     {"name": "BSc Plant & Environmental Biology", "cutoff": "24"},
@@ -477,10 +526,12 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
                 "cutoff_range": "8-16",
                 "first_choice_only": "Yes",
                 "programs": [
-                    {"name": "MB ChB (Medicine & Surgery)", "duration": "6 years", "cutoff": "8", "first_choice": "Yes", "entrance_exam": "Yes"},
+                    {"name": "MB ChB (Medicine & Surgery)", "duration": "6 years", "cutoff": "8", "first_choice": "Yes", "entrance_exam": "Yes", "requirements": "Computer-based entrance exam may be required. Electives: Biology, Chemistry, Physics or Elective Maths."},
+                    {"name": "Graduate Entry Medical Programme (GEMP)", "duration": "4 years", "cutoff": "N/A (degree required)", "requirements": "Good first degree (min. 2nd Class Lower) in a relevant science field, good grades in 3 core + 3 science electives including Chemistry, national service completion, entrance exam and interview"},
                     {"name": "BDS (Dental Surgery)", "duration": "6 years", "cutoff": "10", "first_choice": "Yes", "entrance_exam": "Yes"},
+                    {"name": "Graduate Entry Dental Programme (GEDP)", "duration": "4 years", "cutoff": "N/A (degree required)"},
                     {"name": "Pharm.D (Doctor of Pharmacy)", "duration": "6 years", "cutoff": "10", "first_choice": "Yes"},
-                    {"name": "BSc Nursing", "duration": "4 years", "cutoff": "15", "first_choice": "Yes"},
+                    {"name": "BSc Nursing", "duration": "4 years", "cutoff": "15", "first_choice": "Yes", "requirements": "Non-Science applicants may be considered from General Arts, Home Economics, or Business backgrounds if core requirements are met"},
                     {"name": "BSc Midwifery", "duration": "4 years", "cutoff": "15", "first_choice": "Yes"},
                     {"name": "BSc Medical Laboratory Science", "duration": "4 years", "cutoff": "12", "first_choice": "Yes"},
                     {"name": "BSc Diagnostic Radiography", "duration": "4 years", "cutoff": "13", "first_choice": "Yes"},
@@ -488,11 +539,15 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
                     {"name": "BSc Dietetics", "duration": "4 years", "cutoff": "14", "first_choice": "Yes"},
                     {"name": "BSc Occupational Therapy", "duration": "4 years", "cutoff": "14-15", "first_choice": "Yes"},
                     {"name": "BSc Respiratory Therapy", "duration": "4 years", "cutoff": "14", "first_choice": "Yes"},
-                    {"name": "BPH (Bachelor of Public Health)", "duration": "4 years", "cutoff": "16", "first_choice": "Yes"}
+                    {"name": "BSc Physiotherapy (Top-Up)", "requirements": "For diploma holders"},
+                    {"name": "BSc Occupational Therapy (Top-Up)", "requirements": "For diploma holders"},
+                    {"name": "BSc Radiography (Top-Up)", "requirements": "For diploma holders"},
+                    {"name": "BPH (Bachelor of Public Health)", "duration": "4 years", "cutoff": "16", "first_choice": "Yes", "requirements": "Diploma holders (Level 200 entry) need a Diploma in health/related sciences with FGPA 3.2+, plus entrance exam and interview"}
                 ]
             },
             "Education": {
                 "cutoff_range": "24-30",
+                "requirements": "Credit passes in 4 core subjects + 3 relevant elective subjects. Aggregate 24 or better (regular), 30 or better (distance). The School of Continuing and Distance Education offers distance-learning versions of programmes from other colleges for working professionals, with learning centres across Ghana and weekend/evening classes.",
                 "programs": [
                     {"name": "B.Ed Education", "cutoff": "24"},
                     {"name": "B.Ed Early Grade Specialism", "cutoff": "24"},
@@ -529,10 +584,11 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
                 "SRC Development Levy": "GH¢ 150",
                 "75th Anniversary Legacy Project Levy": "GH¢ 100",
                 "Telecel Broadband Levy": "GH¢ 122 (optional)",
+                "GRASAG Development Levy": "GH¢ 250 (graduate students only)",
                 "Reprographic Fees": "GH¢ 5"
             },
-            "payment_policy": "1st Semester: 50% before registration; 2nd Semester: 100% before registration",
-            "international_students": "Contact International Programmes Office - fees in USD"
+            "payment_policy": "1st Semester: at least 50% before registration; 2nd Semester: 100% before registration; Residential Fees: 100% before hostel registration",
+            "international_students": "Fees are significantly higher and quoted in USD. Payment via approved banks (Ecobank Ghana, Access Bank) or the online portal https://sts.ug.edu.gh/ugpay. Application processing fee: US$55 (non-refundable). Contact the International Programmes Office (IPO) for exact amounts."
         },
         "scholarships": {
             "ug_excellence": "Up to 100% tuition coverage for outstanding students",
@@ -561,6 +617,9 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
             "american_high_school": "Grade 12 certificate with equivalent grades",
             "diploma_hnd": "Assessed individually for Level 100/200/300 placement",
             "mature": "25+ years by June 30, SHS certificate or equivalent, 5+ years work experience, entrance exam",
+            "how_to_apply": "Purchase an E-Voucher from GCB Bank, ADB, Fidelity Bank, Ecobank, or Ghana Post, complete the application with personal details, academic records, and programme choices, upload result slips/certificates/identification, then check your status using the voucher serial number and PIN.",
+            "study_modes": "Regular (Full-time on-campus); Distance Learning via the College of Distance Education (CoDE); Sandwich/Part-time programmes",
+            "status_check_portal": "https://admissions.ucc.edu.gh",
             "application_deadline": "August 31, 2026",
             "online_portal": "https://apply.ucc.edu.gh",
             "application_fee": "Contact university for current fee"
@@ -582,6 +641,7 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
                     {"name": "Doctor of Optometry", "duration": "6 years", "cutoff": "12"},
                     {"name": "BSc Medical Laboratory Science", "duration": "4 years", "cutoff": "12"},
                     {"name": "BSc Mental Health Nursing", "duration": "4 years", "cutoff": "14"},
+                    {"name": "BSc Community Mental Health Nursing", "duration": "4 years", "cutoff": "14"},
                     {"name": "BSc Clinical Nutrition & Dietetics", "duration": "4 years", "cutoff": "14"},
                     {"name": "BSc Biomedical Sciences", "duration": "4 years", "cutoff": "14"},
                     {"name": "BSc Diagnostic Imaging Technology", "duration": "4 years", "cutoff": "14"},
@@ -603,7 +663,9 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
                     {"name": "BBA Management", "cutoff": "16"},
                     {"name": "B.Com Finance", "cutoff": "15"},
                     {"name": "B.Com Marketing", "cutoff": "16"},
+                    {"name": "B.Com Management", "cutoff": "16"},
                     {"name": "B.Com Procurement & Supply Chain Management", "cutoff": "16"},
+                    {"name": "B.Com Commerce", "cutoff": "16"},
                     {"name": "BSc Hospitality Management", "cutoff": "16"},
                     {"name": "BSc Tourism Management", "cutoff": "16"},
                     {"name": "BA Communication Studies", "cutoff": "17"},
@@ -621,6 +683,8 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
                     {"name": "BA Dance", "cutoff": "22"},
                     {"name": "Bachelor of Music (B.Mus)", "cutoff": "22"},
                     {"name": "BA Ghanaian Language & Linguistics", "cutoff": "22"},
+                    {"name": "BA Classics & Philosophy", "cutoff": "22"},
+                    {"name": "BA Religious Studies", "cutoff": "22"},
                     {"name": "BA Chinese", "cutoff": "25"}
                 ]
             },
@@ -657,6 +721,9 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
                     {"name": "BSc Environmental Science", "cutoff": "18"},
                     {"name": "BSc Mathematics", "cutoff": "18"},
                     {"name": "BSc Statistics", "cutoff": "18"},
+                    {"name": "BSc Mathematics & Statistics", "cutoff": "18"},
+                    {"name": "BSc Mathematics with Business", "cutoff": "18"},
+                    {"name": "BSc Mathematics with Economics", "cutoff": "18"},
                     {"name": "BSc Engineering Physics", "cutoff": "18"},
                     {"name": "BSc Industrial Chemistry", "cutoff": "18"},
                     {"name": "BSc Laboratory Technology", "cutoff": "18"},
@@ -670,6 +737,27 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
                     {"name": "BSc Meteorology & Atmospheric Physics", "cutoff": "22"},
                     {"name": "BSc Water & Sanitation", "cutoff": "22"}
                 ]
+            },
+            "Distance Education (CoDE)": {
+                "cutoff_range": "Generally higher aggregate thresholds than regular admission (more accessible entry)",
+                "requirements": "Provides distance learning versions of programmes from other colleges for working professionals and remote students. Study centres across all regions of Ghana, weekend/evening classes with online components. Awards the same UCC degree upon completion.",
+                "programs": [
+                    {"name": "B.Ed Basic Education (Distance)"},
+                    {"name": "B.Ed Arts (Distance)"},
+                    {"name": "B.Ed Science (Distance)"},
+                    {"name": "B.Ed Social Studies (Distance)"},
+                    {"name": "B.Ed Accounting (Distance)"},
+                    {"name": "B.Ed Management (Distance)"},
+                    {"name": "BBA/B.Com Accounting (Distance)"},
+                    {"name": "BBA/B.Com Human Resource Management (Distance)"},
+                    {"name": "BBA/B.Com Marketing (Distance)"},
+                    {"name": "BBA/B.Com Finance (Distance)"},
+                    {"name": "BA Social Sciences (Distance)"},
+                    {"name": "BA Communication Studies (Distance)"},
+                    {"name": "BSc Computer Science (Distance)"},
+                    {"name": "BSc Information Technology (Distance)"},
+                    {"name": "BSc Mathematics (Distance)"}
+                ]
             }
         },
         "fees": {
@@ -681,8 +769,8 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
                 "Health Sciences (Medicine/Pharmacy)": "~GH¢ 3,000-4,000+",
                 "Distance Education": "Varies by programme"
             },
-            "payment_policy": "1st Semester: 50% before registration; 2nd Semester: 100% before registration",
-            "international_students": "Contact International Programmes Office - fees in USD"
+            "payment_policy": "1st Semester: at least 50% before registration; 2nd Semester: 100% before registration. Fee amount confirmed via the admission letter (freshmen) or Student Portal (continuing students). Residential students pay additional accommodation fees on top of tuition.",
+            "international_students": "Fees are higher and typically quoted in USD equivalents; contact the International Programmes Office for exact amounts."
         },
         "scholarships": {
             "teacher_training": "Government scholarships for teacher trainees",
@@ -1829,6 +1917,7 @@ async def generate_response_with_groq(
 5. **BE CONVERSATIONAL**: Answer like you're having a friendly conversation. Don't just dump raw data — explain it.
 6. **BE HONEST**: If a student's aggregate doesn't meet the cut-off, say so kindly and suggest alternatives.
 7. **BE CONCISE**: Answer what was asked. Don't share all information if not requested.
+8. **PLAIN MARKDOWN ONLY - NO HTML**: Never output raw HTML tags such as <br>, <table>, <div>, <b>, <li>, etc. This chat renders Markdown, not HTML — for a line break just start a new line, for emphasis use **bold** or *italic*, for lists use "-" or "1.".
 
 **CONVERSATIONAL STYLE:**
 - Use "you" and "I" naturally
@@ -2214,7 +2303,7 @@ async def respond_to_query(request: ChatRequest):
         if local_matches.get("confidence", 0.0) > 0.95:
             print("⚡ Fast Path: Skipping web search due to exact university match")
             combined_context = "\n\n".join(context_segments)
-            combined_context = combined_context[:8000]
+            combined_context = combined_context[:24000]  # raised from 8000 so fuller multi-college data isn't cut off before reaching the LLM
             final_confidence = local_matches.get("confidence", 0.8)
             if groq_client and (final_confidence > 0.3 or combined_context):
                 response_text = await generate_response_with_groq(
@@ -2244,7 +2333,7 @@ async def respond_to_query(request: ChatRequest):
                 context_segments.append(f"Web Result: {snippet}")
 
             combined_context = "\n\n".join(context_segments)
-            combined_context = combined_context[:8000]
+            combined_context = combined_context[:24000]  # raised from 8000 so fuller multi-college data isn't cut off before reaching the LLM
             final_confidence = max(
                 local_matches.get("confidence", 0.0), web_matches.get("confidence", 0.0)
             )
@@ -2283,7 +2372,7 @@ async def respond_to_query(request: ChatRequest):
 
         return ChatResponse(
             success=True,
-            reply=response_text,
+            reply=sanitize_markdown_urls(response_text),
             sources=source_documents,
             confidence=final_confidence,
             timestamp=datetime.now().isoformat(),
@@ -2301,7 +2390,7 @@ async def respond_to_query(request: ChatRequest):
 
             return ChatResponse(
                 success=True,
-                reply=fallback_response,
+                reply=sanitize_markdown_urls(fallback_response),
                 sources=[
                     {
                         "source": "Local Knowledge Base",
@@ -2552,7 +2641,7 @@ I have received your document and will analyze it in the context of Ghanaian uni
             context_parts.append(f"Web Result: {result.get('snippet', '')}")
 
         combined_context = "\n\n".join(context_parts)
-        combined_context = combined_context[:8000]
+        combined_context = combined_context[:24000]  # raised from 8000 so fuller multi-college data isn't cut off before reaching the LLM
         final_confidence = max(local_results["confidence"], web_results["confidence"])
         if file_info:
             final_confidence = max(final_confidence, 0.8)
