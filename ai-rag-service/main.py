@@ -1612,6 +1612,7 @@ class EnhancedUniversityKnowledgeBase:
         query_words = set(self._extract_keywords(query_lower))
         
         scored = {}
+        name_matched_universities = set()
         
         # Strategy 1: Exact university name match
         for variation, uni_name in self.name_variations.items():
@@ -1619,6 +1620,7 @@ class EnhancedUniversityKnowledgeBase:
                 if uni_name not in scored:
                     scored[uni_name] = 0
                 scored[uni_name] += 5.0
+                name_matched_universities.add(uni_name)
         
         # Strategy 2: Program name match
         for prog_name, universities in self.program_index.items():
@@ -1648,8 +1650,16 @@ class EnhancedUniversityKnowledgeBase:
                                 scored[uni_name] = 0
                             scored[uni_name] += 3.0
         
-        # Sort by score
-        sorted_results = sorted(scored.items(), key=lambda x: x[1], reverse=True)
+        # Sort by score - but a university the person explicitly named (Strategy 1)
+        # always outranks one that only scored from generic keyword/program-name
+        # volume. Without this, a university with many matching program names
+        # (e.g. KNUST's 18 "Engineering" programs) can numerically bury the one
+        # university actually named in the question.
+        sorted_results = sorted(
+            scored.items(),
+            key=lambda x: (x[0] in name_matched_universities, x[1]),
+            reverse=True
+        )
         
         results = []
         for uni_name, score in sorted_results[:top_n]:
@@ -2300,10 +2310,10 @@ async def respond_to_query(request: ChatRequest):
                 )
             )
 
-        if local_matches.get("confidence", 0.0) > 0.95:
+        if local_matches.get("confidence", 0.0) >= 0.95:
             print("⚡ Fast Path: Skipping web search due to exact university match")
             combined_context = "\n\n".join(context_segments)
-            combined_context = combined_context[:24000]  # raised from 8000 so fuller multi-college data isn't cut off before reaching the LLM
+            combined_context = combined_context[:12000]  # sized to stay under the Groq account's 8000 TPM rate limit even with multiple matched universities, while still far fuller than the original 8000-char cap
             final_confidence = local_matches.get("confidence", 0.8)
             if groq_client and (final_confidence > 0.3 or combined_context):
                 response_text = await generate_response_with_groq(
@@ -2333,7 +2343,7 @@ async def respond_to_query(request: ChatRequest):
                 context_segments.append(f"Web Result: {snippet}")
 
             combined_context = "\n\n".join(context_segments)
-            combined_context = combined_context[:24000]  # raised from 8000 so fuller multi-college data isn't cut off before reaching the LLM
+            combined_context = combined_context[:12000]  # sized to stay under the Groq account's 8000 TPM rate limit even with multiple matched universities, while still far fuller than the original 8000-char cap
             final_confidence = max(
                 local_matches.get("confidence", 0.0), web_matches.get("confidence", 0.0)
             )
@@ -2641,7 +2651,7 @@ I have received your document and will analyze it in the context of Ghanaian uni
             context_parts.append(f"Web Result: {result.get('snippet', '')}")
 
         combined_context = "\n\n".join(context_parts)
-        combined_context = combined_context[:24000]  # raised from 8000 so fuller multi-college data isn't cut off before reaching the LLM
+        combined_context = combined_context[:12000]  # sized to stay under the Groq account's 8000 TPM rate limit even with multiple matched universities, while still far fuller than the original 8000-char cap
         final_confidence = max(local_results["confidence"], web_results["confidence"])
         if file_info:
             final_confidence = max(final_confidence, 0.8)
