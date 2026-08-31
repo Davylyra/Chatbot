@@ -268,147 +268,187 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
         "website": "www.knust.edu.gh",
         "type": "Public",
         "admission_requirements": {
-            "general": "WASSCE: Credit passes (A1-C6) in 6 subjects (3 Core + 3 Electives). Aggregate 24 or better for regular admission. Fee-Paying up to 30-36. D7, E8, F9 NOT accepted.",
-            "wassce": "Credit passes A1-C6 in English, Core Maths, Integrated Science/Social Studies + 3 relevant electives",
-            "sssce": "Credit passes A-D in English, Core Maths, Integrated Science/Social Studies + 3 relevant electives",
-            "aggregate_calculation": "Science disciplines: English + Core Maths + Integrated Science + 3 Science Electives (Social Studies excluded). Non-Science disciplines: English + Core Maths + Social Studies + 3 Electives (Integrated Science excluded).",
-            "gce": "5 'O' Level credits + 3 'A' Level passes in relevant subjects",
-            "ib": "Grade 4+ in 3 HL subjects",
-            "mature": "25+ years old, 2-3 years work experience, entrance exam/interview",
-            "how_to_apply": "Purchase an E-Voucher by dialling *415*55# (Mobile Money) or online via Visa/Mastercard, register at the admissions portal with a valid email, validate the voucher, then upload your birth certificate, Ghana Card/Passport, and academic results before the deadline.",
-            "international_applicants": "Select the 'International' application mode - no e-voucher needed via mobile; purchase online instead and provide certified transcripts.",
-            "campuses": "Main Campus (Kumasi) and Obuasi Campus (selected programmes)",
-            "application_deadline": "August 31, 2026 (may extend for candidates awaiting results)",
+            "general": "Most first-degree programmes are 4 years. WASSCE/SSSCE: Credit passes (A1-C6 WASSCE / A-D SSSCE) in the 3 core subjects - English Language, Mathematics, Integrated Science (prerequisite for ALL programmes) - plus credit passes in 3 elective subjects relevant to the chosen programme, with an aggregate of 24 or better.",
+            "gce_igcse": "GCE/IGCSE (Cambridge) 'A' & 'O' Levels: 5 'O' Level credits including English Language and Mathematics, plus passes in at least 3 subjects at 'A' Level (or 3 credits for mature applicants), plus the appropriate Faculty/Departmental subject requirements.",
+            "gbce_abce": "Both GBCE and ABCE are needed together to qualify. GBCE: passes in 3 compulsory subjects (incl. English Language) plus 3 elective subjects (incl. Business Mathematics). ABCE: passes in 3 compulsory subjects plus 3 optional subjects relevant to the programme.",
+            "ib": "Minimum grade 4 at Higher Level (HL) in 3 subjects relevant to the programme, with a minimum of grade 5 in Chemistry for Health and Allied Sciences, and at least grade 5 HL in Mathematics for Engineering. Also requires a minimum of grade 4 in English Language and Mathematics at Standard Level (SL), and at least grade C in a Science subject at IGCSE.",
+            "american_high_school": "Final Grade Point Average of at least 3.0 (at least 3.25 for the School of Medicine and Dentistry). Admission is to Year 1.",
+            "mature": "25+ years old at time of application; requirements vary by programme (typically a relevant Diploma/HND with 2-3 years post-qualification experience, or the standard WASSCE/GCE requirements). Short-listed applicants may need to take an entrance examination and pass an interview.",
+            "how_to_apply": "Purchase an E-Voucher one of three ways: (1) Register at https://apps.knust.edu.gh/admissions/ and pay via Visa, Mastercard, or Mobile Money; (2) Dial *415*55# on a mobile device and pay via Mobile Money, then register and validate the voucher on the portal; (3) Purchase from a Ghana Post Company regional office, then register and validate on the portal. Then complete the application, uploading examination results, birth certificate, Ghana Card/Passport, and a passport photograph (light green background). Applicants from non-English-speaking countries need a minimum one-year English Proficiency Certificate.",
+            "international_applicants": "International applicants pay a non-refundable application processing fee of US$100.00, in addition to completing the same application process.",
+            "foreign_qualifications": "Foreign results/certificates not listed among the standard qualification types may require an evaluation from the Ghana Tertiary Education Commission (GTEC) and/or another International Credential Evaluation Agency. Documents not in English must be accompanied by accredited English translations.",
+            "campuses": "Main Campus (Kumasi) and Obuasi Campus (selected Engineering, Health Sciences, and Business programmes - cutoffs differ by campus for the same programme)",
+            "fee_paying_note": "Opting for Fee-Paying/Parallel admission is a decision for the entire duration of the programme once selected.",
+            "application_deadline": "Check the admissions portal - deadlines change annually",
             "online_portal": "https://apps.knust.edu.gh/admissions/",
-            "application_fee": "GH¢ 220 (via *415*55#)",
-            "entrance_exam": "Required for Medicine, Dentistry, and some competitive programmes"
+            "application_fee": "E-Voucher cost varies by purchase method (Visa/Mastercard/Mobile Money/Ghana Post); international applicants additionally pay US$100",
+            "entrance_exam": "Required (plus interview) for Medicine (MBChB) and Dentistry (BDS); required for various mature/HND-entry categories across other programmes"
         },
         "contact": {
             "phone": "+233-32-206-0331",
             "email": "admissions@knust.edu.gh",
-            "address": "Private Mail Bag, Kumasi, Ghana"
+            "address": "Private Mail Bag, Kumasi, Ghana",
+            "international_programmes_email": "ipo@knust.edu.gh"
         },
         "colleges": {
-            "Engineering": {
-                "cutoff_range": "10-20",
-                "requirements": "Elective Mathematics, Physics, and Chemistry required",
-                "programs": [
-                    {"name": "BSc Civil Engineering", "cutoff": "10-14", "campuses": "Main/Obuasi"},
-                    {"name": "BSc Geological Engineering", "cutoff": "10-16", "campuses": "Main/Obuasi"},
-                    {"name": "BSc Geomatic Engineering", "cutoff": "12-18", "campuses": "Main/Obuasi"},
-                    {"name": "BSc Petroleum Engineering", "cutoff": "10-16", "campuses": "Main"},
-                    {"name": "BSc Electrical/Electronic Engineering", "cutoff": "10-14", "campuses": "Main/Obuasi"},
-                    {"name": "BSc Computer Engineering", "cutoff": "10-14", "campuses": "Main"},
-                    {"name": "BSc Biomedical Engineering", "cutoff": "10-14", "campuses": "Main"},
-                    {"name": "BSc Telecommunications Engineering", "cutoff": "12-16", "campuses": "Main"},
-                    {"name": "BSc Mechanical Engineering", "cutoff": "10-16", "campuses": "Main/Obuasi"},
-                    {"name": "BSc Aerospace Engineering", "cutoff": "10-16", "campuses": "Main"},
-                    {"name": "BSc Chemical Engineering", "cutoff": "10-16", "campuses": "Main"},
-                    {"name": "BSc Petrochemical Engineering", "cutoff": "12-18", "campuses": "Main"},
-                    {"name": "BSc Automobile Engineering", "cutoff": "12-18", "campuses": "Main"},
-                    {"name": "BSc Industrial Engineering", "cutoff": "12-18", "campuses": "Main"},
-                    {"name": "BSc Marine Engineering", "cutoff": "14-20", "campuses": "Main"},
-                    {"name": "BSc Agricultural Engineering", "cutoff": "14-20", "campuses": "Main"},
-                    {"name": "BSc Materials Engineering", "cutoff": "14-20", "campuses": "Main/Obuasi"},
-                    {"name": "BSc Metallurgical Engineering", "cutoff": "14-20", "campuses": "Main/Obuasi"}
-                ]
-            },
-            "Health Sciences": {
-                "cutoff_range": "6-22",
-                "requirements": "Biology, Chemistry + Physics/Elective Maths",
-                "programs": [
-                    {"name": "MBChB (Medicine & Surgery)", "duration": "6 years", "cutoff": "6-10", "entrance_exam": "Yes", "first_choice": "Yes", "requirements": "Entrance exam plus interview required. Grade Point of 3.25+ noted for competitive entry."},
-                    {"name": "BDS (Dental Surgery)", "duration": "6 years", "cutoff": "8-12", "entrance_exam": "Yes", "first_choice": "Yes", "requirements": "Entrance exam plus interview required."},
-                    {"name": "PharmD (Doctor of Pharmacy)", "duration": "6 years", "cutoff": "8-14", "first_choice": "Yes"},
-                    {"name": "BSc Nursing", "duration": "4 years", "cutoff": "14-20", "requirements": "Science and Non-Science backgrounds accepted"},
-                    {"name": "BSc Midwifery", "duration": "4 years", "cutoff": "14-20", "requirements": "Science and Non-Science backgrounds accepted"},
-                    {"name": "BSc Medical Laboratory Technology", "duration": "4 years", "cutoff": "12-16"},
-                    {"name": "BSc Physiotherapy & Sports Science", "duration": "4 years", "cutoff": "12-16"},
-                    {"name": "BSc Optometry", "duration": "4 years", "cutoff": "10-14"},
-                    {"name": "BSc Sonography", "duration": "4 years", "cutoff": "14-18"},
-                    {"name": "BSc Disability & Rehabilitation Studies", "duration": "4 years", "cutoff": "16-22"},
-                    {"name": "BSc Herbal Medicine", "duration": "4 years", "cutoff": "14-20"},
-                    {"name": "BSc Emergency Nursing (Top-Up)", "duration": "2 years", "requirements": "Diploma + NMC registration + national clinical rotation required"}
-                ]
-            },
-            "Humanities and Social Sciences": {
-                "cutoff_range": "6-24",
-                "programs": [
-                    {"name": "BSc Business Administration - Accounting", "cutoff": "14-20", "backgrounds": "Business, Arts, Science"},
-                    {"name": "BSc Business Administration - Banking & Finance", "cutoff": "14-20", "backgrounds": "Business, Arts, Science"},
-                    {"name": "BSc Business Administration - Marketing", "cutoff": "14-20", "backgrounds": "Business, Arts, Science, Vocational"},
-                    {"name": "BSc Business Administration - International Business", "cutoff": "14-20", "backgrounds": "Business, Arts, Science, Vocational"},
-                    {"name": "BSc Business Administration - Human Resource Management", "cutoff": "14-20", "backgrounds": "Business, Arts, Science, Vocational"},
-                    {"name": "BSc Business Administration - Management", "cutoff": "14-20", "backgrounds": "Business, Arts, Science, Vocational"},
-                    {"name": "BSc Business Administration - Logistics & Supply Chain", "cutoff": "14-20", "backgrounds": "Business, Arts, Science"},
-                    {"name": "BSc Business Administration - Business IT", "cutoff": "14-20", "backgrounds": "Business, Arts, Science"},
-                    {"name": "BSc Hospitality & Tourism Management", "cutoff": "16-22"},
-                    {"name": "LLB (4-year Full-Time)", "duration": "4 years", "cutoff": "6-8", "first_choice": "Yes", "requirements": "Preferred electives: Government, History, Literature in English, Economics. Accepts Arts, Business, Visual Arts, and Science backgrounds."},
-                    {"name": "LLB Post-First-Degree (3-year)", "duration": "3 years", "requirements": "Degree + entrance exam"},
-                    {"name": "LLB Post-First-Degree (4-year Part-Time)", "duration": "4 years", "requirements": "Degree + entrance exam"},
-                    {"name": "BA Political Studies", "cutoff": "12-18"},
-                    {"name": "BA Economics", "cutoff": "14-20"},
-                    {"name": "BA English", "cutoff": "14-20"},
-                    {"name": "BA Communication Studies", "cutoff": "14-20"},
-                    {"name": "BA Sociology / Social Work", "cutoff": "16-22"},
-                    {"name": "BA French", "cutoff": "16-24"},
-                    {"name": "BA History", "cutoff": "16-24"},
-                    {"name": "BA Geography & Rural Development", "cutoff": "16-24"},
-                    {"name": "BA Religious Studies", "cutoff": "18-24"},
-                    {"name": "BA Culture & Tourism", "cutoff": "18-24"}
-                ]
-            },
-            "Science": {
-                "cutoff_range": "10-24",
-                "programs": [
-                    {"name": "BSc Computer Science", "cutoff": "12-18", "requirements": "Maths, Physics + Chemistry/Applied Electricity/Electronics"},
-                    {"name": "BSc Actuarial Science", "cutoff": "10-16", "requirements": "Maths, Physics, Chemistry"},
-                    {"name": "BSc Mathematics", "cutoff": "16-22", "requirements": "Maths, Physics, Chemistry"},
-                    {"name": "BSc Statistics", "cutoff": "16-22", "requirements": "Maths, Physics, Chemistry"},
-                    {"name": "BSc Physics", "cutoff": "16-24", "requirements": "Maths, Physics, Chemistry"},
-                    {"name": "BSc Chemistry", "cutoff": "16-24", "requirements": "Maths, Physics, Chemistry"},
-                    {"name": "BSc Meteorology & Climate Science", "cutoff": "18-24", "requirements": "Maths, Physics, Chemistry"},
-                    {"name": "BSc Biochemistry", "cutoff": "12-18", "requirements": "Biology, Chemistry + Physics/Maths"},
-                    {"name": "BSc Biotechnology", "cutoff": "14-20", "requirements": "Biology, Chemistry + Physics/Maths"},
-                    {"name": "BSc Food Science & Technology", "cutoff": "14-20", "requirements": "Biology, Chemistry + Physics/Maths"},
-                    {"name": "BSc Environmental Science", "cutoff": "16-22", "requirements": "Biology/Agric, Chemistry + Physics/Maths"},
-                    {"name": "BSc Biological Science", "cutoff": "16-22", "requirements": "Biology, Chemistry + Physics/Maths"}
-                ]
-            },
             "Agriculture and Natural Resources": {
-                "cutoff_range": "16-24",
+                "cutoff_range": "15-24",
+                "requirements": "Core: credit passes in English Language, Mathematics, Integrated Science. Electives vary by programme (see individual programmes). Mature applicants need a relevant Diploma/HND plus 2 years post-qualification experience, or standard WASSCE/GCE electives, and may sit an entrance exam/interview.",
                 "programs": [
-                    {"name": "BSc Agriculture", "cutoff": "18-24", "options": "Crop Science, Soil Science, Agric Economics, Agric Extension"},
-                    {"name": "BSc Agricultural Biotechnology", "cutoff": "16-22"},
-                    {"name": "BSc Agribusiness Management", "cutoff": "18-24", "requirements": "Multiple entry paths - Science: Chemistry, Physics/Maths + Biology/General Agriculture; Business: Economics, Accounting, Business Management, Elective Maths; Arts: Economics, Geography + Elective Maths. Business/Arts applicants need B3+ in Integrated Science."},
-                    {"name": "BSc Post Harvest Technology", "cutoff": "18-24"},
-                    {"name": "BSc Natural Resources Management", "cutoff": "18-24"},
-                    {"name": "BSc Forest Resources Technology", "cutoff": "18-24"},
-                    {"name": "BSc Landscape Design & Management", "cutoff": "18-24"},
-                    {"name": "BSc Aquaculture & Water Resources Management", "cutoff": "18-24"}
+                    {"name": "BSc Agriculture", "school": "Faculty of Agriculture", "cutoff": "20", "requirements": "Chemistry + any 2 of Physics/Mathematics, Biology, General Agriculture, Animal Husbandry, Crop Husbandry, or Horticulture"},
+                    {"name": "BSc Agricultural Biotechnology", "school": "Faculty of Agriculture", "cutoff": "17", "requirements": "Chemistry + any 2 of Physics/Mathematics, Biology, General Agriculture, Animal Husbandry, Crop Husbandry, or Horticulture"},
+                    {"name": "BSc Agribusiness Management", "school": "Faculty of Agriculture", "cutoff": "15", "requirements": "3 electives from one path - Science: Chemistry, Physics/Maths, Biology/General Agriculture; Business: Economics, Accounting, Business Management, Business Maths, Costing, Elective Maths (min B3 Integrated Science); General Arts: Economics, Geography, Elective Maths (min B3 Integrated Science); General Agriculture: Chemistry, Physics/Maths, Biology/General Agriculture/Crop Husbandry/Horticulture"},
+                    {"name": "BSc Landscape Design and Management", "school": "Faculty of Agriculture", "cutoff": "17", "requirements": "3 electives from Science (Chemistry, Physics/Maths/Crop Husbandry, Biology/General Agriculture), General Arts (Maths, Geography, Economics, Technical Drawing, General Knowledge in Art), or Visual Art (General Knowledge in Art, Graphic Design, Chemistry, Picture Making, Painting and Sculpture)"},
+                    {"name": "BSc Natural Resource Management", "school": "Faculty of Natural Resource Management", "cutoff": "18", "requirements": "Chemistry, Physics/Mathematics, Biology/General Agriculture"},
+                    {"name": "BSc Forest Resources Technology", "school": "Faculty of Natural Resource Management", "cutoff": "24", "requirements": "Chemistry, Physics/Mathematics, Biology/General Agriculture"},
+                    {"name": "BSc Aquaculture and Water Resource Management", "school": "Faculty of Natural Resource Management", "cutoff": "20", "requirements": "Chemistry, Physics/Mathematics, Biology/General Agriculture"},
+                    {"name": "BSc Packaging Technology", "school": "Faculty of Natural Resource Management", "cutoff": "15", "requirements": "3 electives from Science, General Arts, Visual Art, Technical, or Home Economics"}
                 ]
             },
             "Art and Built Environment": {
-                "cutoff_range": "9-24",
+                "cutoff_range": "7-24",
+                "requirements": "Core: credit passes in English Language, Mathematics, Integrated Science. Most Art/Design programmes require a written/practical entrance exam and interview for mature and Diploma/HND-holder applicants.",
                 "programs": [
-                    {"name": "BSc Architecture", "cutoff": "9-14", "requirements": "Elective Maths + 2 from Tech/Science/Visual Arts"},
-                    {"name": "BSc Construction Tech & Management", "cutoff": "12-18"},
-                    {"name": "BSc Quantity Surveying", "cutoff": "12-18"},
-                    {"name": "BSc Development Planning", "cutoff": "14-20", "requirements": "Geography, Economics, Maths, History, Government"},
-                    {"name": "BSc Land Economy (Real Estate)", "cutoff": "14-20"},
-                    {"name": "BA Communication Design", "cutoff": "12-18"},
-                    {"name": "BSc Fashion Design", "cutoff": "14-22"},
-                    {"name": "BSc Industrial Art", "cutoff": "14-22"},
-                    {"name": "BFA Painting & Sculpture", "cutoff": "16-24"},
-                    {"name": "BA Publishing Studies", "cutoff": "16-24"},
-                    {"name": "BA Integrated Rural Art & Industry", "cutoff": "18-24"},
-                    {"name": "B.Ed JHS Education", "cutoff": "18-24", "specializations": "Maths, Science, ICT, Agric, History, Visual Arts, Geography"}
+                    {"name": "BSc Architecture", "school": "Faculty of Built Environment", "cutoff": "7", "requirements": "Elective Maths + 2 from Technical (Tech Drawing/Eng Science, Woodwork/Metalwork, Building Construction), General Science (Chemistry, Physics, Biology), Visual Art (Gen Knowledge in Art, Graphic Design, Picture Making), or General Arts (Economics, Geography)"},
+                    {"name": "BSc Construction Technology and Management", "school": "Faculty of Built Environment", "cutoff": "9", "requirements": "Elective Maths + 2 from Technical (Tech Drawing/Eng Science, Woodwork, Building Construction, Metalwork), Science (Chemistry, Physics), or General Arts (Economics, Geography)"},
+                    {"name": "BSc Quantity Surveying and Construction Economics", "school": "Faculty of Built Environment", "cutoff": "9", "requirements": "Elective Maths + 2 from General Science (Chemistry, Physics), General Arts (Economics, Geography), or Technical (Tech Drawing/Eng Science, Building Construction, Woodwork, Metalwork)"},
+                    {"name": "BSc Development Planning", "school": "Faculty of Built Environment", "cutoff": "9", "requirements": "3 electives from Group A (Geography, Economics, Government/History, Elective Maths, Gen Knowledge in Art) or Group B (Intro to Business Management, Accounting, Business Maths and Costing), or a mix"},
+                    {"name": "BSc Human Settlement Planning", "school": "Faculty of Built Environment", "cutoff": "10", "requirements": "3 electives including Geography from Group A (Economics, Business Mgmt, Geography, Government, Elective Maths, Financial/Cost Accounting, Graphic Design) plus optionally 1 from Group B (Accounting, Tech Drawing, Graphic Design, Picture Making, Sculpture, Physics, Painting, History, Building Tech, Woodwork, Metalwork, Gen Knowledge in Art)"},
+                    {"name": "BSc Land Economy", "school": "Faculty of Built Environment", "cutoff": "8", "requirements": "Economics, Geography + 1 relevant subject (Accounting, Business Management, Government, Business Maths, French, Literature in English, History, Building Construction, Technical Drawing, or Mathematics)"},
+                    {"name": "BSc Real Estate", "school": "Faculty of Built Environment", "cutoff": "9", "requirements": "Economics, Geography + 1 relevant subject (Accounting, Business Management, Government, Business Maths, French, Literature in English, History, Building Construction, Technical Drawing, or Mathematics)"},
+                    {"name": "BFA Fine Art and Curatorial Practice", "school": "Faculty of Art", "cutoff": "16", "requirements": "3 electives from one group (each requiring General Knowledge in Art plus 2 others) - Visual Art, Home Economics, Technical, Science, General Arts, or Business"},
+                    {"name": "BA Communication Design", "school": "Faculty of Art", "cutoff": "11", "requirements": "Graphic Design, General Knowledge in Art, ICT, plus another Visual Arts elective (excluding Leatherwork, Basketry, Bead making)"},
+                    {"name": "BA Integrated Rural Art and Industry", "school": "Faculty of Art", "cutoff": "15", "requirements": "3 electives from a wide list (Picture Making, Leatherwork, Graphic Design, Textiles, Jewellery, Sculpture, Ceramics, Gen Knowledge in Art, and others) or 3 relevant technical subjects"},
+                    {"name": "BA Publishing Studies", "school": "Faculty of Art", "cutoff": "12", "requirements": "3 electives from Visual Arts, General Arts, Business, Vocational/Home Economics, or Science groupings"},
+                    {"name": "BA Metal Product Design Technology", "school": "Faculty of Art", "requirements": "3 electives from Visual Art, Home Economics, Technical, or Science"},
+                    {"name": "BSc Textile Design and Technology", "school": "Faculty of Art", "cutoff": "13", "requirements": "3 electives from Visual Arts, Home Economics, Technical, Science, General Arts, or Business"},
+                    {"name": "BSc Fashion Design", "school": "Faculty of Art", "cutoff": "11", "requirements": "3 electives from Visual Arts, Home Economics, Technical, Science, General Arts, or Business"},
+                    {"name": "BFA Ceramics", "school": "Faculty of Art", "cutoff": "24", "requirements": "3 electives from Visual Art, Home Economics, or General Arts"},
+                    {"name": "BSc Ceramics Technology", "school": "Faculty of Art", "cutoff": "23", "requirements": "3 electives from Visual Art (Ceramics, Gen Knowledge in Art, Chemistry/Maths/Physics), Science (Maths, Chemistry, Physics/Biology), or Technical (Tech Drawing, Building Construction, Applied Electricity, Auto Mechanics, Electronics, Physics)"},
+                    {"name": "B.Ed Junior High School Education", "school": "Faculty of Educational Studies", "cutoff": "15", "options": "Mathematics, Science, ICT, Agricultural Science, Visual Art, History, Geography", "requirements": "3 electives matching the chosen option (Science/General Agriculture/ICT for a-d; Visual Art for e; General Arts incl. History or Geography for f/g)"},
+                    {"name": "B.Ed Chemistry", "school": "Faculty of Educational Studies", "cutoff": "20", "requirements": "Chemistry, Mathematics, and Physics/Biology/ICT"},
+                    {"name": "B.Ed Biology", "school": "Faculty of Educational Studies", "cutoff": "18", "requirements": "Biology, Chemistry, and ICT/Physics/Mathematics"},
+                    {"name": "B.Ed Mathematics", "school": "Faculty of Educational Studies", "cutoff": "21", "requirements": "Mathematics, Physics, and Chemistry/ICT/Biology"},
+                    {"name": "B.Ed Physics", "school": "Faculty of Educational Studies", "cutoff": "24", "requirements": "Physics, Mathematics, and Chemistry/ICT/Electronics"},
+                    {"name": "B.Ed STEM (Aviation and Aerospace)", "school": "Faculty of Educational Studies", "cutoff": "21", "requirements": "Physics, Mathematics, and one relevant technical/science subject"},
+                    {"name": "B.Ed STEM (Manufacturing)", "school": "Faculty of Educational Studies", "cutoff": "24", "requirements": "Physics, Mathematics, and one relevant technical subject"},
+                    {"name": "B.Ed STEM (Robotics)", "school": "Faculty of Educational Studies", "requirements": "Mathematics, Physics, and Chemistry/ICT/Electronics"},
+                    {"name": "B.Ed STEM (Biomedical Science)", "school": "Faculty of Educational Studies", "requirements": "Biology, Chemistry, and Physics/Mathematics"},
+                    {"name": "B.Ed Art and Design Technology", "school": "Faculty of Educational Studies", "requirements": "3 subjects from Visual Arts, Vocational, Science, Technical, or General Arts"},
+                    {"name": "B.Ed ICT", "school": "Faculty of Educational Studies", "requirements": "Mathematics + 2 from General Science, General Arts, Business, Visual Art, Technical, or Home Economics"}
+                ]
+            },
+            "Engineering": {
+                "cutoff_range": "6-13",
+                "requirements": "Core: English Language, Mathematics, Integrated Science. Electives: Physics, Elective Mathematics, and Chemistry - though many programmes accept a relevant technical/vocational subject (e.g. Applied Electricity, Auto Mechanics, Metalwork, Technical Drawing, ICT) in place of Chemistry; applicants without Chemistry must have at least B3 in Integrated Science. Obuasi Campus offers several of these programmes with separate, typically higher, cut-offs.",
+                "programs": [
+                    {"name": "BSc Civil Engineering", "cutoff": "7", "campuses": "Main"},
+                    {"name": "BSc Civil Engineering (Obuasi Campus)", "cutoff": "11", "campuses": "Obuasi"},
+                    {"name": "BSc Geological Engineering", "cutoff": "8", "campuses": "Main", "requirements": "Geography or Technical Drawing accepted in place of Chemistry"},
+                    {"name": "BSc Geological Engineering (Obuasi Campus)", "cutoff": "14", "campuses": "Obuasi"},
+                    {"name": "BSc Geomatic (Geodetic) Engineering", "cutoff": "9", "campuses": "Main", "requirements": "Geography or Technical Drawing accepted in place of Chemistry"},
+                    {"name": "BSc Geomatic (Geodetic) Engineering (Obuasi Campus)", "cutoff": "15", "campuses": "Obuasi"},
+                    {"name": "BSc Petroleum Engineering", "cutoff": "6", "campuses": "Main"},
+                    {"name": "BSc Biomedical Engineering", "cutoff": "6", "campuses": "Main", "requirements": "Biology accepted in place of Chemistry"},
+                    {"name": "BSc Computer Engineering", "cutoff": "6", "campuses": "Main", "requirements": "Applied Electricity/Electronics/ICT accepted in place of Chemistry"},
+                    {"name": "BSc Electrical/Electronic Engineering", "cutoff": "6", "campuses": "Main", "requirements": "Applied Electricity/Electronics/ICT/Robotics accepted in place of Chemistry"},
+                    {"name": "BSc Electrical/Electronic Engineering (Obuasi Campus)", "cutoff": "10", "campuses": "Obuasi"},
+                    {"name": "BSc Telecommunications Engineering", "cutoff": "9", "campuses": "Main", "requirements": "Applied Electricity/Electronics/ICT accepted in place of Chemistry"},
+                    {"name": "BSc Mechanical Engineering", "cutoff": "7", "campuses": "Main", "requirements": "Metalwork, Auto Mechanics, Applied Electricity, Tech Drawing, Building Construction, Woodwork, ICT, or Robotics accepted in place of Chemistry"},
+                    {"name": "BSc Mechanical Engineering (Obuasi Campus)", "cutoff": "12", "campuses": "Obuasi"},
+                    {"name": "BSc Aerospace Engineering", "cutoff": "7", "campuses": "Main"},
+                    {"name": "BSc Chemical Engineering", "cutoff": "7", "campuses": "Main"},
+                    {"name": "BSc Metallurgical Engineering", "cutoff": "11", "campuses": "Main"},
+                    {"name": "BSc Metallurgical Engineering (Obuasi Campus)", "cutoff": "16", "campuses": "Obuasi"},
+                    {"name": "BSc Materials Engineering", "cutoff": "10", "campuses": "Main"},
+                    {"name": "BSc Materials Engineering (Obuasi Campus)", "cutoff": "15", "campuses": "Obuasi"},
+                    {"name": "BSc Marine Engineering", "cutoff": "9", "campuses": "Main", "requirements": "Physics, Mathematics + Chemistry/Metalwork/Auto Mechanics/Applied Electricity/Tech Drawing/Building Construction/Woodwork"},
+                    {"name": "BSc Industrial Engineering", "cutoff": "10", "campuses": "Main"},
+                    {"name": "BSc Automobile Engineering", "cutoff": "10", "campuses": "Main"},
+                    {"name": "BSc Agricultural Engineering", "cutoff": "13", "campuses": "Main", "requirements": "Technical Drawing, Engineering Science, General Agriculture, Biology, Metalwork, Auto Mechanics, Applied Electricity, or Building Construction accepted in place of Chemistry"},
+                    {"name": "BSc Petrochemical Engineering", "cutoff": "7", "campuses": "Main"}
+                ]
+            },
+            "Health Sciences": {
+                "cutoff_range": "6-14",
+                "requirements": "Core: English Language, Mathematics, Integrated Science. Most clinical programmes: Biology, Chemistry, and Physics/Mathematics. Medicine and Dentistry require a mandatory entrance examination and interview.",
+                "programs": [
+                    {"name": "MBChB (Human Biology/Medicine)", "duration": "6 years (includes a 3-year clinical phase)", "cutoff": "6", "entrance_exam": "Yes", "requirements": "Biology, Chemistry, Physics/Mathematics"},
+                    {"name": "Bachelor of Dental Surgery (BDS)", "duration": "6 years (includes a 3-year clinical phase)", "cutoff": "6", "entrance_exam": "Yes", "requirements": "Fee-Paying only. Biology, Chemistry, Physics/Mathematics"},
+                    {"name": "Doctor of Veterinary Medicine (DVM)", "duration": "6 years", "cutoff": "10", "requirements": "Biology, Chemistry, Physics/Mathematics (Animal Husbandry accepted in place of Biology). Diploma holders (e.g. Pong-Tamale Veterinary School) with 3 years' relevant experience may enter directly into Year 2."},
+                    {"name": "BSc Medical Laboratory Science", "duration": "4 years", "cutoff": "7", "campuses": "Main"},
+                    {"name": "BSc Medical Laboratory Science (Obuasi Campus)", "duration": "4 years", "cutoff": "9", "campuses": "Obuasi"},
+                    {"name": "BSc Nursing", "duration": "4 years", "cutoff": "7", "campuses": "Main", "requirements": "Interview required prior to admission"},
+                    {"name": "BSc Nursing (Obuasi Campus)", "duration": "4 years", "cutoff": "12", "campuses": "Obuasi"},
+                    {"name": "BSc Nursing (Emergency Option for Practicing Nurses Only)", "requirements": "Must be a registered General Nurse with a Diploma in Nursing, 25+ years old, minimum 2 years clinical experience, and pass an interview"},
+                    {"name": "BSc Midwifery (Females only)", "duration": "4 years", "cutoff": "8", "campuses": "Main", "requirements": "Interview required prior to admission"},
+                    {"name": "BSc Midwifery (Obuasi Campus)", "duration": "4 years", "cutoff": "13", "campuses": "Obuasi"},
+                    {"name": "BSc Midwifery (Females practicing Midwives only, Sandwich)", "requirements": "Registered Midwife with a Diploma in Midwifery, 25+ years old, minimum 2 years clinical experience, pass an interview - taken during holidays"},
+                    {"name": "BSc Physiotherapy and Sports Science", "duration": "4 years", "cutoff": "12"},
+                    {"name": "Doctor of Pharmacy (Pharm D)", "duration": "6 years", "cutoff": "6"},
+                    {"name": "Doctor of Pharmacy (Pharm D), 2-year Top-Up", "requirements": "For practicing Pharmacists only, with a BPharm degree and Pharmacy Licensure Certificate"},
+                    {"name": "Bachelor of Herbal Medicine (BHM)", "cutoff": "14"},
+                    {"name": "BSc Medical Imaging", "cutoff": "7"},
+                    {"name": "BSc Disability and Rehabilitation Studies", "cutoff": "13", "requirements": "3 credits from General Science, General Arts, Business, Visual Art, or Home Economics"}
+                ]
+            },
+            "Humanities and Social Sciences": {
+                "cutoff_range": "6-22",
+                "requirements": "Core: English Language, Mathematics, Integrated Science. Electives vary by programme - most accept combinations from General Arts, Business, and General Science groupings.",
+                "programs": [
+                    {"name": "LLB (Bachelor of Laws)", "school": "Faculty of Law", "duration": "4 years", "cutoff": "6", "requirements": "3 electives from General Arts, Business, Visual Art, or General Science"},
+                    {"name": "LLB (Degree Holders Only, Fee-Paying)", "school": "Faculty of Law", "duration": "3 years (Parallel mode)", "requirements": "Degree/Higher Degree holders in any discipline; entrance exam and interview required. Mature applicants with a Diploma and 10+ years' experience may also apply."},
+                    {"name": "BA Economics", "school": "Faculty of Social Science", "cutoff": "10", "requirements": "Mathematics + 2 electives from General Arts, Business, General Science, Technical, Home Economics, or Visual Arts"},
+                    {"name": "BA English", "school": "Faculty of Social Science", "cutoff": "13", "requirements": "3 electives from Literature in English, French, History, Government, Economics, Geography, Akan, Religious Studies, or other General Arts subjects"},
+                    {"name": "BA Geography and Rural Development", "school": "Faculty of Social Science", "cutoff": "10", "requirements": "Geography + 2 from Economics, Government, French, Literature in English, Religious Studies, History, Elective Maths, Akan, or other General Arts electives"},
+                    {"name": "BA History", "school": "Faculty of Social Science", "cutoff": "15", "requirements": "3 electives from General Arts, Business, General Science, Home Economics, or Visual Art"},
+                    {"name": "BA Political Studies", "school": "Faculty of Social Science", "cutoff": "9", "requirements": "3 electives from General Arts, Business, General Science, Home Economics, or Visual Art"},
+                    {"name": "Bachelor of Public Administration", "school": "Faculty of Social Science", "cutoff": "11", "requirements": "3 electives from General Arts, Business, General Science, Home Economics, or Visual Art"},
+                    {"name": "BA Akan Language and Culture", "school": "Faculty of Social Science", "cutoff": "22", "requirements": "Akan (Asante Twi, Fante, or Akuapem Twi) + 2 from History, Geography, Literature in English, French, Economics, Religious Studies, Government, or Business Management"},
+                    {"name": "BA French and Francophone Studies", "school": "Faculty of Social Science", "cutoff": "14", "requirements": "French (A1-B3) + 2 from History, Religious Studies, Economics, Geography, Government, Literature in English, Business Management, or Ghanaian Language"},
+                    {"name": "BA Linguistics", "school": "Faculty of Social Science", "cutoff": "15", "requirements": "3 electives from Group A (English Literature, Ghanaian Language, Foreign Language) and/or Group B (History, Geography, Economics, Religious Studies, Government, Business Management)"},
+                    {"name": "BA Media and Communication Studies", "school": "Faculty of Social Science", "cutoff": "9", "requirements": "3 relevant elective subjects"},
+                    {"name": "BA Religion and Human Development (BA Religious Studies)", "school": "Faculty of Social Science", "cutoff": "20", "requirements": "3 General Arts electives including Christian Religious Studies or Islamic Religious Studies"},
+                    {"name": "BA Sociology", "school": "Faculty of Social Science", "cutoff": "11", "requirements": "3 electives from General Arts, General Science, and Business"},
+                    {"name": "BA Social Work", "school": "Faculty of Social Science", "cutoff": "11", "requirements": "3 electives from General Arts, General Science, and Business"},
+                    {"name": "BSc Business Administration (HRM/Management)", "school": "KNUST School of Business", "cutoff": "7", "campuses": "Main", "requirements": "3 electives from Business, General Arts, or General Science"},
+                    {"name": "BSc Business Administration (HRM/Management) (Obuasi Campus)", "school": "KNUST School of Business", "cutoff": "15", "campuses": "Obuasi"},
+                    {"name": "BSc Business Administration (Marketing/International Business)", "school": "KNUST School of Business", "cutoff": "9", "campuses": "Main", "requirements": "3 electives from Business, General Arts, or General Science"},
+                    {"name": "BSc Business Administration (Marketing/International Business) (Obuasi Campus)", "school": "KNUST School of Business", "cutoff": "16", "campuses": "Obuasi"},
+                    {"name": "BSc Business Administration (Accounting/Banking and Finance)", "school": "KNUST School of Business", "cutoff": "7", "campuses": "Main", "requirements": "3 electives from Business, General Arts, or General Science"},
+                    {"name": "BSc Business Administration (Accounting/Banking and Finance) (Obuasi Campus)", "school": "KNUST School of Business", "cutoff": "12", "campuses": "Obuasi"},
+                    {"name": "BSc Business Administration (Logistics and SCM/Business IT)", "school": "KNUST School of Business", "cutoff": "8", "campuses": "Main", "requirements": "3 electives from Business, General Arts, or General Science"},
+                    {"name": "BSc Business Administration (Logistics and SCM/Business IT) (Obuasi Campus)", "school": "KNUST School of Business", "cutoff": "15", "campuses": "Obuasi"},
+                    {"name": "BSc Hospitality and Tourism Management", "school": "KNUST School of Business", "cutoff": "10", "requirements": "3 electives from Business, General Arts, General Science, or Vocational/Home Economics"}
+                ]
+            },
+            "Science": {
+                "cutoff_range": "6-17",
+                "requirements": "Core: English Language, Mathematics, Integrated Science. Electives typically include Biology, Chemistry, and Physics/Mathematics (Biosciences) or Mathematics, Physics, and Chemistry (Physical/Computational Sciences).",
+                "programs": [
+                    {"name": "BSc Biochemistry", "school": "Faculty of Biosciences", "cutoff": "9", "requirements": "Biology, Chemistry, Physics/Elective Maths"},
+                    {"name": "BSc Food Science and Technology", "school": "Faculty of Biosciences", "cutoff": "11", "requirements": "Biology, Chemistry, Physics/Elective Maths"},
+                    {"name": "BSc Dietetics", "school": "Faculty of Biosciences", "cutoff": "9", "requirements": "Biology, Chemistry, Physics/Maths OR Food & Nutrition, Management in Living, and Chemistry/Biology"},
+                    {"name": "BSc Human Nutrition", "school": "Faculty of Biosciences", "cutoff": "10", "requirements": "Biology, Chemistry, Physics/Maths OR Food & Nutrition, Management in Living, and Chemistry/Biology"},
+                    {"name": "BSc Biological Science", "school": "Faculty of Biosciences", "cutoff": "9", "requirements": "Biology, Chemistry, Physics/Elective Maths"},
+                    {"name": "BSc Environmental Science", "school": "Faculty of Biosciences", "cutoff": "12", "campuses": "Main", "requirements": "Biology (or Agricultural Science), Chemistry, Physics/Elective Maths"},
+                    {"name": "BSc Environmental Science (Obuasi Campus)", "school": "Faculty of Biosciences", "cutoff": "19", "campuses": "Obuasi"},
+                    {"name": "Doctor of Optometry", "school": "Faculty of Biosciences", "cutoff": "6", "requirements": "Biology, Physics, and Chemistry/Mathematics; shortlisted applicants must pass an interview"},
+                    {"name": "BSc Chemistry", "school": "Faculty of Physical and Computational Sciences", "cutoff": "15", "requirements": "Chemistry, Physics, Mathematics or Biology"},
+                    {"name": "BSc Science Laboratory Technology", "school": "Faculty of Physical and Computational Sciences", "requirements": "Chemistry, Biology/Agricultural Science, and Physics/Mathematics"},
+                    {"name": "BSc Mathematics", "school": "Faculty of Physical and Computational Sciences", "cutoff": "15", "requirements": "Mathematics, Physics, Chemistry or Biology"},
+                    {"name": "BSc Physics", "school": "Faculty of Physical and Computational Sciences", "cutoff": "16"},
+                    {"name": "BSc Computer Science", "school": "Faculty of Physical and Computational Sciences", "cutoff": "7", "requirements": "Elective Mathematics, Physics, and Chemistry/Applied Electricity/Electronics"},
+                    {"name": "BSc Statistics", "school": "Faculty of Physical and Computational Sciences", "cutoff": "12", "requirements": "Elective Mathematics + 2 elective subjects"},
+                    {"name": "BSc Actuarial Science", "school": "Faculty of Physical and Computational Sciences", "cutoff": "10", "requirements": "Elective Mathematics + 2 elective subjects"},
+                    {"name": "BSc Meteorology and Climate Science", "school": "Faculty of Physical and Computational Sciences", "cutoff": "17", "requirements": "Mathematics, Physics, Chemistry/Electronics"},
+                    {"name": "BSc Information Technology", "school": "Faculty of Physical and Computational Sciences", "cutoff": "10", "requirements": "Mathematics + 2 electives from General Science, General Arts, Business, Visual Art, Technical, or Home Economics"}
                 ]
             }
         },
         "fees": {
             "ghanaian_students": {
-                "Humanities & Social Sciences": "~GH¢ 1,948",
+                "Humanities & Social Sciences (General)": "~GH¢ 1,948",
                 "Business/Law": "~GH¢ 2,501",
                 "Hospitality & Tourism": "~GH¢ 2,921",
                 "Science (General)": "~GH¢ 2,821",
@@ -419,13 +459,15 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
                 "Health Sciences (Medicine/Dentistry/Pharmacy)": "~GH¢ 4,141+",
                 "Health Sciences (Nursing/Allied Health)": "~GH¢ 3,200-3,800",
                 "Freshmen Fee-Paying/Humanities": "~GH¢ 4,543",
-                "Freshmen Fee-Paying/Business": "~GH¢ 5,740-6,160",
+                "Freshmen Fee-Paying/Business/Hospitality": "~GH¢ 5,740-6,160",
                 "Freshmen Fee-Paying/Science/Engineering": "~GH¢ 5,000-6,500",
                 "Freshmen Fee-Paying/Health Sciences": "~GH¢ 6,000-8,000",
-                "Freshmen Residential": "~GH¢ 2,168"
+                "Freshmen Residential (total)": "~GH¢ 2,168"
             },
+            "residential_note": "Residential and academic fees are paid separately with different pay-in-slips.",
+            "approved_banks": "GCB Bank, Ecobank, UBA, and other approved partners",
             "international_students": "Fees are significantly higher and benchmarked in USD; vary by college and programme. Pay into the KNUST Main Fees Collection Account. Contact Students' Financial Services for exact amounts.",
-            "payment_policy": "1st Semester: at least 50% before course registration; 2nd Semester: 100% before registration. Approved banks: GCB Bank, Ecobank, UBA, and other approved partners. Residential and academic fees are paid separately with different pay-in-slips."
+            "payment_policy": "1st Semester: at least 50% before course registration; 2nd Semester: 100% before registration"
         },
         "scholarships": {
             "knust_excellence": "Merit-based full scholarships for outstanding students",
@@ -1653,8 +1695,20 @@ class EnhancedUniversityKnowledgeBase:
         # Sort by score - but a university the person explicitly named (Strategy 1)
         # always outranks one that only scored from generic keyword/program-name
         # volume. Without this, a university with many matching program names
-        # (e.g. KNUST's 18 "Engineering" programs) can numerically bury the one
+        # (e.g. KNUST's many "Engineering" programs) can numerically bury the one
         # university actually named in the question.
+        #
+        # More importantly: when the query DOES explicitly name a university (or
+        # several), scope the results down to just those - don't let 3-4 other
+        # universities that only scored via generic keyword overlap ride along.
+        # Every result here gets its FULL context concatenated and sent to the
+        # LLM in one prompt, so including unrelated universities doesn't just
+        # waste tokens - it visibly confuses the answer (e.g. a KNUST-specific
+        # question getting a reply about "only having University of Ghana data"
+        # because Ghana's data was buried in the same mixed-up prompt).
+        if name_matched_universities:
+            scored = {uni: s for uni, s in scored.items() if uni in name_matched_universities}
+
         sorted_results = sorted(
             scored.items(),
             key=lambda x: (x[0] in name_matched_universities, x[1]),
@@ -1714,7 +1768,7 @@ class EnhancedUniversityKnowledgeBase:
 university_kb = EnhancedUniversityKnowledgeBase()
 
 
-def search_local_knowledge(query: str, university_name: str = None) -> Dict[str, Any]:
+def search_local_knowledge(query: str, university_name: str = None, chat_history: List[Dict] = None) -> Dict[str, Any]:
     """Enhanced search using the knowledge base."""
     
     if university_name:
@@ -1731,7 +1785,32 @@ def search_local_knowledge(query: str, university_name: str = None) -> Dict[str,
                 "confidence": 0.95
             }
     
-    results = university_kb.search(query)
+    # If this message doesn't itself name a university, a natural follow-up
+    # like "what about civil engineering there?" has nothing for search() to
+    # anchor to and can silently drift to whichever university happens to
+    # score highest on generic keyword overlap. Check recent chat history for
+    # the last message that DID explicitly name a university, and anchor the
+    # search to it - this only fires when the current message has no explicit
+    # match of its own, so a genuine topic change still overrides it normally.
+    search_query = query
+    query_lower = query.lower()
+    already_explicit = any(
+        re.search(r'\b' + re.escape(variation) + r'\b', query_lower)
+        for variation in university_kb.name_variations.keys()
+    )
+    if not already_explicit and chat_history:
+        for past_message in reversed(chat_history[-8:]):
+            past_text = (past_message.get("content") or "").lower()
+            anchor_uni = None
+            for variation, uni_name in university_kb.name_variations.items():
+                if re.search(r'\b' + re.escape(variation) + r'\b', past_text):
+                    anchor_uni = uni_name
+                    break
+            if anchor_uni:
+                search_query = f"{anchor_uni} {query}"
+                break
+    
+    results = university_kb.search(search_query)
     
     # Check for cut-off based queries
     agg_match = re.search(r'aggregate\s*(\d+)', query.lower())
@@ -1741,7 +1820,12 @@ def search_local_knowledge(query: str, university_name: str = None) -> Dict[str,
         if program_matches:
             for match in program_matches[:5]:
                 uni_data = university_kb.get_university(match["university"])
-                if uni_data:
+                # Unlike the program-type branch below, this loop previously had
+                # no duplicate check - a university with several programs near
+                # the given aggregate (e.g. KNUST) could get appended as 5
+                # separate near-identical result entries, each carrying its own
+                # full copy of the same university's context into the prompt.
+                if uni_data and not any(r.get("source") == match["university"] for r in results):
                     results.append({
                         "source": match["university"],
                         "data": uni_data,
@@ -2288,7 +2372,7 @@ async def respond_to_query(request: ChatRequest):
 
         print(f"📥 Processing query: {user_message[:100]}...")
 
-        local_matches = search_local_knowledge(user_message, request.university_name)
+        local_matches = search_local_knowledge(user_message, request.university_name, request.chat_history)
         print(
             f"🔍 Local search found {len(local_matches['results'])} results (confidence={local_matches.get('confidence', 0.0):.2f})"
         )
