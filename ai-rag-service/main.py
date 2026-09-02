@@ -1383,8 +1383,21 @@ async def seed_and_load_universities():
         print(f" University knowledge base loaded from MongoDB ({len(loaded)} entries)")
 
 
-def build_university_context(uni_name: str, uni_data: Dict[str, Any]) -> str:
-    """Build comprehensive context from university data."""
+def build_university_context(uni_name: str, uni_data: Dict[str, Any], query: str = "") -> str:
+    """Build comprehensive context from university data.
+    
+    `query` is optional but important: the final combined context gets
+    truncated to a fixed character budget (to stay under the Groq account's
+    token rate limit), and a university can easily have more total data than
+    that budget allows (e.g. KNUST's 6 colleges run ~24,500 characters against
+    a 12,000-character cap). Without reordering, colleges are always written
+    out in their fixed dict order, so a query about Engineering could still
+    get truncated before the Engineering section even starts, if enough other
+    colleges happen to come first. When `query` is given, colleges are sorted
+    so the one(s) actually relevant to the question are written first - so
+    whatever gets cut by the truncation cap is the least relevant content,
+    not whichever college happened to be inserted first.
+    """
     current_year = datetime.now().year
     
     admission = uni_data.get("admission_requirements", {})
@@ -1397,7 +1410,31 @@ def build_university_context(uni_name: str, uni_data: Dict[str, Any]) -> str:
     # Build college and program information
     college_sections = []
     if colleges:
-        for college_name, college_data in colleges.items():
+        college_items = list(colleges.items())
+        if query:
+            # Same stopword list used by the search index's own _extract_keywords,
+            # so a purely grammatical word like "and" doesn't count as a topical
+            # match just because several college names happen to be compound
+            # names ("Agriculture and Natural Resources", "Art and Built
+            # Environment") - without this, a query like "nursing and midwifery"
+            # would score those unrelated colleges above the actually relevant
+            # "Health Sciences" college, purely from the word "and".
+            _stopwords = {'the', 'a', 'an', 'and', 'or', 'but', 'for', 'on', 'at', 'to', 'in', 'of', 'with', 'by', 'from', 'be', 'is', 'are', 'was', 'were'}
+            def _keywords(text):
+                return set(w for w in re.findall(r'[a-z]{3,}', text.lower()) if w not in _stopwords)
+            query_words = _keywords(query)
+            def _college_relevance(item):
+                college_name, college_data = item
+                name_words = _keywords(college_name)
+                score = len(query_words & name_words) * 10
+                for prog in college_data.get("programs", []) if isinstance(college_data, dict) else []:
+                    if isinstance(prog, dict):
+                        prog_words = _keywords(prog.get("name", ""))
+                        if query_words & prog_words:
+                            score += 1
+                return score
+            college_items.sort(key=_college_relevance, reverse=True)
+        for college_name, college_data in college_items:
             if not college_data or not isinstance(college_data, dict):
                 continue
             
@@ -2390,7 +2427,7 @@ async def respond_to_query(request: ChatRequest):
             )
             context_segments.append(
                 build_university_context(
-                    search_result.get("source", ""), search_result.get("data", {})
+                    search_result.get("source", ""), search_result.get("data", {}), user_message
                 )
             )
 
@@ -2720,7 +2757,7 @@ I have received your document and will analyze it in the context of Ghanaian uni
                 }
             )
             context_parts.append(
-                build_university_context(result["source"], result["data"])
+                build_university_context(result["source"], result["data"], message)
             )
 
         for result in web_results["results"]:
