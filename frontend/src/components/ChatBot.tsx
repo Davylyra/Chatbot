@@ -922,13 +922,13 @@ const ChatBot: React.FC<ChatBotProps> = memo(
         {/* Header with New Conversation Button */}
         {currentMessages.length > 1 && (
           <div
-            className={`w-full border-b transition-colors duration-200 ${
+            className={`w-full  transition-colors duration-200 ${
               theme === "dark"
                 ? "border-slate-800 bg-slate-900"
                 : "border-slate-200 bg-white"
             }`}
           >
-            <div className="w-full max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+            {/* <div className="w-full max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
               <div className="flex items-center space-x-2.5">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span
@@ -950,7 +950,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
               >
                 + New Chat
               </motion.button>
-            </div>
+            </div> */}
           </div>
         )}
 
@@ -1168,14 +1168,14 @@ const ChatBot: React.FC<ChatBotProps> = memo(
 
         {/* Styled Input Area */}
         <div
-          className={`p-4 transition-colors duration-200 flex flex-col items-center ${
+          className={`p- transition-colors duration-200 flex flex-col items-center ${
             theme === "dark"
-              ? "bg-[#0f1115] border-t border-gray-800"
+              ? "bg-slate-950"
               : "bg-gray-50"
           }`}
         >
           {/* Question Suggestions Bar */}
-          <div className="w-full max-w-4xl mb-3 overflow-x-auto scrollbar-hide">
+          <div className="w-full max-w-4xl mb-1 overflow-x-auto scrollbar-hide">
             <div className="flex items-center space-x-2 py-1">
               <span
                 className={`text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 px-1 ${
@@ -1230,7 +1230,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
               </button>
             </div>
 
-            <div className="flex-1 relative flex items-center min-h-[40px] py-1">
+            <div className="flex-1 relative flex items-center min-h-[40px]">
               <textarea
                 ref={textareaRef}
                 value={inputMessage}
@@ -1291,7 +1291,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
           </div>
 
           <p
-            className={`text-xs mt-3 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}
+            className={`text-xs mt-1 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}
           >
             CERKYL can make mistakes. Please verify important information.
           </p>

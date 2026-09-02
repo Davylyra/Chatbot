@@ -108,7 +108,8 @@ const Navbar: React.FC<NavbarProps> = memo(
       };
 
       document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     return (
@@ -117,36 +118,38 @@ const Navbar: React.FC<NavbarProps> = memo(
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="sticky top-0 z-50 transition-all duration-300 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-800/60 bg-white/80 dark:bg-slate-900/80 shadow-2xs"
+        className="sticky top-0 z-50 transition-all duration-300 bg-slate-50 dark:bg-slate-950"
       >
-        <div className="max-w-md mx-auto px-4 py-3 md:max-w-5xl">
+        <div className="max-w-md mx-auto px-4 py-2 md:max-w-5xl">
           <div className="relative flex items-center justify-between">
             {/* Left side - Back Arrow and Menu */}
             <div className="flex items-center space-x-2">
-              {showBackButton && (
+              {/* {showBackButton && (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={onBackClick}
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 border ${theme === "dark"
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 border ${
+                    theme === "dark"
                       ? "bg-slate-800/80 border-slate-700/80 text-slate-200 hover:bg-slate-700"
                       : "bg-slate-100/80 border-slate-200/80 text-slate-700 hover:bg-slate-200"
-                    }`}
+                  }`}
                   title="Go back"
                 >
                   <FiArrowLeft className="w-5 h-5" />
                 </motion.button>
-              )}
+              )} */}
 
               {showMenuButton && (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={onMenuClick}
-                  className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all duration-200 md:hidden ${theme === "dark"
+                  className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all duration-200 md:hidden ${
+                    theme === "dark"
                       ? "bg-slate-800/80 border-slate-700/80 text-slate-200 hover:bg-slate-700"
                       : "bg-slate-100/80 border-slate-200/80 text-slate-700 hover:bg-slate-200"
-                    }`}
+                  }`}
                   title="Toggle menu"
                 >
                   <FiMenu className="w-5 h-5" />
@@ -199,11 +202,16 @@ const Navbar: React.FC<NavbarProps> = memo(
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleToggleTheme}
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 border ${theme === "dark"
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 border ${
+                    theme === "dark"
                       ? "bg-slate-800/80 border-slate-700/80 text-amber-400 hover:bg-slate-700"
                       : "bg-slate-100/80 border-slate-200/80 text-indigo-600 hover:bg-slate-200"
-                    }`}
-                  title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                  }`}
+                  title={
+                    theme === "dark"
+                      ? "Switch to Light Mode"
+                      : "Switch to Dark Mode"
+                  }
                 >
                   {theme === "dark" ? (
                     <FiSun className="w-5 h-5 text-amber-400" />
@@ -224,10 +232,11 @@ const Navbar: React.FC<NavbarProps> = memo(
                       !isButtonDisabled && setShowTooltip(true)
                     }
                     onMouseLeave={() => setShowTooltip(false)}
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 border ${theme === "dark"
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 border ${
+                      theme === "dark"
                         ? "bg-slate-800/80 border-slate-700/80 text-slate-200 hover:bg-slate-700"
                         : "bg-slate-100/80 border-slate-200/80 text-slate-700 hover:bg-slate-200"
-                      } ${isButtonDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                    } ${isButtonDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                   >
                     <motion.div
                       animate={{
@@ -250,10 +259,11 @@ const Navbar: React.FC<NavbarProps> = memo(
                       initial={{ opacity: 0, y: 10, scale: 0.9 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                      className={`absolute top-12 right-0 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap z-50 border shadow-lg ${theme === "dark"
+                      className={`absolute top-12 right-0 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap z-50 border shadow-lg ${
+                        theme === "dark"
                           ? "bg-slate-800 text-slate-200 border-slate-700"
                           : "bg-white text-slate-800 border-slate-200"
-                        }`}
+                      }`}
                     >
                       {onMarkAllReadClick
                         ? "Mark all as read"
@@ -274,10 +284,11 @@ const Navbar: React.FC<NavbarProps> = memo(
                       onProfileClick();
                     }
                   }}
-                  className={`h-10 px-2.5 rounded-xl flex items-center space-x-2 transition-all duration-200 border ${theme === "dark"
+                  className={`h-10 px-2.5 rounded-xl flex items-center space-x-2 transition-all duration-200 border ${
+                    theme === "dark"
                       ? "bg-slate-800/80 border-slate-700/80 text-slate-200 hover:bg-slate-700"
                       : "bg-slate-100/80 border-slate-200/80 text-slate-700 hover:bg-slate-200"
-                    }`}
+                  }`}
                   title={isGuest ? "Guest User" : user?.name || "User Profile"}
                 >
                   <div className="w-6 h-6 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold text-xs shadow-xs">
@@ -291,8 +302,9 @@ const Navbar: React.FC<NavbarProps> = memo(
                     {isGuest ? "Guest" : user?.name || "User"}
                   </span>
                   <FiChevronDown
-                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isProfileOpen ? "rotate-180" : ""
-                      }`}
+                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                      isProfileOpen ? "rotate-180" : ""
+                    }`}
                   />
                 </motion.button>
 
@@ -304,10 +316,11 @@ const Navbar: React.FC<NavbarProps> = memo(
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 8, scale: 0.96 }}
                       transition={{ duration: 0.15, ease: "easeOut" }}
-                      className={`absolute right-0 top-12 z-50 w-72 rounded-2xl border shadow-2xl backdrop-blur-xl p-3.5 ${theme === "dark"
+                      className={`absolute right-0 top-12 z-50 w-72 rounded-2xl border shadow-2xl backdrop-blur-xl p-3.5 ${
+                        theme === "dark"
                           ? "bg-slate-900 border-slate-800 text-white"
                           : "bg-white border-slate-200 text-slate-900"
-                        }`}
+                      }`}
                     >
                       {/* User Header */}
                       <div className="flex items-center space-x-3 pb-3 border-b border-slate-200/80 dark:border-slate-800/80">
@@ -324,10 +337,11 @@ const Navbar: React.FC<NavbarProps> = memo(
                               {isGuest ? "Guest User" : user?.name || "Student"}
                             </h4>
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${isGuest
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                isGuest
                                   ? "bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
                                   : "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
-                                }`}
+                              }`}
                             >
                               {isGuest ? "Guest" : "Student"}
                             </span>
@@ -347,10 +361,11 @@ const Navbar: React.FC<NavbarProps> = memo(
                             setIsProfileOpen(false);
                             navigate("/profile");
                           }}
-                          className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${theme === "dark"
+                          className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                            theme === "dark"
                               ? "hover:bg-slate-800 text-slate-200 hover:text-white"
                               : "hover:bg-slate-100 text-slate-700 hover:text-slate-900"
-                            }`}
+                          }`}
                         >
                           <FiUser className="w-4 h-4 text-primary-500" />
                           <span>Profile Overview</span>
@@ -361,10 +376,11 @@ const Navbar: React.FC<NavbarProps> = memo(
                             setIsProfileOpen(false);
                             navigate("/settings");
                           }}
-                          className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${theme === "dark"
+                          className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                            theme === "dark"
                               ? "hover:bg-slate-800 text-slate-200 hover:text-white"
                               : "hover:bg-slate-100 text-slate-700 hover:text-slate-900"
-                            }`}
+                          }`}
                         >
                           <FiSettings className="w-4 h-4 text-indigo-500" />
                           <span>Settings</span>
@@ -375,10 +391,11 @@ const Navbar: React.FC<NavbarProps> = memo(
                             setIsProfileOpen(false);
                             navigate("/notifications");
                           }}
-                          className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${theme === "dark"
+                          className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                            theme === "dark"
                               ? "hover:bg-slate-800 text-slate-200 hover:text-white"
                               : "hover:bg-slate-100 text-slate-700 hover:text-slate-900"
-                            }`}
+                          }`}
                         >
                           <FiBell className="w-4 h-4 text-amber-500" />
                           <span>Notifications</span>
@@ -389,10 +406,11 @@ const Navbar: React.FC<NavbarProps> = memo(
                             setIsProfileOpen(false);
                             navigate("/help-support");
                           }}
-                          className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${theme === "dark"
+                          className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                            theme === "dark"
                               ? "hover:bg-slate-800 text-slate-200 hover:text-white"
                               : "hover:bg-slate-100 text-slate-700 hover:text-slate-900"
-                            }`}
+                          }`}
                         >
                           <FiHelpCircle className="w-4 h-4 text-teal-500" />
                           <span>Help & Support</span>
@@ -419,10 +437,11 @@ const Navbar: React.FC<NavbarProps> = memo(
                               logout();
                               navigate("/");
                             }}
-                            className={`w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-xl font-bold text-xs transition-colors ${theme === "dark"
+                            className={`w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-xl font-bold text-xs transition-colors ${
+                              theme === "dark"
                                 ? "bg-red-950/50 hover:bg-red-900/60 text-red-400 border border-red-900/50"
                                 : "bg-red-50 hover:bg-red-100 text-red-600 border border-red-200/60"
-                              }`}
+                            }`}
                           >
                             <FiLogOut className="w-4 h-4" />
                             <span>Sign Out</span>

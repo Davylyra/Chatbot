@@ -159,7 +159,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = memo(
             x: !isDesktop && !isOpen ? -300 : 0,
           }}
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className={`${isDesktop ? "relative" : "fixed"} left-0 top-0 h-full shadow-2xl z-50 flex flex-col transition-colors duration-200 ${theme === "dark" ? "bg-[#13161a] border-gray-800" : "bg-gray-50 border-gray-200"} border-r overflow-hidden whitespace-nowrap`}
+          className={`${isDesktop ? "relative" : "fixed"} left-0 top-0 h-full z-50 flex flex-col transition-colors duration-200 ${theme === "dark" ? "bg-[#13161a] border-gray-800" : "bg-gray-50 border-gray-200"} border-r overflow-hidden whitespace-nowrap`}
         >
           {/* Header */}
           <div
