@@ -1693,9 +1693,14 @@ class EnhancedUniversityKnowledgeBase:
         scored = {}
         name_matched_universities = set()
         
-        # Strategy 1: Exact university name match
+        # Strategy 1: Exact university name match. Word-boundary match, not a
+        # raw substring check - short abbreviations like "ho" (University of
+        # Health and Allied Sciences) or "ug" (University of Ghana) would
+        # otherwise false-match inside ordinary words ("show", "who", "though"),
+        # silently pulling an unrelated university into multi-university
+        # comparison queries.
         for variation, uni_name in self.name_variations.items():
-            if variation in query_lower:
+            if re.search(r'\b' + re.escape(variation) + r'\b', query_lower):
                 if uni_name not in scored:
                     scored[uni_name] = 0
                 scored[uni_name] += 5.0
@@ -2041,7 +2046,7 @@ async def generate_response_with_groq(
 
 **CRITICAL RULES - STRICTLY FOLLOW:**
 
-1. **USE ONLY PROVIDED DATA**: Only state specific numbers, dates, or requirements if they appear in the "Available university information" section.
+1. **USE ONLY RETRIEVED DATA**: Only state specific numbers, dates, or requirements if they appear in the "Retrieved university data" section below - that data comes from our own knowledge base, not from the student.
 2. **CUT-OFF POINTS**: Provide exact cut-off points from the data. If a range is given (e.g., "10-14"), mention the range.
 3. **FIRST CHOICE**: If a program is marked "FIRST CHOICE ONLY", clearly state this.
 4. **ENTRANCE EXAMS**: Mention if a program requires an entrance exam.
@@ -2049,6 +2054,7 @@ async def generate_response_with_groq(
 6. **BE HONEST**: If a student's aggregate doesn't meet the cut-off, say so kindly and suggest alternatives.
 7. **BE CONCISE**: Answer what was asked. Don't share all information if not requested.
 8. **PLAIN MARKDOWN ONLY - NO HTML**: Never output raw HTML tags such as <br>, <table>, <div>, <b>, <li>, etc. This chat renders Markdown, not HTML — for a line break just start a new line, for emphasis use **bold** or *italic*, for lists use "-" or "1.".
+9. **OWN YOUR OWN GAPS**: The student is asking YOU for information - they never supplied any of it themselves. If something they asked about isn't in the retrieved data below, say plainly that you don't currently have that specific information, and suggest checking the university's official site. NEVER phrase a gap as "the information you provided/gave doesn't include..." or anything that implies the student was supposed to supply data - that data came from our own retrieval, not from them, and framing it that way is confusing and sounds like you're blaming them for a gap that isn't theirs.
 
 **CONVERSATIONAL STYLE:**
 - Use "you" and "I" naturally
@@ -2087,10 +2093,10 @@ Current year: {current_year}"""
 
         user_message = f"""{profile_section}Student's question: {query}
 
-Available university information:
+Retrieved university data (from our own knowledge base - the student did not supply this):
 {context}
 
-Respond naturally and helpfully like you're having a conversation with a student. Base your answer strictly on the information provided above."""
+Respond naturally and helpfully like you're having a conversation with a student. Base your answer strictly on the retrieved data above. If it doesn't cover something they asked, say YOU don't currently have that specific information - never imply they were supposed to provide it."""
         
         messages_array = [{"role": "system", "content": system_prompt}]
         if chat_history:
@@ -2417,6 +2423,17 @@ async def respond_to_query(request: ChatRequest):
         source_documents: List[Dict[str, Any]] = []
         context_segments: List[str] = []
 
+        # Each university gets a guaranteed, roughly equal share of the total
+        # character budget, truncated BEFORE joining - not after. Without this,
+        # a single data-rich university (e.g. KNUST at ~24,500 characters on
+        # its own) can consume the entire combined-context cap by itself,
+        # silently squeezing out every other university in a comparison query
+        # ("compare KNUST and UG") even though their data exists and was
+        # correctly matched. A floor keeps each share usable even when several
+        # universities match at once.
+        num_matches = len(local_matches.get("results", [])) or 1
+        per_university_cap = max(3000, 12000 // num_matches)
+
         for search_result in local_matches.get("results", []):
             source_documents.append(
                 {
@@ -2425,11 +2442,10 @@ async def respond_to_query(request: ChatRequest):
                     "confidence": search_result.get("relevance", 0.0),
                 }
             )
-            context_segments.append(
-                build_university_context(
-                    search_result.get("source", ""), search_result.get("data", {}), user_message
-                )
+            uni_context = build_university_context(
+                search_result.get("source", ""), search_result.get("data", {}), user_message
             )
+            context_segments.append(uni_context[:per_university_cap])
 
         if local_matches.get("confidence", 0.0) >= 0.95:
             print("⚡ Fast Path: Skipping web search due to exact university match")
@@ -2748,6 +2764,9 @@ I have received your document and will analyze it in the context of Ghanaian uni
                 f"User uploaded {len(file_info)} files: {', '.join([f['name'] for f in file_info])}"
             )
 
+        num_matches_files = len(local_results.get("results", [])) or 1
+        per_university_cap_files = max(3000, 12000 // num_matches_files)
+
         for result in local_results["results"]:
             all_sources.append(
                 {
@@ -2756,9 +2775,8 @@ I have received your document and will analyze it in the context of Ghanaian uni
                     "confidence": result["relevance"],
                 }
             )
-            context_parts.append(
-                build_university_context(result["source"], result["data"], message)
-            )
+            uni_context_f = build_university_context(result["source"], result["data"], message)
+            context_parts.append(uni_context_f[:per_university_cap_files])
 
         for result in web_results["results"]:
             all_sources.append(
