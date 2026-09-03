@@ -2055,6 +2055,8 @@ async def generate_response_with_groq(
 7. **BE CONCISE**: Answer what was asked. Don't share all information if not requested.
 8. **PLAIN MARKDOWN ONLY - NO HTML**: Never output raw HTML tags such as <br>, <table>, <div>, <b>, <li>, etc. This chat renders Markdown, not HTML — for a line break just start a new line, for emphasis use **bold** or *italic*, for lists use "-" or "1.".
 9. **OWN YOUR OWN GAPS**: The student is asking YOU for information - they never supplied any of it themselves. If something they asked about isn't in the retrieved data below, say plainly that you don't currently have that specific information, and suggest checking the university's official site. NEVER phrase a gap as "the information you provided/gave doesn't include..." or anything that implies the student was supposed to supply data - that data came from our own retrieval, not from them, and framing it that way is confusing and sounds like you're blaming them for a gap that isn't theirs.
+10. **VOUCHER/FORM PURCHASES**: Whenever your answer covers how to apply, or where/how to buy a university's application voucher or serial pin, lead with our own option: tell the student to go to the homepage, select "Buy Forms," choose the university they're applying to, and purchase the voucher/serial pin there to begin their application. Mention the official channels too (bank USSD codes, Ghana Post, the university's own portal) as additional ways to get one - don't omit or hide them, just lead with ours.
+11. **ABOUT THIS APP**: Only when asked who built this app, who made it, or about the company behind it, say: this app was built by Glinax and its tech team, an organisation working to improve education through the propagation of STEAM education (Science, Technology, Engineering, Arts, and Mathematics). Glinax has also built Qwikstudi (https://qwikstudi.com), a learning platform where students can upload study documents to generate quizzes and summaries, record lecture sessions, and generate audio versions of uploaded documents. Don't bring this up unless asked.
 
 **CONVERSATIONAL STYLE:**
 - Use "you" and "I" naturally
@@ -2125,7 +2127,33 @@ def generate_smart_fallback_response(
 ) -> str:
     """Generate fallback response using the knowledge base directly."""
     query_lower = query.lower()
-    
+
+    # "Who built this" style questions are answered directly, without going
+    # through university search at all - this is about the app, not a university.
+    about_app_keywords = ["who built", "who made", "who created", "who developed", "about this app", "about the app", "who are you", "which company made", "developer of this"]
+    if any(kw in query_lower for kw in about_app_keywords):
+        return (
+            "This app was built by **Glinax** and its tech team — an organisation working to improve education "
+            "through the propagation of STEAM education (Science, Technology, Engineering, Arts, and Mathematics). "
+            "Glinax has also built **Qwikstudi** (https://qwikstudi.com), a learning platform where students can "
+            "upload study documents to generate quizzes and summaries, record lecture sessions, and generate audio "
+            "versions of uploaded documents.\n\nHappy to help with any Ghanaian university admissions questions too! 😊"
+        )
+
+    # Whenever the question is actually about applying, or buying a voucher/
+    # serial pin/form, lead with our own Buy Forms option before anything else -
+    # official channels (banks, Ghana Post, portals) still come through in the
+    # matched university's own admission_requirements data below, this just
+    # adds our option ahead of them.
+    apply_keywords = ["how do i apply", "how to apply", "application", "voucher", "serial pin", "e-voucher", "buy form", "buy the form", "get the form"]
+    buy_forms_tip = ""
+    if any(kw in query_lower for kw in apply_keywords):
+        buy_forms_tip = (
+            "\n\n💡 **To buy your voucher/serial pin:** head to our homepage, select **Buy Forms**, choose the "
+            "university you're applying to, and purchase the voucher there to start your application. Banks, "
+            "Ghana Post, and the university's own portal are also options if you'd rather use those."
+        )
+
     results = university_kb.search(query)
     
     if results:
@@ -2180,7 +2208,7 @@ Would you like more information about any specific program at {uni_name}?
 """)
         
         if response_parts:
-            return "Here's what I found based on your question:\n\n" + "\n\n---\n\n".join(response_parts)
+            return "Here's what I found based on your question:\n\n" + "\n\n---\n\n".join(response_parts) + buy_forms_tip
     
     # Ultimate fallback - list all universities
     uni_list = []
@@ -2204,7 +2232,7 @@ What specific information would you like to know about any of these universities
 - **Fees** and scholarships
 
 Just let me know what you're looking for! 😊
-"""
+""" + buy_forms_tip
 
 
 # ============================================================================
