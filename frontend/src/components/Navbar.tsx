@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiMenu,
-  FiArrowLeft,
   FiUser,
   FiCheck,
   FiSun,
@@ -41,7 +40,6 @@ const Navbar: React.FC<NavbarProps> = memo(
     logoSrc: _logoSrc,
     logoAlt: _logoAlt = "Logo",
     showBackButton = false,
-    onBackClick,
     showMenuButton = true,
     onMenuClick,
     showProfileButton: _showProfileButton = false,
