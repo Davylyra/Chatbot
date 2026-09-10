@@ -222,6 +222,19 @@ export class ApiService {
     return httpClient.post(`/forms/${formId}/purchase`, paymentData);
   }
 
+  // TODO(confirm endpoint): guessed to match the existing /forms/... convention
+  // since the real inventory route wasn't available to check against. This
+  // fails open in FormsApiService.getStockMap() regardless (empty map on any
+  // error), so a wrong path here won't break anything — it'll just mean stock
+  // data silently isn't applied until the path below is corrected.
+  static async getFormStockStatus(): Promise<
+    ApiResponse<Record<string, { inStock: boolean; remaining: number }>>
+  > {
+    return httpClient.get<Record<string, { inStock: boolean; remaining: number }>>(
+      '/forms/stock-status'
+    );
+  }
+
   static async sendMessage(
     message: string,
     universityContext?: string
