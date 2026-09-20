@@ -825,6 +825,75 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
     # ========================================================================
     # OTHER UNIVERSITIES (Preserved from original)
     # ========================================================================
+    "Ashesi University": {
+        "location": "Berekuso, Ghana",
+        "established": "2002 (opened with its pioneer class; the Ashesi University Foundation was established in 1999)",
+        "website": "www.ashesi.edu.gh",
+        "type": "Private",
+        "admission_requirements": {
+            "general": "Ashesi does NOT use an aggregate cut-off point system like Ghana's public universities. WASSCE route: a minimum credit pass of C6 (or better) in EACH of 6 subjects - Integrated Science, Core Mathematics, Core English, plus 3 electives. Admission is application-based: shortlisted applicants are interviewed, and the final decision is based on the full application plus interview, not a single number. Meeting the minimum grade requirement makes an applicant ELIGIBLE to apply - it does not guarantee admission.",
+            "no_cutoff_warning": "Never state or imply a specific aggregate cut-off for Ashesi - none is published. If asked what aggregate is needed, explain that admission depends on meeting the minimum grade requirement (C6 in all 6 subjects) plus a competitive application and interview, not a cut-off number.",
+            "engineering_requirement": "Engineering applicants must additionally have Physics and Elective/Further Mathematics among their WASSCE subjects.",
+            "alternative_qualifications": "Also accepted: IGCSE/O-Level plus A-Level combinations, International Baccalaureate (IB), American/Canadian High School Diploma, French Baccalaureate, and other qualifications approved by Ghana's tertiary education authorities (GTEC).",
+            "international_applicants": "Documents not in English require certified English translations. Applicants whose high-school instruction was not in English must show English proficiency (e.g. TOEFL or IELTS) where applicable. Original exam results may be required for verification. International applicants should not assume equivalence between qualifications without an official/authoritative basis.",
+            "transfer_admissions": "Transfer applications are reviewed case-by-case by Admissions and the relevant academic department. Official transcripts from every college/university attended are required. Some admitted transfer students may have one year of study waived, at the university's discretion - this is never guaranteed. Transfer applications are rolling for the 2026/27 cycle.",
+            "intake_and_rounds": "Two entry points per year: September and January. Four application rounds are listed on the admissions page - Round 1 (June), Round 2 (August), Round 3 (October), Round 4 (December) - though exact dates should be checked on the current admissions cycle, as they are not fixed year to year.",
+            "how_to_apply": "Apply online through the Ashesi admissions portal. Application-fee amount and payment details should be checked on the current application portal; fee waivers can be requested by contacting Admissions directly.",
+            "recognition_note": "Ashesi's own site has displayed ranking claims such as #1 in Ghana in the Times Higher Education Impact Rankings and Top 10 in Africa in the Times Higher Education Sub-Saharan Africa University Rankings (as compiled in this knowledge base's 2026 edition) - rankings change yearly and by category, so this should be treated as a snapshot, not a permanent standing, and verified against the current official site.",
+            "application_deadline": "Check the current admissions cycle - Ashesi runs 4 application rounds per year (June, August, October, December)",
+            "online_portal": "https://ashesi.edu.gh/how-to-apply/",
+            "entrance_exam": "No entrance exam for undergraduate admission - shortlisted applicants are interviewed instead"
+        },
+        "contact": {
+            "phone": "Not published in the available data - check the official website",
+            "email": "See https://ashesi.edu.gh/admissions/ for the current admissions contact",
+            "address": "Ashesi University, Berekuso, Ghana"
+        },
+        "colleges": {
+            "Business, Economics and Law": {
+                "cutoff_range": "No published aggregate cut-off - Ashesi admission is application/interview-based, see admission requirements",
+                "requirements": "Minimum C6 in all 6 WASSCE subjects (Integrated Science, Core Maths, Core English + 3 electives); admission is application and interview based, not aggregate-based.",
+                "programs": [
+                    {"name": "BSc Business Administration", "duration": "4 years"},
+                    {"name": "BSc Economics", "duration": "4 years"},
+                    {"name": "LLB Law with Public Policy", "duration": "4 years", "requirements": "Combines law, public policy, liberal arts and technology; includes internship and a final capstone. Representative subjects: Constitutional Law, Criminal Law, Contract Law, Torts, Company Law, Public International Law, plus public-policy subjects such as Designing Public Policy and Evaluating Public Policy."}
+                ]
+            },
+            "Computing and Information Systems": {
+                "cutoff_range": "No published aggregate cut-off - Ashesi admission is application/interview-based, see admission requirements",
+                "requirements": "Minimum C6 in all 6 WASSCE subjects; admission is application and interview based, not aggregate-based.",
+                "programs": [
+                    {"name": "BSc Computer Science", "duration": "4 years", "requirements": "A rigorous computing programme (not just 'programming') covering data structures & algorithms, database systems, computer organisation & architecture, software engineering, operating systems, and networks & data communications, alongside the university's multidisciplinary core curriculum."},
+                    {"name": "BSc Management Information Systems", "duration": "4 years", "requirements": "Combines technology and information systems with business/organisational applications - covers systems analysis & design, IT infrastructure, systems administration, information systems project management, e-commerce and competitive strategy, alongside managerial accounting."}
+                ]
+            },
+            "Engineering": {
+                "cutoff_range": "No published aggregate cut-off - Ashesi admission is application/interview-based, see admission requirements",
+                "requirements": "Minimum C6 in all 6 WASSCE subjects, PLUS Physics and Elective/Further Mathematics specifically. Admission is application and interview based, not aggregate-based.",
+                "programs": [
+                    {"name": "BSc Biological Engineering", "duration": "4 years", "requirements": "Covers biotechnology, bioinformatics, neuro-engineering, biomedical applications, synthetic biology, biomaterials and systems biology."},
+                    {"name": "BSc Computer Engineering", "duration": "4 years"},
+                    {"name": "BSc Electrical and Electronics Engineering", "duration": "4 years"},
+                    {"name": "BSc Mechanical Engineering", "duration": "4 years"},
+                    {"name": "BSc Mechatronic Engineering", "duration": "4 years", "requirements": "Combines mechanical engineering, electrical engineering, electronics, computing, control systems and automation - covers CAD/CAM, mechanics of materials, electrical machines, control systems, manufacturing, machine design, fluid mechanics, heat transfer and a senior project."}
+                ]
+            }
+        },
+        "fees": {
+            "ghanaian_students": {
+                "Undergraduate Tuition (per term, Ghanaian)": "GH¢53,498",
+                "Housing (per term, Ghanaian)": "GH¢9,435",
+                "Student Council Dues (per term, Ghanaian)": "GH¢235",
+                "Health Insurance (per term, Ghanaian)": "GH¢1,880"
+            },
+            "international_students": "International undergraduate fees per term: tuition ~US$4,553, housing ~US$803, Student Council dues ~US$20, health insurance ~US$160. Application-fee payment details should be checked on the current application portal.",
+            "payment_policy": "IMPORTANT: these are PER-TERM figures - Ashesi runs a 3-term academic year, and tuition alone is NOT the complete cost of attendance. Housing, Student Council dues, and health insurance are additional per-term costs on top of tuition. Never state the tuition figure alone as 'what Ashesi costs.' All figures should be treated as dynamic and re-verified against the current Fact Book/admissions page before being treated as final."
+        },
+        "scholarships": {
+            "need_based_note": "Ashesi undergraduate scholarships and financial aid are NEED-BASED, not merit-based - never describe them as merit-based. Applicants seeking assistance complete the financial-aid process and indicate the amount of assistance needed; awards depend on evidence provided and fund availability, and can range from partial assistance to a comprehensive package. Never promise a scholarship or assume an award covers every cost.",
+            "aid_statistics": "Ashesi's own admissions materials have advertised that approximately 50% of students receive some financial aid, and about 25% pay nothing to attend - these figures are from the university's own materials as compiled in this knowledge base's 2026 edition and should be treated as dynamic/year-specific, not a permanent guarantee."
+        }
+    },
     "University for Development Studies": {
         "location": "Tamale, Northern Region",
         "established": "1992",
@@ -864,34 +933,137 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
         },
     },
     "University of Energy and Natural Resources": {
-        "location": "Sunyani, Bono Region",
+        "location": "Sunyani-Berekum Road, Fiapre, Sunyani, Bono Region",
         "established": "2011",
         "website": "www.uenr.edu.gh",
         "type": "Public",
-        "programs": {
-            "Renewable Energy Engineering": {
-                "duration": "4 years",
-                "requirements": "WASSCE: A1-C6 in Maths, Physics, Chemistry, English",
-                "career_prospects": "Energy Engineer, Renewable Energy Specialist",
-            },
-            "Environmental Science": {
-                "duration": "4 years",
-                "requirements": "WASSCE: Credits in Maths, Biology, Chemistry, English",
-                "career_prospects": "Environmental Scientist, Conservation Officer",
-            },
-            "Forest Resources Management": {
-                "duration": "4 years",
-                "requirements": "WASSCE: Credits in Maths, Biology/Agriculture, English",
-                "career_prospects": "Forestry Officer, Wildlife Conservationist",
-            },
-        },
         "admission_requirements": {
-            "general": "WASSCE with 6 credits including English, Maths, and Science subjects",
-            "application_deadline": "August 31, 2026",
+            "general": "WASSCE and SSSCE holders need credit passes (A1-C6)/(A-D) respectively in 3 core subjects - English Language, Mathematics, and Integrated Science/Social Studies - plus 3 elective subjects relevant to the chosen programme.",
+            "abce": "Advanced Business Certificate Examination (ABCE) holders: passes in 3 compulsory subjects plus 3 optional subjects relevant to the programme.",
+            "gbce": "General Business Certificate (GBCE) holders: credit passes (A-D) in 6 subjects comprising 3 core subjects (including English Language and Mathematics) plus 3 relevant elective subjects.",
+            "alevel": "Advanced Level holders: credit in at least 5 subjects at GCE 'O' Level (or equivalent) including English and Mathematics, plus at least 2 passes in subjects relevant to the programme.",
+            "hnd_holders": "Higher National Diploma (HND) holders with relevant working experience, in addition to the minimum WASSCE/SSSCE entry requirements or 5 GCE O-Level credits including English and Mathematics. May be asked to write an entrance examination and/or attend an interview.",
+            "diploma_holders": "UENR Diploma holders (or recognised equivalents) with relevant working experience may be considered. May be asked to write an entrance exam and/or attend an interview. Admitted to Level 200 or Level 300 based on FGPA and area of study.",
+            "other_qualifications": "Other qualifications accepted for consideration include International Baccalaureate (IB), IGCSE, American Grade 13 Examinations, and other external qualifications equivalent to WASSCE/SSSCE and GCE A-Levels.",
+            "foreign_applicants": "Foreign applicants with any of the above qualifications (or their equivalences) from an accredited/recognised institution. International students must submit their certificates to the Ghana Tertiary Education Commission (GTEC) for evaluation and attach the report(s) to the application form.",
+            "all_diploma_programmes": "WASSCE holders need credit passes (A1-C6) in English Language, Mathematics, and Integrated Science/Social Studies plus 2 credit passes in 2 elective subjects relevant to the programme.",
+            "mature": "Must be at least 25 years old with proof of age (birth certificate or legitimate documentary proof). Must pass the Mature Students' Entrance Examination (English Language, Mathematics, and an Aptitude Test) conducted by the institution. Must also possess SSSCE/WASSCE/GCE O or A Level/ABCE/GBCE or equivalent, a Teacher's Cert 'A', or NVTI/NABPTEX Certificates.",
+            "how_to_apply": "1) Buy an Application Voucher - GH¢230 for Diploma and Undergraduate programmes (GH¢300 for Postgraduate), from Ghana Post offices nationwide (or dial *885# on any network), bank branches (GCB Bank, Zenith Bank, Prudential Bank, Fidelity Bank, Consolidated Bank of Ghana), the UENR Finance Directorate (Main Campus, Sunyani), or the UENR Accra Office. This gives you an Application Number and PIN. 2) Complete the online application at the UENR Admissions Portal, log in with your Application Number and PIN, fill in personal/academic/programme fields, upload a passport photo (white background), review, certify and submit. 3) Print 2 copies of the completed form, attach certified copies of academic certificates/result slips and a birth certificate copy, and mail/submit to: The Academic and Students' Affairs Division, University of Energy and Natural Resources, P.O. Box 214, Sunyani, Bono Region, Ghana.",
+            "e_voucher_sale_points": "Ghana Post offices nationwide (or dial *885#), GCB Bank, Zenith Bank, Prudential Bank, Fidelity Bank and Consolidated Bank of Ghana (CBG) branches nationwide, UENR Finance Directorate (Main Campus Sunyani), UENR Accra Office (in the VCG Office Complex on the UPSA road - contact Mr. Richard Hammond, 0246565451), or call 0533581475 / 0552590370 / 0205475443 / 032290390.",
+            "no_cutoff_note": "UENR does not publish per-programme cut-off aggregates in the available data - only the subject/credit requirements above are published. Never invent a specific cut-off number for a UENR programme.",
+            "application_deadline": "Check the admissions portal - deadlines vary by year and programme",
             "online_portal": "https://admissions.uenr.edu.gh",
+            "voucher_purchase_portal": "https://uenr.edu.gh/admission-details/",
+            "application_fee": "GH¢230 (Diploma and Undergraduate); GH¢300 (Postgraduate)",
+            "postgraduate_enquiries": "srgs@uenr.edu.gh",
+            "diploma_undergrad_enquiries": "0553581475 / 0552590370 / 0205475443, or admissions@uenr.edu.gh"
         },
-        "contact": {"phone": "+233-35-206-2108", "email": "admissions@uenr.edu.gh"},
-        "scholarships": {"energy_scholarship": "For students in energy-related programs"},
+        "contact": {
+            "phone": "+233 352 290 390",
+            "email": "uro@uenr.edu.gh",
+            "address": "University of Energy and Natural Resources, P.O. Box 214, Sunyani, Bono Region, Ghana",
+            "registrar": "Abigail Amo Boatemaa (registrar@uenr.edu.gh, +233 352 290 382)",
+            "admissions_email": "admissions@uenr.edu.gh",
+            "admissions_whatsapp": "+233 55 358 1475"
+        },
+        "colleges": {
+            "Sciences": {
+                "cutoff_range": "Not officially published",
+                "requirements": "Credit passes in English Language, Mathematics, and Integrated Science plus 3 relevant electives; specific science electives vary by programme.",
+                "programs": [
+                    {"name": "Diploma in Statistics", "notes": "Regular/Weekend"},
+                    {"name": "Diploma in Information Technology"},
+                    {"name": "Diploma in Computer Science"},
+                    {"name": "BSc Biological Science"},
+                    {"name": "BSc Engineering Physics"},
+                    {"name": "BSc Medical Laboratory Sciences"},
+                    {"name": "BSc Nursing"},
+                    {"name": "BSc Chemistry"},
+                    {"name": "BSc Computer Science", "notes": "Regular/Weekend"},
+                    {"name": "BSc Information Technology", "notes": "Regular/Weekend"},
+                    {"name": "BSc Actuarial Science", "notes": "Regular/Weekend"},
+                    {"name": "BSc Statistics", "notes": "Regular/Weekend"},
+                    {"name": "BSc Mathematics", "notes": "Regular/Weekend"},
+                    {"name": "BSc Biochemistry"}
+                ]
+            },
+            "Natural Resources": {
+                "cutoff_range": "Not officially published",
+                "requirements": "Credit passes in English Language, Mathematics, and Integrated Science plus 3 relevant electives.",
+                "programs": [
+                    {"name": "Diploma in Natural Resources Management"},
+                    {"name": "Diploma in Fire, Safety and Disaster Management"},
+                    {"name": "BSc Aquaculture and Aquatic Resources Management"},
+                    {"name": "BSc Environmental Resources Management and Sustainability"},
+                    {"name": "BSc Fire, Safety and Disaster Management"},
+                    {"name": "BSc Hospitality Management"},
+                    {"name": "BSc Natural Resources Management", "options": "Ecotourism, Fisheries and Aquaculture, Forest Resources Management, Land Reclamation and Restoration, Social Forestry"}
+                ]
+            },
+            "Engineering": {
+                "cutoff_range": "Not officially published",
+                "requirements": "Credit passes in English Language, Mathematics, and Integrated Science plus relevant science electives (typically Physics, Chemistry, Elective Mathematics).",
+                "programs": [
+                    {"name": "BSc Agricultural Engineering"},
+                    {"name": "BSc Civil Engineering"},
+                    {"name": "BSc Computer Engineering"},
+                    {"name": "BSc Electrical and Electronic Engineering"},
+                    {"name": "BSc Environmental Engineering"},
+                    {"name": "BSc Mechanical Engineering"}
+                ]
+            },
+            "Mines and Built Environment": {
+                "cutoff_range": "Not officially published",
+                "requirements": "Credit passes in English Language, Mathematics, and Integrated Science plus relevant electives.",
+                "programs": [
+                    {"name": "BSc Development Minerals Mining"},
+                    {"name": "BSc Urban Mining"},
+                    {"name": "BSc Sustainable Mining"},
+                    {"name": "BSc Sustainable Land Management"},
+                    {"name": "BSc Resource and Development Planning"}
+                ]
+            },
+            "Agriculture and Technology": {
+                "cutoff_range": "Not officially published",
+                "requirements": "Credit passes in English Language, Mathematics, and Integrated Science plus relevant Agriculture/Science electives.",
+                "programs": [
+                    {"name": "BSc Agriculture", "options": "Animal Production, Crop Production, Horticulture"},
+                    {"name": "BSc Agribusiness"},
+                    {"name": "BSc Food Technology"},
+                    {"name": "BSc Agricultural and Resource Economics"},
+                    {"name": "MPhil Agricultural and Resource Economics", "notes": "Graduate programme"}
+                ]
+            },
+            "Arts and Social Sciences": {
+                "cutoff_range": "Not officially published",
+                "requirements": "Credit passes in English Language, Mathematics, and Integrated Science/Social Studies plus relevant electives.",
+                "programs": [
+                    {"name": "BSc Resource Enterprise & Entrepreneurship"},
+                    {"name": "BSc Accounting"},
+                    {"name": "BSc Economics"}
+                ]
+            },
+            "Geosciences": {
+                "cutoff_range": "Not officially published",
+                "requirements": "Credit passes in English Language, Mathematics, and Integrated Science plus relevant Science/Geography electives.",
+                "programs": [
+                    {"name": "Diploma in Geoinformation Science"},
+                    {"name": "Diploma in Geomatics"},
+                    {"name": "BSc Applied Meteorology and Climate Science"},
+                    {"name": "BSc Climate Change and Sustainable Development"},
+                    {"name": "BSc Geo-Environmental Science"},
+                    {"name": "BSc Geoinformation Science"},
+                    {"name": "BSc Geomatics"},
+                    {"name": "BSc Planning and Sustainability"}
+                ]
+            }
+        },
+        "fees": {
+            "payment_policy": "UENR's fee schedule was not included in the available data - contact the Academic and Students' Affairs Division (admissions@uenr.edu.gh) or check the official website for current tuition and fees."
+        },
+        "scholarships": {
+            "energy_scholarship": "For students in energy-related programmes - contact the University for current scholarship listings and eligibility."
+        }
     },
     "University of Education, Winneba": {
         "location": "Winneba, Central Region",
@@ -930,38 +1102,133 @@ GHANA_UNIVERSITIES_KNOWLEDGE = {
     },
     "University of Mines and Technology": {
         "location": "Tarkwa, Western Region",
-        "established": "2004",
+        "established": "3rd November, 1952",
         "website": "www.umat.edu.gh",
         "type": "Public",
-        "programs": {
-            "Mining Engineering": {
-                "duration": "4 years",
-                "requirements": "WASSCE: A1-C6 in Maths, Physics, Chemistry, English",
-                "career_prospects": "Mining Engineer, Resources Manager",
-            },
-            "Geological Engineering": {
-                "duration": "4 years",
-                "requirements": "WASSCE: A1-C6 in Maths, Physics, Chemistry, English",
-                "career_prospects": "Geologist, Mining Consultant",
-            },
-            "Environmental Engineering": {
-                "duration": "4 years",
-                "requirements": "WASSCE: Credits in Maths, Chemistry, Biology, English",
-                "career_prospects": "Environmental Engineer, Sustainability Specialist",
-            },
-            "Computer Science": {
-                "duration": "4 years",
-                "requirements": "WASSCE: Credits in Maths, Physics, English",
-                "career_prospects": "Software Developer, IT Specialist",
-            },
-        },
+        "also_known_as": "George Grant University of Mines and Technology",
         "admission_requirements": {
-            "general": "WASSCE with 6 credits including English, Maths, and Science subjects",
-            "application_deadline": "August 31, 2026",
-            "online_portal": "https://admissions.umat.edu.gh",
+            "general": "All first-year degree programmes are 4 years spanning eight semesters. WASSCE/SSSCE: Credit passes (A1-C6 WASSCE / A-D SSSCE) in the 3 core subjects - English Language, Mathematics, Integrated Science (prerequisite for ALL programmes) - plus credit passes (A1-C6) in three science electives, typically Mathematics, Physics and Chemistry (Geography can substitute for Chemistry in Geomatic Engineering, and Land Administration programmes accept three Business, Agriculture or Science electives instead), with a minimum aggregate of 36 considered for BSc admission - but this does NOT guarantee an offer.",
+            "gce_alevel": "GCE O/A-Level applicants need credit passes (Grade 6) in at least five O-Level subjects, including English Language, Mathematics, Physics and Chemistry, plus A-Level passes (Grade D or better) in Mathematics, Physics and Chemistry (or Geography for non-science students).",
+            "other_qualifications": "International Baccalaureate (IB), IGCSE, GCSE, American Grade 13 Examinations, and other external qualifications are accepted as equivalent to WASSCE/SSSCE and GCE O/A-Levels.",
+            "international_applicants": "International students whose first language is not English must have English proficiency from a recognised institution before they can register. Their certificates must be certified by the National Accreditation Board (NAB).",
+            "certificate_topup": "An applicant with a Certificate in Minerals Technology from the University, who meets the standard requirements, must complete a one (1) year top-up for the diploma programme.",
+            "mature": "Mature applicants must be at least 25 years old, hold SSSCE/WASSCE or GCE O-Level passes in five subjects including English Language and Mathematics (plus a science subject and relevant work experience), and must pass a written examination and/or interview.",
+            "how_to_apply": "Purchase an application e-voucher for GH¢230 (Ghanaian undergraduate applicants) from https://apply.umat.edu.gh or from a branch of Access Bank, GCB Bank, CBG Bank, Zenith Bank, Fidelity Bank, UMB Bank, Prudential Bank, or Post Offices. The voucher's serial number and PIN serve as login details for the UMaT Online Admission System. Complete the online form, upload the required documents (results slip/WASSCE-SSSCE certificate, birth certificate, valid national ID/Ghana Card, passport photograph), then print the completed application. Applicants still awaiting WASSCE results may apply and add results once released, but only results submitted WITH the application are used for selection.",
+            "passport_photo_spec": "Must be recent, JPEG format, 3.5cm x 4.5cm, white background, 65KB or less, with no headgear or spectacles.",
+            "programme_selection": "BSc applicants select 4 programmes, Diploma applicants 1, BSc Top-up applicants 2, and Certificate applicants 1, in order of preference.",
+            "corroborator_requirement": "A corroborator must be an approved senior officer, traditional authority, Reverend Minister or Imam, or headteacher - parents and relatives cannot corroborate.",
+            "campuses": "Main Campus (Tarkwa), with some diploma/certificate programmes offered through outreach centres such as Bibiani.",
+            "international_application_fee": "International applicants pay a non-refundable US$100 application fee and must complete the online application plus submit the required documents.",
+            "application_documents_note": "Applicants must submit the signed application summary, results slip, certificates, valid national ID, and other required supporting documents to admissions@umat.edu.gh.",
+            "no_cutoff_note": "UMaT does not officially publish per-programme cut-off aggregates - only the general minimum aggregate of 36 considered for BSc admission is published, and meeting it does not guarantee an offer. Never invent a specific cut-off number for an individual UMaT programme.",
+            "application_deadline": "Check the admissions portal - deadlines vary by year and programme",
+            "online_portal": "https://apply.umat.edu.gh",
+            "application_fee": "GH¢230 for BSc (Ghanaian, 2026/2027 cycle); GH¢200 Diploma; GH¢180 Certificate; GH¢180 Arts-to-Engineering. International: US$100/85/75/75 respectively.",
+            "entrance_exam": "Required (plus interview) for mature-entry and HND/Diploma-entry categories, and for certain professional/technical programmes across faculties."
         },
-        "contact": {"phone": "+233-31-209-2072", "email": "admissions@umat.edu.gh"},
-        "scholarships": {"mining_scholarship": "For students in mining-related programs"},
+        "contact": {
+            "phone": "+233 3121 97734",
+            "email": "registrar@umat.edu.gh",
+            "address": "Box 237, Tarkwa, Western Region",
+            "webmaster_email": "webmaster@umat.edu.gh"
+        },
+        "colleges": {
+            "Mining and Minerals Technology": {
+                "cutoff_range": "Not officially published",
+                "requirements": "Credits in English Language, Mathematics, Integrated Science plus Physics, Elective Mathematics and Chemistry.",
+                "programs": [
+                    {"name": "BSc Mining Engineering", "school": "Department of Mining Engineering"},
+                    {"name": "BSc Minerals Engineering", "school": "Department of Minerals Engineering"}
+                ]
+            },
+            "Computing and Mathematical Sciences": {
+                "cutoff_range": "Not officially published",
+                "requirements": "Credits in English Language, Mathematics, Integrated Science, plus programme-specific electives (see individual programmes).",
+                "programs": [
+                    {"name": "BSc Computer Science and Engineering", "school": "Department of Computer Science and Engineering", "requirements": "Physics, Mathematics and Chemistry, Applied Electricity, Electronics, ICT or Computer Studies"},
+                    {"name": "BSc Mathematics", "school": "Department of Mathematical Sciences", "requirements": "Elective Mathematics and any 2 of Physics, Chemistry, Applied Electricity, Technical Drawing, Metal Work, Geography, Applied Electronics or ICT"},
+                    {"name": "BSc Cyber Security", "school": "Cyber Security and Information Systems", "requirements": "3 relevant electives from Science, General Arts or Business subjects"},
+                    {"name": "BSc Information Systems and Technology", "school": "Cyber Security and Information Systems", "requirements": "3 relevant electives from Science, General Arts or Business subjects"}
+                ]
+            },
+            "Integrated Management Science": {
+                "cutoff_range": "Not officially published",
+                "requirements": "Credits in English Language, Mathematics, Integrated Science; elective requirements vary by programme.",
+                "programs": [
+                    {"name": "BSc Logistics and Transport Management", "school": "Department of Management Studies", "requirements": "Relevant Science, General Arts or Business electives"},
+                    {"name": "BSc Economics and Industrial Organisation", "school": "Department of Management Studies", "requirements": "Relevant Science, General Arts or Business electives"},
+                    {"name": "BSc Finance and Data Science", "school": "Department of Management Studies", "requirements": "Elective Mathematics plus 2 relevant electives"}
+                ]
+            },
+            "Engineering": {
+                "cutoff_range": "Not officially published",
+                "requirements": "Credits in English Language, Mathematics, Integrated Science plus Physics, Mathematics and Chemistry or related technical subjects.",
+                "programs": [
+                    {"name": "BSc Mechanical Engineering", "school": "Department of Mechanical Engineering", "requirements": "Physics, Mathematics and Chemistry, Technical Drawing or related technical subjects"},
+                    {"name": "BSc Electrical and Electronic Engineering", "school": "Department of Electrical and Electronic Engineering", "requirements": "Physics, Mathematics and Chemistry, Applied Electricity or Applied Electronics"},
+                    {"name": "BSc Renewable Energy Engineering", "school": "Department of Renewable Energy Engineering", "requirements": "Physics, Mathematics and Chemistry, Applied Electricity or Applied Electronics"},
+                    {"name": "BSc Telecommunication Engineering (New)", "school": "Faculty of Engineering"}
+                ]
+            },
+            "Geosciences and Environmental Studies": {
+                "cutoff_range": "Not officially published",
+                "requirements": "Credits in English Language, Mathematics, Integrated Science plus Mathematics, Physics and Chemistry (or Geography as a substitute in Geomatic Engineering).",
+                "programs": [
+                    {"name": "BSc Geological Engineering", "school": "Department of Geological Engineering"},
+                    {"name": "BSc Geomatic Engineering", "school": "Department of Geomatic Engineering", "requirements": "Mathematics, Physics and Chemistry - Chemistry may be replaced with Geography"},
+                    {"name": "BSc Land Administration and Information Systems", "school": "Department of Geomatic Engineering", "requirements": "Relevant Business, Agriculture, Science or specified General Arts electives"},
+                    {"name": "BSc Spatial Planning", "school": "Department of Geomatic Engineering", "requirements": "Relevant Business, Agriculture, Science or specified General Arts electives"},
+                    {"name": "BSc Environmental and Safety Engineering", "school": "Department of Environmental and Safety Engineering"}
+                ]
+            },
+            "Petroleum Studies": {
+                "cutoff_range": "Not officially published",
+                "requirements": "Credits in English Language, Mathematics, Integrated Science plus Mathematics, Physics and Chemistry.",
+                "programs": [
+                    {"name": "BSc Petroleum Engineering", "school": "Department of Petroleum and Natural Gas Engineering"},
+                    {"name": "BSc Natural Gas Engineering", "school": "Department of Petroleum and Natural Gas Engineering"},
+                    {"name": "BSc Petroleum Geosciences and Engineering", "school": "Department of Petroleum Geosciences and Engineering"},
+                    {"name": "BSc Petroleum Refining and Petrochemical Engineering", "school": "Department of Chemical and Petrochemical Engineering"},
+                    {"name": "BSc Chemical Engineering", "school": "Department of Chemical and Petrochemical Engineering"}
+                ]
+            },
+            "Railways and Infrastructure Development (Essikado)": {
+                "cutoff_range": "Not officially published",
+                "requirements": "Listed directly under the School rather than by department on the current official Essikado programme page.",
+                "programs": [
+                    {"name": "BSc Geomatic Engineering (Essikado)"},
+                    {"name": "BSc Geological Engineering (Essikado)"},
+                    {"name": "BSc Environmental and Safety Engineering (Essikado)"},
+                    {"name": "BSc Civil Engineering (Essikado)"},
+                    {"name": "BSc Mechanical Engineering (Essikado)"},
+                    {"name": "BSc Electrical and Electronic Engineering (Essikado)"},
+                    {"name": "BSc Computer Science and Engineering (Essikado)"},
+                    {"name": "BSc Data Science and Analytics"},
+                    {"name": "BSc Transport Planning and Management"},
+                    {"name": "BSc Mathematics with Finance"},
+                    {"name": "BSc Engineering Mathematics"},
+                    {"name": "BSc Mechanical Engineering (Top Up)"},
+                    {"name": "BSc Electrical and Electronic Engineering (Top Up)"}
+                ]
+            }
+        },
+        "fees": {
+            "ghanaian_students": {
+                "Fee-Paying Year 1 - Mechanical/Electrical/Mining/Minerals/Geomatic Engineering": "~GH¢4,498",
+                "Fee-Paying Year 1 - Computer Science and Engineering": "~GH¢4,631",
+                "Residential - Chamber of Mines Hall": "GH¢528",
+                "Residential - Chamber of Mines Hall Annex": "GH¢528",
+                "Residential - Gold Refinery Hall": "GH¢440"
+            },
+            "international_students": "International undergraduate Engineering and Science programmes: approximately US$7,257.76 for Year 1 and about US$6,923.83 for Year 2 for several BSc programmes; exact fees vary by programme and year. Foreign students pay into the University of Mines and Technology Foreign Account at Ecobank Ghana, Tarkwa Branch.",
+            "payment_policy": "UMaT does not publish one simple faculty-wide fee table - programme and student-category fees should be confirmed from the latest UMaT fee schedule. Application fees are separate from tuition/academic fees; academic and residential fees should be confirmed from the current UMaT fee schedule for the applicant's specific programme and student category."
+        },
+        "scholarships": {
+            "gcm_tef_scholarship": "GCM-TEF Undergraduate Scholarship - supports brilliant and needy UMaT students. For 2026/2027, at least 40 students are expected to benefit, with an award worth up to the Ghana cedi equivalent of US$600 per student, contributing toward academic fees, accommodation and/or stipend.",
+            "gcm_tef_eligibility": "Applicants generally must be Ghanaian, in first or second year, demonstrate academic ability and financial need, and meet CWA requirements - standard category requires at least 75% CWA, with exceptional cases of extreme financial need considered from 60% CWA.",
+            "other_scholarships": "UMaT's scholarship records include support from Gold Fields, Ghana National Petroleum Corporation, AngloGold Ashanti, Aker Energy, Newmont, Ghana Chamber of Mines, MTN, GETFund, District Assemblies and other sponsors.",
+            "student_financial_support": "UMaT's Student Financial Support Unit helps students identify and apply for internal and external scholarships, including merit-based, need-based and programme-specific opportunities."
+        }
     },
     "University of Health and Allied Sciences": {
         "location": "Ho, Volta Region",
