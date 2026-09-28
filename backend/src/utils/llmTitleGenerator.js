@@ -6,7 +6,7 @@ dotenv.config();
 const groqClient = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
 
 const LLM_CONFIG = {
-  model: 'llama-3.1-8b-instant',
+  model: 'qwen/qwen3.8-27b',
   temperature: 0.3,
   maxTokens: 20,
   systemPrompt: `You are a conversation title generator. Your job is to read the FIRST user message and create a short, professional title.
