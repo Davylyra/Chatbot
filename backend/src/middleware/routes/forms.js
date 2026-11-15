@@ -120,7 +120,8 @@ router.post("/:id/purchase", authMiddleware, async (req, res) => {
         email,
         amount: amountInPesewas,
         reference,
-        callback_url: "https://yourfrontend.com/payment/callback",
+        // Same target as paystackController.initializePayment (the live flow).
+        callback_url: `${(process.env.FRONTEND_URL || "").split(",")[0].trim()}/forms`,
       },
       {
         headers: {
