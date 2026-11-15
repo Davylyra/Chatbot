@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Set, Tuple
 from pathlib import Path
 
+import httpx
 import motor.motor_asyncio
 import requests
 from dotenv import load_dotenv
@@ -2250,7 +2251,10 @@ async def search_with_serpapi(query: str, api_key: str) -> Dict[str, Any]:
             "gl": "gh",
         }
 
-        response = requests.get(url, params=params, timeout=15)
+        # Async client: requests.get() here blocked the whole event loop, so
+        # every other in-flight chat request stalled while SerpAPI responded.
+        async with httpx.AsyncClient(timeout=15) as http_client:
+            response = await http_client.get(url, params=params)
         serpapi_payload = response.json()
 
         search_results = []
