@@ -84,8 +84,3 @@ page finishes signup without the code step. It is ignored whenever
 | Verification email never arrives | `FROM_EMAIL` must be a verified Brevo sender. Check Brevo's transactional logs. |
 | Vercel deploy "did nothing" | The build failed (`tsc -b` treats unused imports as errors) and Vercel kept the old deployment. Check the build log. |
 | First chat after idle returns a fallback answer | Render free-tier cold start exceeded the backend's 30s AI timeout. Retry. |
-
-## Further reading
-
-- [`docs/IMPROVEMENT_PLAN.md`](docs/IMPROVEMENT_PLAN.md): what has been
-  fixed, known issues, and the roadmap.
