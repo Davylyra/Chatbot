@@ -56,10 +56,14 @@ export const getUserNotifications = async (req, res) => {
       .skip(parseInt(skip))
       .toArray();
 
+    // Two `$or` keys in one object literal silently drop the first one,
+    // which made this count every user's unread notifications. Use $and.
     const pendingCount = await notificationArchive.countDocuments({
-      $or: [{ userId: studentId }, { userId: 'system' }],
       isRead: false,
-      $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }]
+      $and: [
+        { $or: [{ userId: studentId }, { userId: 'system' }] },
+        { $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }] }
+      ]
     });
 
     const currentTime = new Date();
