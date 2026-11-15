@@ -1467,6 +1467,60 @@ UNI_NAME_VARIATIONS = {
 # ENHANCED HELPER FUNCTIONS
 # ============================================================================
 
+# ============================================================================
+# QUERY UNDERSTANDING HELPERS
+# ============================================================================
+
+# WASSCE aggregates run from 6 (best) to 36. Patterns cover the ways students
+# actually phrase it, not just "aggregate 12".
+_AGGREGATE_PATTERNS = [
+    re.compile(r"\baggregates?\s*(?:of|is|was|=|:)?\s*(\d{1,2})\b"),
+    re.compile(r"\b(\d{1,2})\s*aggregate\b"),
+    re.compile(r"\bi\s+(?:got|scored|obtained|had|made)\s+(?:an?\s+)?(?:aggregate\s+(?:of\s+)?)?(\d{1,2})\b"),
+    re.compile(r"\bmy\s+(?:aggregate|grade|score|result|wassce)\s*(?:is|was|=|:)?\s*(\d{1,2})\b"),
+]
+
+
+def extract_aggregate(text: str) -> Optional[int]:
+    """Return the WASSCE aggregate mentioned in the text, if any."""
+    text_lower = (text or "").lower()
+    for pattern in _AGGREGATE_PATTERNS:
+        match = pattern.search(text_lower)
+        if match:
+            value = int(match.group(1))
+            if 6 <= value <= 36:
+                return value
+    return None
+
+
+_SMALL_TALK_WORDS = {
+    "hi", "hello", "hey", "hiya", "yo", "sup", "good", "morning", "afternoon",
+    "evening", "day", "thanks", "thank", "you", "u", "ok", "okay", "cool",
+    "nice", "great", "bye", "goodbye", "see", "later", "how", "are", "doing",
+    "there", "cerkyl", "bot", "so", "much", "a", "lot", "again", "all",
+    "everyone", "sir", "madam", "very", "noted", "alright",
+}
+
+
+def is_small_talk(message: str) -> bool:
+    """True for greetings/thanks that need no retrieval or web search."""
+    words = re.findall(r"[a-z']+", (message or "").lower())
+    return 0 < len(words) <= 6 and all(w in _SMALL_TALK_WORDS for w in words)
+
+
+# Questions whose answers change over time; the static knowledge base can't
+# be trusted for these, so they always get a live web search.
+_FRESH_INFO_PATTERN = re.compile(
+    r"\b(deadline|closing date|latest|news|current(ly)?|this year|today|"
+    r"admission list|released?|announce(d|ment)?|when (does|do|will|is)|"
+    r"still (open|selling)|20\d\d)\b"
+)
+
+
+def needs_fresh_info(message: str) -> bool:
+    return bool(_FRESH_INFO_PATTERN.search((message or "").lower()))
+
+
 def search_programs_by_criteria(query: str, university_kb: Any) -> List[Dict[str, Any]]:
     """
     Search for programs matching specific criteria in the query.
@@ -1990,17 +2044,16 @@ class EnhancedUniversityKnowledgeBase:
                         scored[uni_name] = 0
                     scored[uni_name] += 1.0
         
-        # Strategy 4: Cut-off point matching
-        if any(word in query_lower for word in ["cut-off", "cutoff", "aggregate", "grade"]):
-            agg_match = re.search(r'aggregate\s*(\d+)', query_lower)
-            if agg_match:
-                agg = int(agg_match.group(1))
-                for cutoff_agg, programs in self.cutoff_index.items():
-                    if abs(cutoff_agg - agg) <= 5:
-                        for uni_name, prog_name, cutoff in programs:
-                            if uni_name not in scored:
-                                scored[uni_name] = 0
-                            scored[uni_name] += 3.0
+        # Strategy 4: Cut-off point matching (extract_aggregate() only fires
+        # on aggregate-like phrasing, so no separate keyword gate is needed)
+        agg = extract_aggregate(query_lower)
+        if agg is not None:
+            for cutoff_agg, programs in self.cutoff_index.items():
+                if abs(cutoff_agg - agg) <= 5:
+                    for uni_name, prog_name, cutoff in programs:
+                        if uni_name not in scored:
+                            scored[uni_name] = 0
+                        scored[uni_name] += 3.0
         
         # Sort by score - but a university the person explicitly named (Strategy 1)
         # always outranks one that only scored from generic keyword/program-name
@@ -2029,10 +2082,13 @@ class EnhancedUniversityKnowledgeBase:
         for uni_name, score in sorted_results[:top_n]:
             if score > 0:
                 data = self.universities.get(uni_name, {})
+                # A university the student named explicitly is a confident
+                # match on its own; keyword volume only matters otherwise.
+                relevance = 0.95 if uni_name in name_matched_universities else min(score / 10.0, 0.95)
                 results.append({
                     "source": uni_name,
                     "data": data,
-                    "relevance": min(score / 10.0, 0.95),
+                    "relevance": relevance,
                     "raw_content": data.get("raw_content", ""),
                     "matched_programs": self._find_matching_programs(query_lower, uni_name)
                 })
@@ -2123,9 +2179,8 @@ def search_local_knowledge(query: str, university_name: str = None, chat_history
     results = university_kb.search(search_query)
     
     # Check for cut-off based queries
-    agg_match = re.search(r'aggregate\s*(\d+)', query.lower())
-    if agg_match and results:
-        aggregate = int(agg_match.group(1))
+    aggregate = extract_aggregate(query)
+    if aggregate is not None and results:
         program_matches = find_programs_by_cutoff(aggregate, university_kb)
         if program_matches:
             for match in program_matches[:5]:
@@ -2757,7 +2812,12 @@ async def respond_to_query(request: ChatRequest):
 
         print(f"📥 Processing query: {user_message[:100]}...")
 
-        local_matches = search_local_knowledge(user_message, request.university_name, request.chat_history)
+        # Greetings/thanks need neither retrieval nor a web search.
+        small_talk = is_small_talk(user_message)
+        if small_talk:
+            local_matches = {"results": [], "confidence": 0.0}
+        else:
+            local_matches = search_local_knowledge(user_message, request.university_name, request.chat_history)
         print(
             f"🔍 Local search found {len(local_matches['results'])} results (confidence={local_matches.get('confidence', 0.0):.2f})"
         )
@@ -2789,12 +2849,19 @@ async def respond_to_query(request: ChatRequest):
             )
             context_segments.append(uni_context[:per_university_cap])
 
-        if local_matches.get("confidence", 0.0) >= 0.95:
-            print("⚡ Fast Path: Skipping web search due to exact university match")
+        # Web search only when local data isn't a confident match, or the
+        # question is time-sensitive (deadlines, lists, news) - the static
+        # knowledge base can't answer those reliably even when it matches.
+        use_web_search = not small_talk and (
+            local_matches.get("confidence", 0.0) < 0.95 or needs_fresh_info(user_message)
+        )
+
+        if not use_web_search:
+            print("⚡ Fast Path: Skipping web search (small talk or confident local match)")
             combined_context = "\n\n".join(context_segments)
             combined_context = combined_context[:12000]  # sized to stay under the Groq account's 8000 TPM rate limit even with multiple matched universities, while still far fuller than the original 8000-char cap
             final_confidence = local_matches.get("confidence", 0.8)
-            if groq_client and (final_confidence > 0.3 or combined_context):
+            if groq_client and (small_talk or final_confidence > 0.3 or combined_context):
                 response_text = await generate_response_with_groq(
                     user_message, combined_context, source_documents, user_profile, request.chat_history
                 )
