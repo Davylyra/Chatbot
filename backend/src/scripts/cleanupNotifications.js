@@ -37,13 +37,15 @@ export const cleanupReadNotifications = async () => {
 };
 
 export const startCleanupSchedule = () => {
-  console.log('🔄 Starting notification cleanup scheduler (runs every 2 seconds)');
-  
+  console.log('🔄 Starting notification cleanup scheduler (runs every 10 minutes)');
+
   cleanupReadNotifications();
-  
+
+  // The notifications list already hides items past scheduledDeletionAt,
+  // so this only reclaims storage and can run infrequently.
   setInterval(() => {
     cleanupReadNotifications();
-  }, 2 * 1000); // 2 seconds
+  }, 10 * 60 * 1000); // 10 minutes
 };
 
 

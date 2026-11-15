@@ -39,7 +39,12 @@ export const getUserNotifications = async (req, res) => {
     
     const searchFilter = { 
       $or: [{ userId: studentId }, { userId: 'system' }],
-      $and: [{ $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }] }]
+      $and: [
+        { $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }] },
+        // Hide notifications already due for deletion, so the cleanup job
+        // doesn't need to run every few seconds to keep the list accurate.
+        { $or: [{ scheduledDeletionAt: null }, { scheduledDeletionAt: { $gt: new Date() } }] }
+      ]
     };
     
     if (unreadOnly === 'true') searchFilter.isRead = false;
