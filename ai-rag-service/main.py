@@ -2297,6 +2297,73 @@ async def search_with_serpapi(query: str, api_key: str) -> Dict[str, Any]:
 # RESPONSE GENERATION (Enhanced)
 # ============================================================================
 
+# Profile fields worth showing the model, in display order. Each label lists
+# every key name the frontend/backend uses for it (they aren't consistent:
+# the assessment stores career_goals/preferred_location, older code used
+# career_goal/location_preference). Everything else in user_context
+# (user_id, timestamps, session_context, UI flags...) is noise and is dropped.
+PROFILE_FIELDS = [
+    ("Student Name", ("name",)),
+    ("SHS Programme", ("shs_program", "shsProgram")),
+    ("Subjects Studied", ("subjects",)),
+    ("Best Subject", ("bestSubject", "best_subject")),
+    ("WASSCE Aggregate/Grade", ("wassce_grade", "wassceGrade")),
+    ("Interests", ("interests",)),
+    ("Career Goal", ("career_goals", "career_goal", "careerGoals")),
+    ("Location Preference", ("preferred_location", "location_preference", "preferredLocation")),
+    ("Preferred Programme", ("preferred_program",)),
+    ("Preferred University", ("preferred_university",)),
+    ("Budget / Financial Situation", ("budget", "financial_situation", "financialSituation")),
+]
+
+
+def _profile_value_to_text(value: Any) -> str:
+    if value is None or isinstance(value, bool):
+        return ""
+    if isinstance(value, (list, tuple, set)):
+        return ", ".join(str(v) for v in value if v not in (None, ""))
+    if isinstance(value, dict):
+        return ""  # nested objects are summarised separately or dropped
+    return str(value).strip()
+
+
+def build_profile_section(user_profile: Optional[Dict[str, Any]]) -> str:
+    """Render a short, clean STUDENT PROFILE block for the prompt."""
+    if not user_profile:
+        return ""
+
+    lines = []
+    for label, keys in PROFILE_FIELDS:
+        for key in keys:
+            text = _profile_value_to_text(user_profile.get(key))
+            if text:
+                lines.append(f"  - {label}: {text}")
+                break
+
+    # Summarise the assessment's pre-computed university matches (top 3)
+    # instead of dumping the raw objects into the prompt.
+    matches = user_profile.get("university_matches") or []
+    match_lines = []
+    if isinstance(matches, list):
+        for match in matches[:3]:
+            if not isinstance(match, dict):
+                continue
+            uni = match.get("university_name") or match.get("universityName")
+            if not uni:
+                continue
+            programs = match.get("programs_eligible") or [
+                p.get("name") for p in match.get("recommended_programs", []) if isinstance(p, dict)
+            ]
+            programs_text = ", ".join(p for p in programs[:3] if p)
+            match_lines.append(f"{uni} ({programs_text})" if programs_text else uni)
+    if match_lines:
+        lines.append(f"  - Top Matches From Assessment: {'; '.join(match_lines)}")
+
+    if not lines:
+        return ""
+    return "STUDENT PROFILE:\n" + "\n".join(lines) + "\n\n"
+
+
 async def generate_response_with_groq(
     query: str, context: str, sources: List[Dict], user_profile: Dict = None, chat_history: List[Dict] = None
 ) -> str:
@@ -2334,32 +2401,7 @@ async def generate_response_with_groq(
 
 Current year: {current_year}"""
 
-        # Build student profile section
-        profile_section = ""
-        if user_profile:
-            field_labels = {
-                "shs_program": "SHS Programme",
-                "subjects": "Subjects Studied",
-                "wassce_grade": "WASSCE Aggregate/Grade",
-                "career_goal": "Career Goal",
-                "interests": "Interests",
-                "location_preference": "Location Preference",
-                "preferred_program": "Preferred Programme",
-                "budget": "Budget / Financial Situation",
-                "name": "Student Name",
-            }
-            profile_lines = []
-            for key, label in field_labels.items():
-                val = user_profile.get(key)
-                if val:
-                    profile_lines.append(f"  - {label}: {val}")
-            for key, val in user_profile.items():
-                if key not in field_labels and val and key not in ("raw_context",):
-                    profile_lines.append(f"  - {key.replace('_', ' ').title()}: {val}")
-            if profile_lines:
-                profile_section = (
-                    "STUDENT PROFILE:\n" + "\n".join(profile_lines) + "\n\n"
-                )
+        profile_section = build_profile_section(user_profile)
 
         user_message = f"""{profile_section}Student's question: {query}
 
