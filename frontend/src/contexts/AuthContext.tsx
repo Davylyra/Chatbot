@@ -46,7 +46,7 @@ interface AuthContextType {
   ) => Promise<{ success: boolean; message: string; errors?: string[] }>;
   sendSignupVerification: (
     email: string,
-  ) => Promise<{ success: boolean; message: string; errors?: string[] }>;
+  ) => Promise<{ success: boolean; message: string; errors?: string[]; devCode?: string }>;
   verifySignup: (
     email: string,
     verificationCode: string,
@@ -252,7 +252,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const sendSignupVerification = async (
     email: string,
-  ): Promise<{ success: boolean; message: string; errors?: string[] }> => {
+  ): Promise<{ success: boolean; message: string; errors?: string[]; devCode?: string }> => {
     setIsLoading(true);
     setError(null);
 
@@ -284,6 +284,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         message:
           verificationResponse.message ||
           "Verification code sent to your email",
+        devCode: verificationResponse.devCode,
       };
     } catch (verificationRequestError) {
       const message =

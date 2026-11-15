@@ -12,7 +12,7 @@ import {
   validateGmailDomain,
   validatePassword,
 } from "../inputValidation.js";
-import sendVerificationEmail from "../../utils/sendVerificationEmail.js";
+import sendVerificationEmail, { isDevEmailBypass } from "../../utils/sendVerificationEmail.js";
 
 dotenv.config();
 
@@ -89,7 +89,9 @@ router.post("/send-signup-verification", rateLimiters.authRateLimit, async (req,
     return res.status(200).json({
       success: true,
       message: 'Verification code sent to your email. Valid for 10 minutes.',
-      email: normalizedEmail
+      email: normalizedEmail,
+      // Only present in local dev bypass mode; lets the UI skip the code step.
+      ...(isDevEmailBypass() && { devCode: verificationCode })
     });
   } catch (err) {
     console.error('Error sending verification code', err);

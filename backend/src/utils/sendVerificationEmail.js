@@ -5,7 +5,16 @@ defaultClient.authentications["api-key"].apiKey = process.env.BREVO_API_KEY;
 
 const client = new SibApiV3Sdk.TransactionalEmailsApi();
 
+// Dev-only bypass: requires DEV_SKIP_EMAIL=true AND a non-production NODE_ENV.
+export const isDevEmailBypass = () =>
+  process.env.DEV_SKIP_EMAIL === "true" && process.env.NODE_ENV !== "production";
+
 const sendVerificationEmail = async (recipientEmail, verificationToken) => {
+  if (isDevEmailBypass()) {
+    console.log(`\n[DEV_SKIP_EMAIL] Verification code for ${recipientEmail}: ${verificationToken}\n`);
+    return;
+  }
+
   if (!process.env.BREVO_API_KEY || !process.env.FROM_EMAIL) {
     throw new Error("Brevo service is not configured");
   }

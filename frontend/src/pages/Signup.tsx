@@ -102,7 +102,14 @@ const Signup: React.FC = () => {
       setErrors({});
 
       const result = await sendSignupVerification(formData.email);
-      if (result.success) {
+      if (result.success && result.devCode) {
+        // Local dev bypass (backend DEV_SKIP_EMAIL): finish signup without the code modal.
+        try {
+          await handleVerifyCode(result.devCode);
+        } catch (verifyError: any) {
+          setErrors({ submit: verifyError.message || "Signup failed" });
+        }
+      } else if (result.success) {
         setIsVerificationModalOpen(true);
       } else {
         if (result.errors && Array.isArray(result.errors)) {
