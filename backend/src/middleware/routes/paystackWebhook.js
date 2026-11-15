@@ -32,6 +32,11 @@ function verifyPaystackSignature(req) {
     console.warn(' Missing Paystack signature header');
     return false;
   }
+
+  if (!body || !PAYSTACK_SECRET_KEY) {
+    console.error(' Webhook raw body or PAYSTACK_SECRET_KEY missing - cannot verify signature');
+    return false;
+  }
   
   try {
     // Compute HMAC-SHA512 of request body using secret key
@@ -60,27 +65,8 @@ function verifyPaystackSignature(req) {
 }
 
 
-router.use((req, res, next) => {
-  if (req.path === '/paystack') {
-    let data = '';
-    req.on('data', chunk => {
-      data += chunk;
-    });
-    req.on('end', () => {
-      req.rawBody = data;
-      try {
-        req.body = JSON.parse(data);
-        next();
-      } catch (e) {
-        console.error(' Failed to parse webhook JSON:', e);
-        req.body = {};
-        res.status(400).json({ success: false, message: 'Invalid JSON in webhook body' });
-      }
-    });
-  } else {
-    express.json()(req, res, next);
-  }
-});
+// The body is parsed by the global express.json() in server.js, which also
+// stores the raw bytes in req.rawBody for this route (needed for the HMAC).
 
 /**
  * Main webhook endpoint - Handles all Paystack events

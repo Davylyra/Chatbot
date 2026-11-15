@@ -68,7 +68,15 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({
+  limit: '50mb',
+  // Paystack signs the exact raw bytes, so keep them for the webhook route.
+  verify: (req, res, buf) => {
+    if (req.originalUrl.startsWith('/api/payments/webhook')) {
+      req.rawBody = buf;
+    }
+  },
+}));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 const PORT = process.env.PORT || 5000;
