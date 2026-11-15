@@ -210,7 +210,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
 
     // Background sync with API server if available
-    fetch(`${API_BASE_URL}/auth/guest`, {
+    fetch(`${API_BASE_URL}/auth/login/guest`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     })
