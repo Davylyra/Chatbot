@@ -2386,6 +2386,16 @@ def _profile_value_to_text(value: Any) -> str:
     return str(value).strip()
 
 
+def official_website_url(uni_data: Dict[str, Any]) -> str:
+    """The university's official website as a full https URL, or "" if unknown."""
+    website = str((uni_data or {}).get("website") or "").strip()
+    if not website or " " in website:
+        return ""
+    if not website.startswith(("http://", "https://")):
+        website = "https://" + website
+    return website
+
+
 def build_profile_section(user_profile: Optional[Dict[str, Any]]) -> str:
     """Render a short, clean STUDENT PROFILE block for the prompt."""
     if not user_profile:
@@ -2842,6 +2852,8 @@ async def respond_to_query(request: ChatRequest):
                     "source": search_result.get("source"),
                     "type": "local_knowledge",
                     "confidence": search_result.get("relevance", 0.0),
+                    # Shown to students as the official website link under the answer.
+                    "url": official_website_url(search_result.get("data", {})),
                 }
             )
             uni_context = build_university_context(

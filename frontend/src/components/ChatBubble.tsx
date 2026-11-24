@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import { motion } from "framer-motion";
-import { FiMessageCircle, FiFile, FiImage } from "react-icons/fi";
+import { FiMessageCircle, FiFile, FiImage, FiExternalLink } from "react-icons/fi";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ChatMessage } from "../store";
@@ -13,7 +13,7 @@ interface ChatBubbleProps {
 
 const ChatBubble: React.FC<ChatBubbleProps> = memo(
   ({ message, isTyping = false }) => {
-    const { text, isUser, timestamp, attachments } = message;
+    const { text, isUser, timestamp, attachments, sources } = message;
     const { theme } = useTheme();
 
     // Enhanced URL detection and linking for plain text URLs
@@ -35,6 +35,55 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(
         text.includes("Good evening") ||
         text.includes("Good night") ||
         text.includes("Hello"));
+
+    // Official websites of the universities whose information the answer
+    // used (sent by the AI service as local_knowledge sources with a url).
+    const officialLinks = (() => {
+      if (isUser || !Array.isArray(sources)) return [];
+      const seen = new Set<string>();
+      const links: { name: string; url: string }[] = [];
+      for (const source of sources) {
+        const url = typeof source?.url === "string" ? source.url : "";
+        if (
+          source?.type !== "local_knowledge" ||
+          !/^https?:\/\//i.test(url) ||
+          Number(source?.confidence ?? 0) < 0.5 ||
+          seen.has(url)
+        ) {
+          continue;
+        }
+        seen.add(url);
+        links.push({ name: String(source.source || url), url });
+        if (links.length === 3) break;
+      }
+      return links;
+    })();
+
+    const renderOfficialLinks = () => {
+      if (officialLinks.length === 0) return null;
+      return (
+        <div className="mt-3 pt-2 border-t border-white/15 text-xs text-gray-300">
+          <span className="mr-1">
+            {officialLinks.length === 1 ? "Official website:" : "Official websites:"}
+          </span>
+          {officialLinks.map((link, index) => (
+            <span key={link.url}>
+              {index > 0 && <span className="mx-1">·</span>}
+              <a
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={link.url}
+                className="inline-flex items-center gap-1 font-medium text-blue-300 underline hover:text-blue-200"
+              >
+                {officialLinks.length === 1 ? link.url.replace(/^https?:\/\//i, "") : link.name}
+                <FiExternalLink className="w-3 h-3" />
+              </a>
+            </span>
+          ))}
+        </div>
+      );
+    };
 
     const renderAttachments = () => {
       if (!attachments || attachments.length === 0) return null;
@@ -310,6 +359,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = memo(
                       {processedText}
                     </ReactMarkdown>
                     {renderAttachments()}
+                    {renderOfficialLinks()}
                   </div>
                 )}
                 {timestamp && (
