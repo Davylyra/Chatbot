@@ -26,6 +26,9 @@ export interface EnhancedChatResponse {
   };
   error?: string;
   requiresAuth?: boolean;
+  // True when sending again may work (the AI service was waking up, the
+  // connection dropped, or the server hit a temporary error).
+  retryable?: boolean;
 }
 
 export const useChat = () => {
@@ -116,6 +119,15 @@ export const useChat = () => {
             metadata: { ...demoPayload.metadata, demo_mode: true },
           };
         }
+      }
+
+      if (!response.ok && chatResponse?.retryable) {
+        return {
+          success: false,
+          message: chatResponse.message || "Your message couldn't be sent.",
+          error: chatResponse.error || "AI_UNAVAILABLE",
+          retryable: true,
+        };
       }
 
       if (!response.ok) {
@@ -214,12 +226,13 @@ export const useChat = () => {
       }
 
       console.error(`Error category: ${errorCategory}`);
-      showError("Connection Error", userFriendlyMessage);
 
+      // The chat shows this inline with a retry button, so no toast here.
       return {
         success: false,
-        message: `I'm having trouble connecting right now. ${userFriendlyMessage}`,
+        message: userFriendlyMessage,
         error: errorCategory,
+        retryable: true,
       };
     }
   };

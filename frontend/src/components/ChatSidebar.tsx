@@ -14,6 +14,7 @@ import {
 } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { guestHeaders } from '../utils/guestId';
 
 interface Conversation {
   id: string;
@@ -58,7 +59,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = memo(({ isOpen, onClose, isDeskt
       const response = await fetch(endpoint, {
         method: 'GET',
         headers: {
-          ...(currentToken && { Authorization: `Bearer ${currentToken}` }),
+          ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : guestHeaders()),
           'Content-Type': 'application/json',
         },
       });

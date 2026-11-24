@@ -11,6 +11,7 @@ import {
   FiUsers,
   FiSearch,
   FiStar,
+  FiRefreshCw,
 } from 'react-icons/fi';
 import ChatBubble from './ChatBubble';
 import AuthenticationModal from './AuthenticationModal';
@@ -48,6 +49,19 @@ interface ChatBotProps {
   resumeConversationTitle?: string;
   forceCoachMode?: boolean;
 }
+
+interface ReplyRequest {
+  text: string;
+  files: File[];
+  conversationId: string;
+  isFirstUserMessage: boolean;
+  context?: any;
+}
+
+// When the AI service has been idle it takes a while to wake up, so a
+// failed send is retried automatically this many times before giving up.
+const MAX_WAKE_RETRIES = 3;
+const WAKE_RETRY_DELAY_MS = 5000;
 
 const ChatBot: React.FC<ChatBotProps> = memo(
   ({
@@ -101,6 +115,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(
     const [inputMessage, setInputMessage] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    // A message whose reply failed, kept so the Retry button can resend it.
+    const [failedSend, setFailedSend] = useState<ReplyRequest | null>(null);
+    const [statusNote, setStatusNote] = useState<string | null>(null);
     const [showAttachMenu, setShowAttachMenu] = useState(false);
     const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
     const [showAuthModal, setShowAuthModal] = useState(false);
@@ -366,6 +383,35 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       }, 1200);
     }, []);
 
+    // Sends a message, retrying with a visible note while the AI service
+    // wakes up after being idle.
+    const sendWithWakeRetry = async (
+      text: string,
+      conversationId: string,
+      context: any
+    ): Promise<EnhancedChatResponse> => {
+      for (let attempt = 0; ; attempt++) {
+        const response = await stableSendChatMessage(
+          text,
+          conversationId,
+          universityContext?.name,
+          context
+        );
+        const wakingUp =
+          !response.success &&
+          response.retryable &&
+          ['AI_WAKING_UP', 'NETWORK_ERROR', 'TIMEOUT_ERROR'].includes(response.error || '');
+        if (!wakingUp || attempt >= MAX_WAKE_RETRIES) {
+          setStatusNote(null);
+          return response;
+        }
+        setStatusNote(
+          'Cerkyl is waking up after being idle. This can take up to a minute, please hold on...'
+        );
+        await new Promise((resolve) => setTimeout(resolve, WAKE_RETRY_DELAY_MS));
+      }
+    };
+
     const handleInitialMessageResponse = useCallback(
       async (message: string, conversationId: string) => {
         setIsTyping(true);
@@ -395,12 +441,13 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                 is_coach_mode: forceCoachMode,
               };
 
-          const response = await stableSendChatMessage(
-            message,
-            conversationId,
-            universityContext?.name,
-            context
-          );
+          const response = await sendWithWakeRetry(message, conversationId, context);
+
+          if (response && !response.success && response.retryable) {
+            setError(response.message || "Your message couldn't be sent.");
+            setFailedSend({ text: message, files: [], conversationId, isFirstUserMessage: false, context });
+            return;
+          }
 
           if (response && response.success && response.message) {
             const botMessage = {
@@ -549,31 +596,46 @@ const ChatBot: React.FC<ChatBotProps> = memo(
 
       setTimeout(() => scrollToBottom(), 50);
 
-      try {
-        let response;
+      await deliverReply({
+        text: messageText,
+        files: filesToSend,
+        conversationId: currentConversation.id,
+        isFirstUserMessage,
+        context: {
+          session_context: {
+            message_count: currentMessages.length,
+            has_university_preference: !!universityContext,
+            timestamp: new Date().toISOString(),
+          },
+          is_coach_mode: forceCoachMode,
+        },
+      });
+    };
 
-        if (filesToSend.length > 0) {
-          response = await sendMessageWithFiles(
-            messageText,
-            filesToSend,
-            currentConversation.id,
-            universityContext?.name
-          );
-        } else {
-          response = await stableSendChatMessage(
-            messageText,
-            currentConversation.id,
-            universityContext?.name,
-            {
-              session_context: {
-                message_count: currentMessages.length,
-                has_university_preference: !!universityContext,
-                timestamp: new Date().toISOString(),
-              },
-              is_coach_mode: forceCoachMode,
-            }
-          );
-        }
+    // Gets the reply for a message that's already shown in the chat. Used for
+    // new messages and by the Retry button.
+    const deliverReply = async (request: ReplyRequest) => {
+      const { text: messageText, files: filesToSend, conversationId, isFirstUserMessage } =
+        request;
+      setIsTyping(true);
+      setError(null);
+      setFailedSend(null);
+
+      const showFailure = (message: string) => {
+        setError(message);
+        setFailedSend(request);
+      };
+
+      try {
+        const response: EnhancedChatResponse =
+          filesToSend.length > 0
+            ? await sendMessageWithFiles(
+                messageText,
+                filesToSend,
+                conversationId,
+                universityContext?.name
+              )
+            : await sendWithWakeRetry(messageText, conversationId, request.context);
 
         if (response && response.success && response.message) {
           const botMessage = {
@@ -581,7 +643,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
             text: response.message,
             isUser: false,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            conversationId: currentConversation.id,
+            conversationId,
             sources: response.sources || [],
             confidence: response.confidence || 0.0,
           };
@@ -590,18 +652,18 @@ const ChatBot: React.FC<ChatBotProps> = memo(
 
           if (
             response.conversation_title &&
-            response.conversation_title !== currentConversation.id &&
+            response.conversation_title !== conversationId &&
             !response.conversation_title.startsWith('conv_') &&
             response.conversation_title !== 'New Conversation' &&
             response.conversation_title !== 'Untitled' &&
             response.conversation_title.trim().length > 0
           ) {
-            useAppStore.getState().updateConversation(currentConversation.id, {
+            useAppStore.getState().updateConversation(conversationId, {
               title: response.conversation_title,
             });
           }
 
-          if (isFirstUserMessage && currentMessages.length <= 2) {
+          if (isFirstUserMessage) {
             setTimeout(() => {
               stableSaveCurrentConversation()
                 .then(() => {
@@ -614,61 +676,29 @@ const ChatBot: React.FC<ChatBotProps> = memo(
           } else {
             notifySidebarRefresh();
           }
-        } else if (response && (response as any).error === 'AUTHENTICATION_REQUIRED') {
+        } else if (response && response.error === 'AUTHENTICATION_REQUIRED') {
           setShowAuthModal(true);
           setError(null);
-        } else if (response && !response.success) {
-          const errorMsg = response.message || 'Unable to get response. Please try again.';
-          setError(errorMsg);
-
-          const errorBotMessage = {
-            id: (Date.now() + 1).toString(),
-            text: errorMsg,
-            isUser: false,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            conversationId: currentConversation.id,
-            sources: [],
-            confidence: 0.0,
-          };
-          stableAddMessage(errorBotMessage);
         } else {
-          const fallbackError = 'Unable to get response. Please try again.';
-          setError(fallbackError);
-
-          const errorBotMessage = {
-            id: (Date.now() + 1).toString(),
-            text: fallbackError,
-            isUser: false,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            conversationId: currentConversation.id,
-            sources: [],
-            confidence: 0.0,
-          };
-          stableAddMessage(errorBotMessage);
+          showFailure(
+            (response && response.message) || "Your message couldn't be sent. Please try again."
+          );
         }
       } catch (error) {
-        const errorMsg =
-          filesToSend.length > 0
-            ? 'Failed to send files. Please try again.'
-            : error instanceof Error && error.message
-              ? error.message
-              : 'Unable to get response. Please try again.';
-
-        setError(errorMsg);
-
-        const errorBotMessage = {
-          id: (Date.now() + 1).toString(),
-          text: errorMsg,
-          isUser: false,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          conversationId: currentConversation.id,
-          sources: [],
-          confidence: 0.0,
-        };
-        stableAddMessage(errorBotMessage);
+        showFailure(
+          filesToSend.length > 0 && error instanceof Error && error.message
+            ? error.message
+            : "Your message couldn't be sent. Please try again."
+        );
       } finally {
         setIsTyping(false);
+        setStatusNote(null);
       }
+    };
+
+    const handleRetry = () => {
+      if (!failedSend || isTyping) return;
+      deliverReply(failedSend);
     };
 
     const sendMessageWithFiles = async (
@@ -884,6 +914,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       setInputMessage('');
       setAttachedFiles([]);
       setError(null);
+      setFailedSend(null);
       setIsTyping(false);
       setShowAttachMenu(false);
 
@@ -1080,22 +1111,36 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                   }`}
                 ></div>
               </div>
-              <span className="text-sm">CERKYL is typing...</span>
+              <span className="text-sm">{statusNote || 'CERKYL is typing...'}</span>
             </motion.div>
           )}
 
           {/* Error Message */}
-          {error && (
+          {error && !isTyping && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`px-3 py-2 rounded-lg text-sm transition-colors duration-200 ${
+              role="alert"
+              className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-200 ${
                 theme === 'dark'
-                  ? 'bg-yellow-900/50 border border-yellow-700 text-yellow-300'
-                  : 'bg-yellow-100 border border-yellow-300 text-yellow-800'
+                  ? 'bg-red-900/40 border border-red-700 text-red-200'
+                  : 'bg-red-50 border border-red-300 text-red-800'
               }`}
             >
-              {error}
+              <span>{error}</span>
+              {failedSend && failedSend.conversationId === currentConversation?.id && (
+                <button
+                  onClick={handleRetry}
+                  className={`flex items-center gap-1 shrink-0 px-3 py-1 rounded-md font-medium transition-colors duration-200 ${
+                    theme === 'dark'
+                      ? 'bg-red-700 hover:bg-red-600 text-white'
+                      : 'bg-red-600 hover:bg-red-700 text-white'
+                  }`}
+                >
+                  <FiRefreshCw className="w-3.5 h-3.5" />
+                  Retry
+                </button>
+              )}
             </motion.div>
           )}
 

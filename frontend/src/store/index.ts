@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { UNIVERSITIES_DATA } from "../data/constants";
 import type { Notification } from "../types";
+import { getGuestId, guestHeaders } from "../utils/guestId";
 
 export interface User {
   id: string;
@@ -247,6 +248,11 @@ export const useAppStore = create<AppState>()(
               conversations: state.conversations.map((conv) =>
                 conv.id === id ? { ...conv, ...updates } : conv,
               ),
+              // Keep the open conversation in step too; saving reads its title.
+              currentConversation:
+                state.currentConversation?.id === id
+                  ? { ...state.currentConversation, ...updates }
+                  : state.currentConversation,
             }),
             false,
             "updateConversation",
@@ -295,11 +301,12 @@ export const useAppStore = create<AppState>()(
               timestamp: new Date().toISOString(),
             };
 
-            const userStr = localStorage.getItem("user");
-            const user = userStr ? JSON.parse(userStr) : null;
-            const userId = user?.id || "demo_user";
-
             const token = localStorage.getItem("token");
+            const userStr = localStorage.getItem("user");
+            const user = token && userStr ? JSON.parse(userStr) : null;
+            // Logged-in users are identified by their token; everyone else
+            // saves under their own private guest id.
+            const userId = user?.id || getGuestId();
 
             const headers: HeadersInit = {
               "Content-Type": "application/json",
@@ -307,6 +314,8 @@ export const useAppStore = create<AppState>()(
 
             if (token) {
               headers["Authorization"] = `Bearer ${token}`;
+            } else {
+              Object.assign(headers, guestHeaders());
             }
 
             const response = await fetch(
@@ -336,6 +345,10 @@ export const useAppStore = create<AppState>()(
                       ? updatedConversation
                       : conv,
                   ),
+                  currentConversation:
+                    state.currentConversation?.id === updatedConversation.id
+                      ? { ...state.currentConversation, title: updatedConversation.title }
+                      : state.currentConversation,
                 }),
                 false,
                 "updateSavedConversation",

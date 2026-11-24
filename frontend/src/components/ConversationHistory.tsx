@@ -21,6 +21,7 @@ import { useAppStore } from "../store";
 import ChatBubble from "./ChatBubble";
 import GuestLimitationModal from "./GuestLimitationModal";
 import { getMarkdownPreview } from "../utils/markdownUtils";
+import { guestHeaders } from "../utils/guestId";
 
 interface Conversation {
   id: string;
@@ -161,7 +162,7 @@ const ConversationHistory: React.FC = () => {
       } catch (authError) {
         response = await fetch(demoEndpoint, {
           method: "GET",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...guestHeaders() },
         });
 
         if (!response.ok) {
@@ -250,7 +251,7 @@ const ConversationHistory: React.FC = () => {
       } catch (authError) {
         response = await fetch(demoEndpoint, {
           method: "GET",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...guestHeaders() },
         });
 
         if (!response.ok) {

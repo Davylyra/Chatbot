@@ -11,6 +11,7 @@ import { cacheMiddleware, cacheManager } from "../cacheManager.js";
 import { rateLimiters } from "../rateLimiter.js";
 import { validateChatPayload } from "../inputValidation.js";
 import { generateTitleWithFallback } from "../../utils/llmTitleGenerator.js";
+import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -20,6 +21,44 @@ const router = express.Router();
 const upload = multer({ dest: "uploads/" });
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL ;
+
+// Visitors who aren't logged in send a private per-browser id
+// (frontend/src/utils/guestId.ts). Guest routes only ever return data saved
+// under that id.
+const GUEST_ID_PATTERN = /^guest_[A-Za-z0-9_-]{8,64}$/;
+const isGuestId = (value) => typeof value === "string" && GUEST_ID_PATTERN.test(value);
+const getGuestId = (req) => {
+  const headerId = req.get("x-guest-id");
+  return isGuestId(headerId) ? headerId : null;
+};
+
+// The logged-in user's id from a valid Bearer token, or null. For routes
+// that serve both logged-in users and guests.
+const getTokenUserId = (req) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
+  try {
+    const decoded = jwt.verify(authHeader.split(" ")[1], process.env.JWT_SECRET);
+    return decoded?.id ? String(decoded.id) : null;
+  } catch {
+    return null;
+  }
+};
+
+const GENERIC_TITLES = new Set(["", "untitled", "new conversation", "untitled conversation", "conversation"]);
+const isGenericTitle = (title) =>
+  !title || GENERIC_TITLES.has(String(title).trim().toLowerCase()) || String(title).startsWith("conv_");
+
+const titleFromMessage = (text) => {
+  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  const firstSentence = clean.match(/^[^.!?]+/)?.[0]?.trim() || clean;
+  if (!firstSentence) return "University Consultation";
+  return firstSentence.length > 60 ? firstSentence.substring(0, 60).trim() + "..." : firstSentence;
+};
+
+// Conversations with a title being generated right now, so a quick second
+// message doesn't start a duplicate generation.
+const titlesInProgress = new Set();
 
 router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res) => {
   const { message, conversation_id, university_name } = req.body;
@@ -560,107 +599,116 @@ router.post("/save-conversation", async (req, res) => {
   try {
     const { conversation, messages, userId } = req.body;
     
-    if (!conversation || !messages) {
+    if (!conversation || !conversation.id || !Array.isArray(messages)) {
       return res.status(400).json({ 
         success: false, 
         message: "Conversation and messages are required" 
       });
     }
 
+    // Logged-in users are identified by their token; guests by their
+    // private guest id. Never trust a bare user id from the body.
+    const ownerId =
+      getTokenUserId(req) ||
+      getGuestId(req) ||
+      (isGuestId(userId) ? userId : null);
+
+    if (!ownerId) {
+      return res.status(401).json({ success: false, message: "Not allowed to save this conversation" });
+    }
+
     const chatSessionsDB = await getCollection("conversations");
     const chatHistoryDB = await getCollection("messages");
 
-    const actualUserId = userId || "demo_user";
+    const existing = await chatSessionsDB.findOne({ _id: conversation.id });
+    if (existing && existing.user_id != null && String(existing.user_id) !== ownerId) {
+      return res.status(403).json({ success: false, message: "Not allowed to save this conversation" });
+    }
 
-    let finalTitle = conversation.title || 'Untitled';
-    let titleMethod = 'provided';
-    
-    const isGenericTitle = !conversation.title || 
-                          conversation.title === 'Untitled' ||
-                          conversation.title === 'New Conversation' ||
-                          conversation.title === 'Untitled Conversation' ||
-                          conversation.title.startsWith('conv_');
+    const firstUserMessage = messages.find(m => m.isUser === true || m.sender === 'user');
+    const firstBotReply = messages.find(m => m.isUser === false || m.sender === 'bot');
+    const firstUserText = firstUserMessage?.text || firstUserMessage?.message || '';
 
-    if (messages.length >= 2 && isGenericTitle) {
-      const firstUserMessage = messages.find(m => m.isUser === true || m.sender === 'user');
-      const firstBotReply = messages.find(m => m.isUser === false || m.sender === 'bot');
-      
-      if (firstUserMessage && firstBotReply) {
-        const firstUserText = firstUserMessage.text || firstUserMessage.message || '';
-        console.log('🏷️ [SAVE] Generating LLM title from FIRST user message:', firstUserText.substring(0, 100));
-        
+    // Keep a real title if one is already saved (for example the one /send
+    // generated). Otherwise generate one; never fall back to a generic title.
+    let finalTitle = existing?.title;
+    let titleMethod = existing?.title_method || 'existing';
+    let titleGenerated = false;
+
+    if (isGenericTitle(finalTitle)) {
+      const localTitle = isGenericTitle(conversation.title) ? null : conversation.title;
+      if (firstUserText && firstBotReply) {
         try {
           const titleResult = await generateTitleWithFallback(
             firstUserText,
             firstBotReply.text || firstBotReply.message || '',
             conversation.universityContext || null,
-
-            () => conversation.title || 'University Consultation'
+            () => localTitle || titleFromMessage(firstUserText)
           );
-          
           finalTitle = titleResult.title;
           titleMethod = titleResult.method;
+          titleGenerated = true;
           console.log(` [SAVE] Generated title: "${finalTitle}" (method: ${titleMethod})`);
-          console.log(`   └─ Title is brief: ${finalTitle.split(' ').length} words, one sentence: ${!finalTitle.includes('.')}`);
         } catch (titleError) {
-          console.warn(' [SAVE] Title generation failed, using original title:', titleError.message);
+          console.warn(' [SAVE] Title generation failed:', titleError.message);
         }
+      }
+      if (isGenericTitle(finalTitle)) {
+        finalTitle = localTitle || (firstUserText ? titleFromMessage(firstUserText) : 'New Conversation');
+        titleMethod = localTitle ? 'provided' : 'fallback_local';
+      }
+
+      // /send may have saved a generated title while we were working.
+      const latest = await chatSessionsDB.findOne({ _id: conversation.id }, { projection: { title: 1 } });
+      if (latest && !isGenericTitle(latest.title)) {
+        finalTitle = latest.title;
+        titleGenerated = false;
       }
     }
 
-    const conversationDoc = {
-      _id: conversation.id, // Use the conversation ID as-is (string format: conv_TIMESTAMP)
-      title: finalTitle,
-      title_method: titleMethod,
-      title_generated_at: new Date(),
-      last_message: conversation.lastMessage || '',
-      created_at: conversation.timestamp ? new Date(conversation.timestamp) : new Date(),
-      updated_at: new Date(),
-      message_count: messages.length,
-      university_context: conversation.universityContext || null,
-      user_id: actualUserId // Store the actual user ID, not hardcoded
-    };
-
-    console.log(`[SAVE] Saving conversation with _id (type: ${typeof conversation.id}): ${conversation.id}`);
-
-    await chatSessionsDB.replaceOne(
+    await chatSessionsDB.updateOne(
       { _id: conversation.id },
-      conversationDoc,
+      {
+        $set: {
+          title: finalTitle,
+          title_method: titleMethod,
+          ...(titleGenerated && { title_generated_at: new Date() }),
+          last_message: conversation.lastMessage || '',
+          updated_at: new Date(),
+          message_count: messages.length,
+          university_context: conversation.universityContext || null,
+          user_id: ownerId
+        },
+        $setOnInsert: {
+          created_at: conversation.timestamp ? new Date(conversation.timestamp) : new Date()
+        }
+      },
       { upsert: true }
     );
 
-    console.log(` [SAVE] Conversation upserted with _id: ${conversation.id}, title: "${finalTitle}"`);
+    console.log(` [SAVE] Conversation saved with _id: ${conversation.id}, title: "${finalTitle}"`);
 
-    console.log(`🧹 [SAVE] Clearing existing messages for conversation ${conversation.id}`);
-    const deleteResult = await chatHistoryDB.deleteMany({
+    await chatHistoryDB.deleteMany({
       conversation_id: conversation.id,
-      user_id: actualUserId
-    });
-    console.log(` [SAVE] Deleted ${deleteResult.deletedCount} existing messages`);
-
-    const messagePromises = messages.map(async (message, index) => {
-      try {
-        const messageDoc = {
-          conversation_id: conversation.id,
-          message: message.text || message || '',
-          is_bot: message.isUser === false || message.sender === 'bot',
-          created_at: message.timestamp ? new Date(message.timestamp) : new Date(),
-          timestamp: message.timestamp || new Date().toISOString(),
-          sources: message.sources || [],
-          confidence: message.confidence || 0,
-          user_id: actualUserId,
-          sequence: index
-        };
-
-        await chatHistoryDB.insertOne(messageDoc);
-      } catch (msgError) {
-        console.warn(` Error saving individual message:`, msgError.message);
-      }
+      user_id: ownerId
     });
 
-    await Promise.all(messagePromises);
+    const messageDocs = messages.map((message, index) => ({
+      conversation_id: conversation.id,
+      message: message.text || message.message || '',
+      is_bot: message.isUser === false || message.sender === 'bot',
+      created_at: message.timestamp && !isNaN(new Date(message.timestamp)) ? new Date(message.timestamp) : new Date(),
+      timestamp: message.timestamp || new Date().toISOString(),
+      sources: message.sources || [],
+      confidence: message.confidence || 0,
+      user_id: ownerId,
+      sequence: index
+    }));
+    if (messageDocs.length > 0) {
+      await chatHistoryDB.insertMany(messageDocs, { ordered: false });
+    }
 
-    console.log(` [SAVE] Conversation ${conversation.id} with ${messages.length} messages saved for user ${actualUserId}`);
+    console.log(` [SAVE] Conversation ${conversation.id} with ${messages.length} messages saved for ${ownerId}`);
     res.json({ 
       success: true, 
       message: "Conversation saved successfully",
@@ -674,8 +722,7 @@ router.post("/save-conversation", async (req, res) => {
     console.error(" Error saving conversation to MongoDB:", error);
     res.status(500).json({ 
       success: false, 
-      message: "Failed to save conversation to MongoDB",
-      error: error.message 
+      message: "Failed to save conversation"
     });
   }
 });
@@ -780,7 +827,16 @@ router.get("/conversations-demo", async (req, res) => {
     const parsedLimit = Math.min(parseInt(limit) || 20, 50);
     const parsedSkip = parseInt(skip) || 0;
     
-    console.log(` [DEMO] Loading conversations (limit: ${parsedLimit}, skip: ${parsedSkip})`);
+    const guestId = getGuestId(req);
+    if (!guestId) {
+      return res.json({
+        success: true,
+        conversations: [],
+        pagination: { total: 0, limit: parsedLimit, skip: parsedSkip, hasMore: false }
+      });
+    }
+
+    console.log(` [DEMO] Loading conversations for ${guestId} (limit: ${parsedLimit}, skip: ${parsedSkip})`);
 
     const projection = {
       _id: 1,
@@ -796,14 +852,14 @@ router.get("/conversations-demo", async (req, res) => {
     };
     
     const conversations = await chatSessionsDB
-      .find({}, { projection })
+      .find({ user_id: guestId }, { projection })
       .sort({ updated_at: -1 })
       .limit(parsedLimit)
       .skip(parsedSkip)
       .toArray();
 
-    const totalCount = await chatSessionsDB.countDocuments({});
-    console.log(` Retrieved ${conversations.length}/${totalCount} demo conversations in ${Date.now()}`);
+    const totalCount = await chatSessionsDB.countDocuments({ user_id: guestId });
+    console.log(` Retrieved ${conversations.length}/${totalCount} demo conversations`);
     
     res.json({ 
       success: true, 
@@ -841,6 +897,11 @@ router.get("/conversations-demo/:conversation_id/messages", async (req, res) => 
     const parsedLimit = Math.min(parseInt(limit) || 100, 200);
     const parsedSkip = parseInt(skip) || 0;
     
+    const guestId = getGuestId(req);
+    if (!guestId) {
+      return res.status(404).json({ success: false, message: "Conversation not found" });
+    }
+
     console.log(` [DEMO] Loading messages for ${conversation_id} (limit: ${parsedLimit}, skip: ${parsedSkip})`);
 
     const projection = {
@@ -862,14 +923,15 @@ router.get("/conversations-demo/:conversation_id/messages", async (req, res) => 
     }
     
     const messages = await chatHistoryDB
-      .find({ conversation_id: { $in: convIdCandidates } }, { projection })
+      .find({ conversation_id: { $in: convIdCandidates }, user_id: guestId }, { projection })
       .sort({ sequence: 1, created_at: 1 })
       .skip(parsedSkip)
       .limit(parsedLimit)
       .toArray();
     
     const totalCount = await chatHistoryDB.countDocuments({
-      conversation_id: { $in: convIdCandidates }
+      conversation_id: { $in: convIdCandidates },
+      user_id: guestId
     });
     
     console.log(` [DEMO] Retrieved ${messages.length}/${totalCount} messages`);
@@ -1236,7 +1298,9 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
         const errorText = await knowledgeServiceResponse.text().catch(() => 'Unknown error');
         console.error(` [CHAT-SEND] RAG service error: ${knowledgeServiceResponse.status} ${knowledgeServiceResponse.statusText} - ${errorText}`);
         
-        throw new Error(`RAG service returned ${knowledgeServiceResponse.status}: ${errorText}`);
+        const statusError = new Error(`RAG service returned ${knowledgeServiceResponse.status}: ${errorText}`);
+        statusError.status = knowledgeServiceResponse.status;
+        throw statusError;
       }
 
       aiKnowledgeResponse = await knowledgeServiceResponse.json();
@@ -1258,42 +1322,34 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
         console.error(` [CHAT-SEND] RAG service error:`, ragError.message);
       }
 
-      const fallbackMessage = generateContextualFallback(message, university_name);
-      console.log(` [CHAT-SEND] Using contextual fallback response`);
-      
-      const fallbackAiMessage = {
-        user_id: userId,
-        conversation_id: conversation_id,
-        message: fallbackMessage,
-        is_bot: true,
-        created_at: new Date(),
-        timestamp: new Date().toISOString(),
-        sources: [{source: "Local Knowledge", type: "fallback", confidence: 0.4}],
-        confidence: 0.4,
-        fallback_mode: true,
-        rag_error: ragError.message
-      };
-
-      try {
-        await chatHistoryDB.insertOne(fallbackAiMessage);
-        console.log(` [CHAT-SEND] Fallback response saved to MongoDB`);
-      } catch (dbError) {
-        console.error(` [CHAT-SEND] Failed to save fallback:`, dbError.message);
+      // No canned answer: remove the student's message so a retry doesn't
+      // save it twice, and tell the frontend it can retry. A timeout,
+      // refused connection or 502/503/504 usually means the AI service is
+      // waking up after being idle.
+      if (userMessageSaved && studentMessage._id) {
+        try {
+          await chatHistoryDB.deleteOne({ _id: studentMessage._id });
+        } catch (dbError) {
+          console.error(` [CHAT-SEND] Failed to remove unanswered message:`, dbError.message);
+        }
       }
 
-      const processingTime = Date.now() - startTime;
-      console.log(` [CHAT-SEND] Fallback processing time: ${processingTime}ms`);
+      const wakingUp =
+        ragError.name === 'AbortError' ||
+        ['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN'].includes(ragError.code) ||
+        [502, 503, 504].includes(ragError.status);
 
-      return res.status(200).json({
-        success: true,
-        message: fallbackMessage,
-        reply: fallbackMessage,
+      const processingTime = Date.now() - startTime;
+      console.log(` [CHAT-SEND] AI unavailable (${wakingUp ? 'waking up' : 'error'}) after ${processingTime}ms`);
+
+      return res.status(503).json({
+        success: false,
+        error: wakingUp ? 'AI_WAKING_UP' : 'AI_UNAVAILABLE',
+        retryable: true,
+        message: wakingUp
+          ? 'Cerkyl is waking up. This can take up to a minute.'
+          : "Cerkyl couldn't answer that just now. Please try again.",
         conversation_id: conversation_id,
-        sources: [{source: "Local Knowledge", type: "fallback", confidence: 0.4}],
-        confidence: 0.4,
-        timestamp: new Date().toISOString(),
-        fallback_mode: true,
-        rag_error: ragError.message,
         processing_time: processingTime
       });
     }
@@ -1317,85 +1373,70 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
       console.error(`   └─ Database error details:`, dbError);
     }
 
+    // Give the conversation a real title as soon as it has an answer, and
+    // retry on later messages if an earlier attempt didn't stick.
     try {
       const chatSessionsDB = await getCollection('conversations');
-      
-      const messageCount = await chatHistoryDB.countDocuments({
-        conversation_id: conversation_id,
-        user_id: userId
-      });
+      const conversation = await chatSessionsDB.findOne(
+        { _id: conversation_id },
+        { projection: { title: 1, user_id: 1 } }
+      );
+      const ownedByOther = conversation?.user_id != null && String(conversation.user_id) !== String(userId);
 
-      console.log(`[TITLE-GEN] Message count for conversation ${conversation_id}: ${messageCount}`);
+      if (!ownedByOther && isGenericTitle(conversation?.title) && !titlesInProgress.has(conversation_id)) {
+        titlesInProgress.add(conversation_id);
+        console.log(`[TITLE-GEN] Generating title for conversation ${conversation_id}`);
 
-      if (messageCount === 2) {
-        console.log(` [TITLE-GEN] This is the first exchange! Generating title from first user message...`);
-        
-        const conversation = await chatSessionsDB.findOne({
-          _id: conversation_id,
-          user_id: userId
-        });
+        setImmediate(async () => {
+          try {
+            const firstUserMessage = await chatHistoryDB.findOne(
+              { conversation_id, user_id: userId, is_bot: false },
+              { sort: { created_at: 1 }, projection: { message: 1 } }
+            );
+            const firstText = firstUserMessage?.message || message;
+            const titleResult = await generateTitleWithFallback(
+              firstText,
+              aiKnowledgeResponse.reply,
+              university_name,
+              () => titleFromMessage(firstText)
+            );
 
-        const hasCustomTitle = conversation?.title && 
-                              conversation.title !== 'New Conversation' && 
-                              conversation.title !== 'Untitled Conversation' &&
-                              !conversation.title.startsWith('conv_');
-
-        if (!hasCustomTitle) {
-          console.log(`[TITLE-GEN] No custom title set, generating from first message...`);
-          
-          setImmediate(async () => {
-            try {
-              const titleResult = await generateTitleWithFallback(
-                message, // First user message 
-                aiKnowledgeResponse.reply, // First bot reply
-                university_name,
-
-                () => {
-                  const cleanMsg = message.trim();
-                  const firstSentence = cleanMsg.match(/^[^.!?]+/)?.[0] || cleanMsg;
-                  return firstSentence.length > 60 
-                    ? firstSentence.substring(0, 60).trim() + '...' 
-                    : firstSentence;
-                }
-              );
-
-              const updateResult = await chatSessionsDB.updateOne(
-                { _id: conversation_id, user_id: userId },
-                { 
-                  $set: { 
-                    title: titleResult.title,
-                    title_generated_at: new Date(),
-                    title_method: titleResult.method,
-                    updated_at: new Date()
-                  },
-                  $setOnInsert: {
-                    created_at: new Date(),
-                    last_message: '',
-                    message_count: 0
-                  }
-                },
-                { upsert: true } 
-              );
-
-              if (updateResult.upsertedCount > 0) {
-                console.log(` [TITLE-GEN] Created conversation with title: "${titleResult.title}" (method: ${titleResult.method})`);
-              } else {
-                console.log(` [TITLE-GEN] Updated conversation with title: "${titleResult.title}" (method: ${titleResult.method})`);
-              }
-            } catch (titleError) {
-              console.error(` [TITLE-GEN] Failed to generate title:`, titleError.message);
-
+            // Only fill in a missing or generic title; never overwrite one
+            // that was saved meanwhile.
+            const latest = await chatSessionsDB.findOne({ _id: conversation_id }, { projection: { title: 1 } });
+            if (latest && !isGenericTitle(latest.title)) {
+              console.log(`[TITLE-GEN] Title already set meanwhile: "${latest.title}"`);
+              return;
             }
-          });
-        } else {
-          console.log(`[TITLE-GEN] Conversation already has custom title: "${conversation.title}"`);
-        }
-      } else {
-        console.log(` [TITLE-GEN] Not first exchange (count: ${messageCount}), skipping title generation`);
+
+            await chatSessionsDB.updateOne(
+              { _id: conversation_id },
+              {
+                $set: {
+                  title: titleResult.title,
+                  title_generated_at: new Date(),
+                  title_method: titleResult.method,
+                  updated_at: new Date(),
+                  user_id: userId
+                },
+                $setOnInsert: {
+                  created_at: new Date(),
+                  last_message: '',
+                  message_count: 0
+                }
+              },
+              { upsert: true }
+            );
+            console.log(` [TITLE-GEN] Saved title: "${titleResult.title}" (method: ${titleResult.method})`);
+          } catch (titleError) {
+            console.error(` [TITLE-GEN] Failed to generate title:`, titleError.message);
+          } finally {
+            titlesInProgress.delete(conversation_id);
+          }
+        });
       }
     } catch (titleCheckError) {
       console.error(` [TITLE-GEN] Error checking for title generation:`, titleCheckError.message);
-
     }
 
     const processingTime = Date.now() - startTime;
@@ -1417,43 +1458,16 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
     const processingTime = Date.now() - startTime;
     console.error(` [CHAT-SEND] Critical error (after ${processingTime}ms):`, error);
     console.error(` [CHAT-SEND] Error stack:`, error.stack);
-    
-    const fallbackMessage = generateContextualFallback(
-      req.body?.message, 
-      req.body?.university_name
-    );
-    
-    res.status(200).json({ 
-      success: true,
-      message: fallbackMessage,
-      reply: fallbackMessage,
-      conversation_id: req.body.conversation_id,
-      sources: [{source: "Emergency Fallback", type: "error_fallback", confidence: 0.3}],
-      confidence: 0.3,
-      timestamp: new Date().toISOString(),
-      error_recovery: true,
-      error_message: error.message
+
+    res.status(500).json({
+      success: false,
+      error: 'SEND_FAILED',
+      retryable: true,
+      message: "Your message couldn't be sent. Please try again.",
+      conversation_id: req.body?.conversation_id
     });
   }
 });
-
-function generateContextualFallback(message, universityName) {
-  const messageLower = (message || '').toLowerCase();
-  
-  if (messageLower.includes('admission') || messageLower.includes('apply')) {
-    return `I'm here to help with ${universityName || 'Ghanaian university'} admissions! While I'm experiencing some technical difficulties, I can tell you that most Ghanaian universities open applications between March and December each year. Would you like information about specific admission requirements or deadlines?`;
-  }
-  
-  if (messageLower.includes('fee') || messageLower.includes('cost') || messageLower.includes('price')) {
-    return `Application fees for Ghanaian universities typically range from GHS 150 to GHS 300 for undergraduate programs. I'm currently experiencing technical issues, but I can still help you with general information. What specific university are you interested in?`;
-  }
-  
-  if (messageLower.includes('deadline')) {
-    return `Most Ghanaian university deadlines fall between October and December for the following academic year. I'm having some connectivity issues right now, but I'd be happy to provide more specific information. Which university would you like to know about?`;
-  }
-  
-  return `I'm currently experiencing some technical difficulties, but I'm still here to help! I can assist with information about Ghanaian university admissions, application requirements, fees, and deadlines. What would you like to know?`;
-}
 
 router.post("/send-message-demo", async (req, res) => {
   try {
