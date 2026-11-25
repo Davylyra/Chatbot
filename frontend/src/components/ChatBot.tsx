@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiSend,
@@ -12,14 +12,14 @@ import {
   FiSearch,
   FiStar,
   FiRefreshCw,
+  FiSquare,
 } from 'react-icons/fi';
-import ChatBubble from './ChatBubble';
+import ChatBubble, { CerkylAvatar, TypingDots } from './ChatBubble';
 import AuthenticationModal from './AuthenticationModal';
 import { useAppStore } from '../store';
 import { useTheme } from '../contexts/ThemeContext';
 import { useChat, type EnhancedChatResponse } from '../hooks/useChat';
 import { useAuth } from '../contexts/AuthContext';
-import { getPersonalizedGreeting } from '../utils/greetings';
 import {
   generateConversationTitle,
   shouldUpdateConversationTitle,
@@ -56,7 +56,15 @@ interface ReplyRequest {
   conversationId: string;
   isFirstUserMessage: boolean;
   context?: any;
+  // The student's message in the chat, removed again if they press Stop.
+  userMessageId?: string;
 }
+
+// Career Coach opens with Cerkyl asking the first question instead of
+// sending a message on the student's behalf.
+const COACH_OPENING =
+  "Let's work out what suits you. I'll ask you a few quick questions, and you can answer in your own words.\n\n" +
+  '**To start: which subjects do you enjoy most at school, and which ones come easily to you?**';
 
 // When the AI service has been idle it takes a while to wake up, so a
 // failed send is retried automatically this many times before giving up.
@@ -85,6 +93,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
     const { sendMessage: sendChatMessage } = useChat();
     const { user, isGuest, isAuthenticated } = useAuth();
     const location = useLocation();
+    const navigate = useNavigate();
 
     const rawUniversityContext = location.state?.universityContext || propUniversityContext;
     const rawAssessmentData = location.state?.assessmentData || propAssessmentData;
@@ -118,6 +127,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(
     // A message whose reply failed, kept so the Retry button can resend it.
     const [failedSend, setFailedSend] = useState<ReplyRequest | null>(null);
     const [statusNote, setStatusNote] = useState<string | null>(null);
+    // The request waiting for a reply, so the Stop button can cancel it.
+    const activeRequestRef = useRef<AbortController | null>(null);
+    const initRanRef = useRef(false);
     const [showAttachMenu, setShowAttachMenu] = useState(false);
     const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
     const [showAuthModal, setShowAuthModal] = useState(false);
@@ -204,102 +216,50 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       doResume();
     }, [resumeConversationId, resumeConversationTitle]);
 
-    // 1. Initialize conversation ONCE on mount
+    // Set up the chat once when the page opens. Start a new conversation when
+    // one is asked for (New Chat, Career Coach, a university or assessment
+    // button) or when there isn't one yet. No greeting message: the empty
+    // chat screen does that job. Resuming a saved chat is handled above.
     useEffect(() => {
-      if (isInitialized) return;
-      // If resuming an existing conversation, skip auto-creation/welcome
-      if (resumeConversationId) {
-        return;
-      }
+      if (initRanRef.current) return;
+      initRanRef.current = true;
+      if (resumeConversationId) return;
 
-      const { greeting } = getPersonalizedGreeting(user?.name);
-      const guestNote = isGuest ? " (You're in guest mode - some features may be limited)" : '';
+      const state = useAppStore.getState();
+      const needsNewConversation =
+        !state.currentConversation ||
+        !!locationForceNewConversation ||
+        !!initialMessage ||
+        forceCoachMode;
 
-      if (!currentConversation) {
-        // Conversation title
-        const conversationTitle = 'New Conversation';
-        const newConversationId = stableCreateConversation(conversationTitle);
+      if (needsNewConversation) {
+        const previous = state.currentConversation;
+        if (previous && state.messages.some((m) => m.conversationId === previous.id)) {
+          state.saveCurrentConversation().catch(() => {});
+        }
 
-        const newConversation = useAppStore
+        const newConversationId = stableCreateConversation('New Conversation');
+        const created = useAppStore
           .getState()
           .conversations.find((c) => c.id === newConversationId);
-        if (newConversation) {
-          newConversation.universityContext = universityContext?.name;
-          stableSetCurrentConversation(newConversation);
+        if (created) {
+          stableSetCurrentConversation({ ...created, universityContext: universityContext?.name });
         }
 
-        let welcomeText = '';
-        if (assessmentData) {
-          welcomeText = `${greeting}! I can see you've completed your assessment. I'm here to help you understand your results and discuss your university options.${guestNote}`;
-        } else if (universityContext) {
-          welcomeText = `${greeting}! I'm now focused on ${universityContext.name}. How can I help you with their admissions and information?${guestNote}`;
-        } else {
-          welcomeText = `${greeting}! I'm here to help you with university admissions in Ghana.${guestNote}`;
+        if (forceCoachMode) {
+          stableAddMessage({
+            id: `coach-${Date.now()}`,
+            text: COACH_OPENING,
+            isUser: false,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            conversationId: newConversationId,
+          });
         }
-
-        const welcomeMessage = {
-          id: '1',
-          text: welcomeText,
-          isUser: false,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          conversationId: newConversationId,
-        };
-
-        stableAddMessage(welcomeMessage);
       }
 
       setIsInitialized(true);
-    }, []); // Empty dependency array - run ONCE on mount
-
-    // 2. Handle force new conversation separately
-    useEffect(() => {
-      if (!locationForceNewConversation || !isInitialized) return;
-
-      const { greeting } = getPersonalizedGreeting(user?.name);
-
-      if (currentConversation && currentMessages.length > 0) {
-        stableSaveCurrentConversation();
-      }
-
-      // Clear current messages from UI immediately
-      const state = useAppStore.getState();
-      if (state.currentConversation) {
-        useAppStore.setState((prevState) => ({
-          messages: prevState.messages.filter(
-            (msg) => msg.conversationId !== state.currentConversation!.id
-          ),
-        }));
-      }
-
-      const conversationTitle = 'New Conversation';
-      const newConversationId = stableCreateConversation(conversationTitle);
-
-      const newConversation = useAppStore
-        .getState()
-        .conversations.find((c) => c.id === newConversationId);
-      if (newConversation) {
-        if (universityContext) {
-          newConversation.universityContext = universityContext.name;
-        }
-        stableSetCurrentConversation(newConversation);
-      }
-
-      let welcomeText = '';
-      if (universityContext) {
-        welcomeText = `${greeting}! I'm now focused on ${universityContext.name}. How can I help you with their admissions and information?`;
-      } else {
-        welcomeText = `${greeting}! I'm here to help you with university admissions in Ghana. What would you like to know?`;
-      }
-
-      const welcomeMessage = {
-        id: '1',
-        text: welcomeText,
-        isUser: false,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        conversationId: newConversationId,
-      };
-      stableAddMessage(welcomeMessage);
-    }, [locationForceNewConversation]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // 3. Handle initial messages (assessment or university) with duplicate prevention
     useEffect(() => {
@@ -340,7 +300,33 @@ const ChatBot: React.FC<ChatBotProps> = memo(
           useAppStore.getState().updateConversation(currentConversation.id, { title: newTitle });
         }
 
-        handleInitialMessageResponse(initialMessage, currentConversation.id);
+        const context = assessmentData
+          ? {
+              assessment_data: assessmentData,
+              is_assessment_result: true,
+              context_switch: true,
+              bestSubject: assessmentData?.bestSubject,
+              shs_program: assessmentData?.shsProgram,
+              wassce_grade: assessmentData?.wassceGrade,
+              interests: assessmentData?.interests,
+              career_goals: assessmentData?.careerGoals,
+              preferred_location: assessmentData?.preferredLocation,
+              is_coach_mode: forceCoachMode,
+            }
+          : {
+              context_switch: true,
+              university_info_request: true,
+              is_coach_mode: forceCoachMode,
+            };
+
+        deliverReply({
+          text: initialMessage,
+          files: [],
+          conversationId: currentConversation.id,
+          isFirstUserMessage,
+          context,
+          userMessageId: userMessage.id,
+        });
       }, 500);
 
       return () => clearTimeout(timeoutId);
@@ -388,15 +374,19 @@ const ChatBot: React.FC<ChatBotProps> = memo(
     const sendWithWakeRetry = async (
       text: string,
       conversationId: string,
-      context: any
+      context: any,
+      signal?: AbortSignal
     ): Promise<EnhancedChatResponse> => {
+      const cancelled: EnhancedChatResponse = { success: false, message: 'Cancelled', error: 'CANCELLED' };
       for (let attempt = 0; ; attempt++) {
         const response = await stableSendChatMessage(
           text,
           conversationId,
           universityContext?.name,
-          context
+          context,
+          signal
         );
+        if (signal?.aborted) return cancelled;
         const wakingUp =
           !response.success &&
           response.retryable &&
@@ -408,86 +398,17 @@ const ChatBot: React.FC<ChatBotProps> = memo(
         setStatusNote(
           'Cerkyl is waking up after being idle. This can take up to a minute, please hold on...'
         );
-        await new Promise((resolve) => setTimeout(resolve, WAKE_RETRY_DELAY_MS));
+        // Wait before retrying, but stop at once if the student presses Stop.
+        await new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, WAKE_RETRY_DELAY_MS);
+          signal?.addEventListener('abort', () => {
+            clearTimeout(timer);
+            resolve();
+          });
+        });
+        if (signal?.aborted) return cancelled;
       }
     };
-
-    const handleInitialMessageResponse = useCallback(
-      async (message: string, conversationId: string) => {
-        setIsTyping(true);
-        try {
-          // Determine context based on whether this is assessment or university
-          const context = assessmentData
-            ? {
-                assessment_data: assessmentData,
-                is_assessment_result: true,
-                context_switch: true,
-                bestSubject: assessmentData?.bestSubject,
-                shs_program: assessmentData?.shsProgram,
-                wassce_grade: assessmentData?.wassceGrade,
-                interests: assessmentData?.interests,
-                career_goals: assessmentData?.careerGoals,
-                preferred_location: assessmentData?.preferredLocation,
-                is_coach_mode: forceCoachMode,
-              }
-            : {
-                context_switch: true,
-                university_info_request: true,
-                session_context: {
-                  message_count: currentMessages.length,
-                  has_university_preference: !!universityContext,
-                  timestamp: new Date().toISOString(),
-                },
-                is_coach_mode: forceCoachMode,
-              };
-
-          const response = await sendWithWakeRetry(message, conversationId, context);
-
-          if (response && !response.success && response.retryable) {
-            setError(response.message || "Your message couldn't be sent.");
-            setFailedSend({ text: message, files: [], conversationId, isFirstUserMessage: false, context });
-            return;
-          }
-
-          if (response && response.success && response.message) {
-            const botMessage = {
-              id: `bot-${Date.now()}`,
-              text: response.message,
-              isUser: false,
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              conversationId: conversationId,
-              sources: response.sources || [],
-              confidence: response.confidence || 0.0,
-            };
-            stableAddMessage(botMessage);
-            notifySidebarRefresh();
-          }
-        } catch (error) {
-          const errorMessage = {
-            id: `error-${Date.now()}`,
-            text: assessmentData
-              ? `I received your assessment data. Let me help you with university recommendations based on your profile.`
-              : universityContext
-                ? `I'm here to help you with ${universityContext.name}! Feel free to ask about their programs, admission requirements, or any other questions.`
-                : `I'm here to help you with university admissions in Ghana. What would you like to know?`,
-            isUser: false,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            conversationId: conversationId,
-          };
-          stableAddMessage(errorMessage);
-        } finally {
-          setIsTyping(false);
-        }
-      },
-      [
-        assessmentData,
-        universityContext,
-        stableSendChatMessage,
-        stableAddMessage,
-        currentMessages.length,
-        notifySidebarRefresh,
-      ]
-    );
 
     // quickActions removed due to TS6133
 
@@ -547,15 +468,18 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       lastMessageCountRef.current = currentMessages.length;
     }, [currentMessages.length, isUserAtBottom, scrollToBottom, currentMessages]);
 
-    const handleSendMessage = async () => {
-      if ((!inputMessage.trim() && attachedFiles.length === 0) || !currentConversation) return;
+    // `overrideText` lets the suggestion cards send their prompt directly;
+    // setting the input state first wouldn't apply until the next render.
+    const handleSendMessage = async (overrideText?: unknown) => {
+      const typedText = typeof overrideText === 'string' ? overrideText : inputMessage;
+      if ((!typedText.trim() && attachedFiles.length === 0) || !currentConversation) return;
 
       if (!isAuthenticated && !isGuest && attachedFiles.length > 0) {
         setShowAuthModal(true);
         return;
       }
 
-      const messageText = inputMessage.trim();
+      const messageText = typedText.trim();
       const filesToSend = [...attachedFiles];
 
       const isFirstUserMessage = currentMessages.filter((m) => m.isUser).length === 0;
@@ -601,6 +525,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
         files: filesToSend,
         conversationId: currentConversation.id,
         isFirstUserMessage,
+        userMessageId: newMessage.id,
         context: {
           session_context: {
             message_count: currentMessages.length,
@@ -608,6 +533,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(
             timestamp: new Date().toISOString(),
           },
           is_coach_mode: forceCoachMode,
+          // Cerkyl's coach question isn't saved yet on the first reply, so
+          // send it along for the AI to see what the student is answering.
+          ...(forceCoachMode && isFirstUserMessage && { coach_opening: COACH_OPENING }),
         },
       });
     };
@@ -621,6 +549,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       setError(null);
       setFailedSend(null);
 
+      const controller = new AbortController();
+      activeRequestRef.current = controller;
+
       const showFailure = (message: string) => {
         setError(message);
         setFailedSend(request);
@@ -633,9 +564,23 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                 messageText,
                 filesToSend,
                 conversationId,
-                universityContext?.name
+                universityContext?.name,
+                controller.signal
               )
-            : await sendWithWakeRetry(messageText, conversationId, request.context);
+            : await sendWithWakeRetry(messageText, conversationId, request.context, controller.signal);
+
+        if (controller.signal.aborted || response?.error === 'CANCELLED') {
+          // Stopped: take the message back out of the chat and put the text
+          // back in the box so the student can edit and resend it.
+          if (request.userMessageId) {
+            useAppStore.setState((state) => ({
+              messages: state.messages.filter((m) => m.id !== request.userMessageId),
+            }));
+          }
+          setInputMessage((current) => (current.trim() ? current : messageText));
+          if (filesToSend.length > 0) setAttachedFiles(filesToSend);
+          return;
+        }
 
         if (response && response.success && response.message) {
           const botMessage = {
@@ -691,10 +636,18 @@ const ChatBot: React.FC<ChatBotProps> = memo(
             : "Your message couldn't be sent. Please try again."
         );
       } finally {
+        if (activeRequestRef.current === controller) activeRequestRef.current = null;
         setIsTyping(false);
         setStatusNote(null);
       }
     };
+
+    const handleStop = () => {
+      activeRequestRef.current?.abort();
+    };
+
+    // Cancel a pending request if the chat closes (new chat, leaving the page).
+    useEffect(() => () => activeRequestRef.current?.abort(), []);
 
     const handleRetry = () => {
       if (!failedSend || isTyping) return;
@@ -705,7 +658,8 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       message: string,
       files: File[],
       conversationId: string,
-      universityName?: string
+      universityName?: string,
+      signal?: AbortSignal
     ): Promise<EnhancedChatResponse> => {
       try {
         const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -761,6 +715,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
           method: 'POST',
           headers,
           body: formData,
+          signal,
         });
 
         if (!response.ok) {
@@ -785,6 +740,9 @@ const ChatBot: React.FC<ChatBotProps> = memo(
           metadata: fileResponsePayload.metadata || {},
         };
       } catch (error: any) {
+        if (signal?.aborted) {
+          return { success: false, message: 'Cancelled', error: 'CANCELLED' };
+        }
         if (error?.message?.includes('too large')) {
           throw new Error('One or more files are too large. Please use files under 10MB.');
         } else if (error?.message?.includes('not supported')) {
@@ -904,6 +862,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
     };
 
     const handleStartNewConversation = useCallback(() => {
+      activeRequestRef.current?.abort();
       if (currentConversation && currentMessages.length > 0) {
         stableSaveCurrentConversation().catch(() => {});
       }
@@ -924,27 +883,15 @@ const ChatBot: React.FC<ChatBotProps> = memo(
         error: null,
       });
 
-      const newConversationId = startNewConversation();
+      startNewConversation();
 
       setIsInitialized(true);
 
-      const { greeting } = getPersonalizedGreeting(user?.name);
-      const guestNote = isGuest ? " (You're in guest mode - some features may be limited)" : '';
-      stableAddMessage({
-        id: `welcome-${Date.now()}`,
-        text: `${greeting}! This is a new chat. Ask me anything about Ghanaian universities.${guestNote}`,
-        isUser: false,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        conversationId: newConversationId,
-      });
     }, [
       currentConversation,
       currentMessages.length,
       stableSaveCurrentConversation,
       startNewConversation,
-      user?.name,
-      isGuest,
-      stableAddMessage,
     ]);
 
     useEffect(() => {
@@ -955,10 +902,10 @@ const ChatBot: React.FC<ChatBotProps> = memo(
 
     return (
       <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-        {/* Header with New Conversation Button */}
-        {currentMessages.length > 1 && (
+        {/* New chat bar, phones only: on larger screens the sidebar has it. */}
+        {currentMessages.length > 0 && (
           <div
-            className={`p-4 border-b transition-colors duration-200 ${
+            className={`md:hidden px-4 py-2.5 border-b transition-colors duration-200 ${
               theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
             }`}
           >
@@ -992,92 +939,88 @@ const ChatBot: React.FC<ChatBotProps> = memo(
 
         <div
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4 min-h-0 relative"
+          className="flex-1 overflow-y-auto scrollbar-hide min-h-0 relative"
         >
+          {/* One centred column, like ChatGPT and Claude, so the eye doesn't
+              travel across the whole screen. Shares its width with the input. */}
+          <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-7">
           <AnimatePresence mode="popLayout">
-            {currentMessages.length <= 1 ? (
-              <div className="flex flex-col items-center justify-center text-center w-full min-h-[60vh]">
-                <h1 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900 dark:text-white">
-                  Thinking about your future?,{' '}
-                  <span className="text-blue-500">{user?.name?.split(' ')[0] || 'Guest'}</span>
+            {currentMessages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-center w-full min-h-[60vh] py-8">
+                <img src="/cerkyl.svg" alt="" className="w-12 h-12 mb-5 object-contain" />
+                <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mb-3 text-gray-900 dark:text-white">
+                  Thinking about your future,{' '}
+                  <span className="text-primary-600 dark:text-primary-400">
+                    {user?.name?.split(' ')[0] || 'Guest'}
+                  </span>
+                  ?
                 </h1>
-                <p className="text-gray-600 dark:text-gray-400 mb-12 text-lg">
-                  Ask me anything about universities and admissions.
+                <p className="text-gray-500 dark:text-gray-400 mb-10 text-base md:text-lg">
+                  Ask me anything about universities and admissions in Ghana.
                 </p>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl w-full px-4">
-                  {/* Explore Programs */}
-                  <button
-                    onClick={() => {
-                      setInputMessage('I want to explore university programs');
-                      handleSendMessage();
-                    }}
-                    className="flex flex-col items-center p-6 bg-white dark:bg-gray-800/40 hover:bg-gray-50 dark:hover:bg-gray-800/80 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm dark:shadow-none transition-all duration-200"
-                  >
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-600/20 rounded-xl border border-blue-200 dark:border-blue-500/30 flex items-center justify-center mb-4">
-                      <FiSearch className="text-blue-600 dark:text-blue-400 text-xl" />
-                    </div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium text-sm text-center">
-                      Explore Programs
-                    </span>
-                  </button>
-                  {/* Admission Requirements */}
-                  <button
-                    onClick={() => {
-                      setInputMessage('What are the admission requirements?');
-                      handleSendMessage();
-                    }}
-                    className="flex flex-col items-center p-6 bg-white dark:bg-gray-800/40 hover:bg-gray-50 dark:hover:bg-gray-800/80 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm dark:shadow-none transition-all duration-200"
-                  >
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-600/20 rounded-xl border border-blue-200 dark:border-blue-500/30 flex items-center justify-center mb-4">
-                      <FiFile className="text-blue-600 dark:text-blue-400 text-xl" />
-                    </div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium text-sm text-center">
-                      Admission Requirements
-                    </span>
-                  </button>
-                  {/* Compare Universities */}
-                  <button
-                    onClick={() => {
-                      setInputMessage('Compare KNUST and UG');
-                      handleSendMessage();
-                    }}
-                    className="flex flex-col items-center p-6 bg-white dark:bg-gray-800/40 hover:bg-gray-50 dark:hover:bg-gray-800/80 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm dark:shadow-none transition-all duration-200"
-                  >
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-600/20 rounded-xl border border-blue-200 dark:border-blue-500/30 flex items-center justify-center mb-4">
-                      <FiUsers className="text-blue-600 dark:text-blue-400 text-xl" />
-                    </div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium text-sm text-center">
-                      Compare Schools
-                    </span>
-                  </button>
-                  {/* Career Coach */}
-                  <button
-                    onClick={() => {
-                      setInputMessage(
-                        "I am confused about my career path and need help finding out what I'm good at."
-                      );
-                      handleSendMessage();
-                    }}
-                    className="flex flex-col items-center p-6 bg-white dark:bg-gray-800/40 hover:bg-gray-50 dark:hover:bg-gray-800/80 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm dark:shadow-none transition-all duration-200"
-                  >
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-600/20 rounded-xl border border-blue-200 dark:border-blue-500/30 flex items-center justify-center mb-4">
-                      <FiStar className="text-blue-600 dark:text-blue-400 text-xl" />
-                    </div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium text-sm text-center">
-                      Career Coach
-                    </span>
-                  </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full text-left">
+                  {[
+                    {
+                      icon: FiSearch,
+                      title: 'Explore programmes',
+                      subtitle: 'Find courses that match your interests',
+                      prompt: 'I want to explore university programs',
+                    },
+                    {
+                      icon: FiFile,
+                      title: 'Admission requirements',
+                      subtitle: 'Cut-off points, subjects and documents',
+                      prompt: 'What are the admission requirements?',
+                    },
+                    {
+                      icon: FiUsers,
+                      title: 'Compare schools',
+                      subtitle: 'KNUST and UG side by side',
+                      prompt: 'Compare KNUST and UG',
+                    },
+                    {
+                      icon: FiStar,
+                      title: 'Career coach',
+                      subtitle: "Work out what you're good at",
+                      prompt: null,
+                    },
+                  ].map((card) => (
+                    <button
+                      key={card.title}
+                      onClick={() =>
+                        card.prompt
+                          ? handleSendMessage(card.prompt)
+                          : navigate('/chat', {
+                              state: { forceNewConversation: true, forceCoachMode: true },
+                            })
+                      }
+                      disabled={isTyping || isGuest}
+                      className="group flex items-start gap-3 p-4 text-left rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/60 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span className="shrink-0 w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center">
+                        <card.icon className="w-4 h-4" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
+                          {card.title}
+                        </span>
+                        <span className="block text-xs mt-0.5 text-gray-500 dark:text-gray-400">
+                          {card.subtitle}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
                 </div>
               </div>
             ) : (
               currentMessages.map((message) => (
                 <motion.div
                   key={`message-${message.id}-${message.conversationId}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
                 >
                   <ChatBubble message={message} />
                 </motion.div>
@@ -1088,30 +1031,14 @@ const ChatBot: React.FC<ChatBotProps> = memo(
           {/* Typing Indicator */}
           {isTyping && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`flex items-center space-x-2 transition-colors duration-200 ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-              }`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-start gap-3"
             >
-              <div className="flex space-x-1">
-                <div
-                  className={`w-2 h-2 rounded-full animate-bounce ${
-                    theme === 'dark' ? 'bg-gray-500' : 'bg-gray-400'
-                  }`}
-                ></div>
-                <div
-                  className={`w-2 h-2 rounded-full animate-bounce animate-delay-100 ${
-                    theme === 'dark' ? 'bg-gray-500' : 'bg-gray-400'
-                  }`}
-                ></div>
-                <div
-                  className={`w-2 h-2 rounded-full animate-bounce animate-delay-200 ${
-                    theme === 'dark' ? 'bg-gray-500' : 'bg-gray-400'
-                  }`}
-                ></div>
+              <CerkylAvatar />
+              <div className="pt-0.5">
+                <TypingDots label={statusNote || undefined} />
               </div>
-              <span className="text-sm">{statusNote || 'CERKYL is typing...'}</span>
             </motion.div>
           )}
 
@@ -1121,21 +1048,13 @@ const ChatBot: React.FC<ChatBotProps> = memo(
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               role="alert"
-              className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-200 ${
-                theme === 'dark'
-                  ? 'bg-red-900/40 border border-red-700 text-red-200'
-                  : 'bg-red-50 border border-red-300 text-red-800'
-              }`}
+              className="ml-11 flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-sm border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300"
             >
               <span>{error}</span>
               {failedSend && failedSend.conversationId === currentConversation?.id && (
                 <button
                   onClick={handleRetry}
-                  className={`flex items-center gap-1 shrink-0 px-3 py-1 rounded-md font-medium transition-colors duration-200 ${
-                    theme === 'dark'
-                      ? 'bg-red-700 hover:bg-red-600 text-white'
-                      : 'bg-red-600 hover:bg-red-700 text-white'
-                  }`}
+                  className="flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-lg font-medium bg-white dark:bg-red-900/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-900/70 transition-colors"
                 >
                   <FiRefreshCw className="w-3.5 h-3.5" />
                   Retry
@@ -1145,6 +1064,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
           )}
 
           <div ref={messagesEndRef} />
+          </div>
 
           {/* Jump to Latest Button */}
           <AnimatePresence>
@@ -1158,11 +1078,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                   setIsUserAtBottom(true);
                   setShowJumpToLatest(false);
                 }}
-                className={`fixed bottom-24 right-8 z-10 px-4 py-2 rounded-full shadow-lg transition-all duration-200 flex items-center gap-2 ${
-                  theme === 'dark'
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'bg-blue-500 hover:bg-blue-600 text-white'
-                }`}
+                className="fixed bottom-32 right-8 z-10 px-4 py-2 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
                 title="Jump to latest message"
               >
                 <span className="text-sm font-medium">↓ New messages</span>
@@ -1176,9 +1092,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
         {/* Attached Files Display */}
         {attachedFiles.length > 0 && (
           <div
-            className={`px-4 py-2 border-t transition-colors duration-200 ${
-              theme === 'dark' ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'
-            }`}
+            className="w-full max-w-3xl mx-auto px-4 sm:px-6 pt-2"
           >
             <div className="flex flex-wrap gap-2">
               {attachedFiles.map((file, index) => (
@@ -1213,18 +1127,15 @@ const ChatBot: React.FC<ChatBotProps> = memo(
 
         {/* Styled Input Area */}
         <div
-          className={`p-4 transition-colors duration-200 flex flex-col items-center ${
-            theme === 'dark' ? 'bg-[#0f1115] border-t border-gray-800' : 'bg-gray-50'
-          }`}
+          className="w-full max-w-3xl mx-auto px-4 sm:px-6 pt-2 pb-4 flex flex-col items-center"
         >
           <div
-            className={`w-full max-w-4xl flex items-center space-x-3 rounded-full px-3 py-2 transition-all duration-200 ${
-              theme === 'dark' ? 'bg-[#1e2329]' : 'bg-white shadow-lg border border-gray-200'
-            }`}
+            className="w-full flex items-end gap-2 rounded-3xl px-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm focus-within:border-primary-400 dark:focus-within:border-primary-600 focus-within:shadow-md transition-all duration-200"
           >
             {/* Attach Button (+) */}
-            <div className="relative">
+            <div className="relative pb-0.5">
               <button
+                aria-label="Attach files"
                 onClick={() => {
                   if (!isGuest) setShowAttachMenu(!showAttachMenu);
                 }}
@@ -1244,7 +1155,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
               </button>
             </div>
 
-            <div className="flex-1 relative flex items-center min-h-[40px] py-1">
+            <div className="flex-1 relative flex items-center min-h-[40px] py-1.5">
               <textarea
                 value={inputMessage}
                 onChange={(e) => {
@@ -1267,38 +1178,46 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                     }
                   }
                 }}
-                placeholder="Message CERKYL..."
+                placeholder={isGuest ? 'Log in to chat with CERKYL' : 'Message CERKYL...'}
                 rows={1}
-                className={`w-full px-2 bg-transparent focus:outline-none transition-all duration-200 resize-none max-h-[120px] scrollbar-hide py-1 ${
+                className={`w-full px-2 bg-transparent focus:outline-none text-[15px] transition-all duration-200 resize-none max-h-[120px] scrollbar-hide py-1 ${
                   theme === 'dark'
                     ? 'text-white placeholder-gray-500'
                     : 'text-gray-900 placeholder-gray-400'
                 } ${isGuest ? 'opacity-50 cursor-not-allowed' : ''}`}
-                disabled={isTyping || isGuest}
+                disabled={isGuest}
                 style={{ minHeight: '24px' }}
               />
             </div>
 
-            <div className="flex items-center space-x-2 pr-1">
-              <button
-                onClick={handleSendMessage}
-                disabled={!(inputMessage.trim() || attachedFiles.length > 0) || isTyping || isGuest}
-                className={`p-2 rounded-full transition-all duration-200 ${
-                  (inputMessage.trim() || attachedFiles.length > 0) && !isTyping && !isGuest
-                    ? theme === 'dark'
-                      ? 'text-white bg-gray-700'
-                      : 'text-black bg-gray-200'
-                    : theme === 'dark'
-                      ? 'text-gray-600'
-                      : 'text-gray-300'
-                }`}
-              >
-                <FiSend className="w-4 h-4" />
-              </button>
+            <div className="flex items-center pb-0.5">
+              {isTyping ? (
+                <button
+                  onClick={handleStop}
+                  aria-label="Stop"
+                  title="Stop"
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-900 hover:bg-gray-700 dark:bg-white dark:hover:bg-gray-200 text-white dark:text-gray-900 shadow-sm transition-colors"
+                >
+                  <FiSquare className="w-3.5 h-3.5 fill-current" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleSendMessage()}
+                  disabled={!(inputMessage.trim() || attachedFiles.length > 0) || isGuest}
+                  aria-label="Send message"
+                  className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 ${
+                    (inputMessage.trim() || attachedFiles.length > 0) && !isGuest
+                      ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-sm'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
+                  }`}
+                >
+                  <FiSend className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
 
-          <p className={`text-xs mt-3 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
+          <p className="text-xs mt-2.5 text-gray-400 dark:text-gray-500 text-center">
             CERKYL can make mistakes. Please verify important information.
           </p>
         </div>

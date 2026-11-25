@@ -1214,6 +1214,13 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
       console.error(` [CHAT-SEND] Failed to load chat history:`, historyError.message);
     }
 
+    const coachOpening = typeof user_context?.coach_opening === 'string'
+      ? user_context.coach_opening.trim().slice(0, 1000)
+      : '';
+    if (coachOpening && chatHistoryForAI.length === 0) {
+      chatHistoryForAI = [{ role: 'assistant', content: coachOpening }];
+    }
+
     // Load the user's saved assessment profile + already-computed university
     // matches (written by assessments.js on submit) so the AI doesn't have to
     // re-derive recommendations from scratch on every turn.
@@ -1280,6 +1287,24 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
       abortController.abort();
     }, 30000);
 
+    let cancelledByStudent = false;
+    res.on('close', () => {
+      if (!res.writableFinished) {
+        cancelledByStudent = true;
+        abortController.abort();
+      }
+    });
+    const discardCancelledTurn = async () => {
+      console.log(` [CHAT-SEND] Cancelled by the student, nothing saved for this turn`);
+      if (userMessageSaved && studentMessage._id) {
+        try {
+          await chatHistoryDB.deleteOne({ _id: studentMessage._id });
+        } catch (dbError) {
+          console.error(` [CHAT-SEND] Failed to remove cancelled message:`, dbError.message);
+        }
+      }
+    };
+
     let aiKnowledgeResponse;
     try {
       const knowledgeServiceResponse = await fetch(AI_SERVICE_URL, {
@@ -1311,6 +1336,11 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
 
     } catch (ragError) {
       clearTimeout(timeoutId);
+
+      if (cancelledByStudent) {
+        await discardCancelledTurn();
+        return;
+      }
 
       if (ragError.name === 'AbortError') {
         console.error(` [CHAT-SEND] RAG service request aborted (timeout)`);
@@ -1352,6 +1382,11 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
         conversation_id: conversation_id,
         processing_time: processingTime
       });
+    }
+
+    if (cancelledByStudent) {
+      await discardCancelledTurn();
+      return;
     }
 
     const aiMessage = {

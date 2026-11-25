@@ -39,6 +39,8 @@ export const useChat = () => {
     conversationId: string,
     universityName?: string,
     additionalContext?: any,
+    // Aborting this (the Stop button) cancels the request.
+    signal?: AbortSignal,
   ): Promise<EnhancedChatResponse> => {
     try {
       const token = localStorage.getItem("token");
@@ -72,6 +74,7 @@ export const useChat = () => {
         headers,
         body: JSON.stringify(requestPayload),
         credentials: "include",
+        signal,
       });
 
       const chatResponse = await response.json().catch(() => {
@@ -183,6 +186,9 @@ export const useChat = () => {
         },
       };
     } catch (networkError) {
+      if (signal?.aborted) {
+        return { success: false, message: "Cancelled", error: "CANCELLED" };
+      }
       console.error("Chat send failed:", networkError);
 
       let userFriendlyMessage = "Unable to send message. Please try again.";
