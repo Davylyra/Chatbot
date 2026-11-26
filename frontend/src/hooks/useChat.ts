@@ -31,6 +31,11 @@ export interface EnhancedChatResponse {
   retryable?: boolean;
 }
 
+export interface StreamCallbacks {
+  onMeta?: (meta: { sources?: ChatSource[]; confidence?: number }) => void;
+  onDelta?: (text: string) => void;
+}
+
 export const useChat = () => {
   const { showError, showSuccess } = useToast();
 
@@ -301,8 +306,303 @@ export const useChat = () => {
     }
   };
 
+  const sendMessageStream = async (
+    message: string,
+    conversationId: string,
+    universityName?: string,
+    additionalContext?: any,
+    signal?: AbortSignal,
+    callbacks?: StreamCallbacks,
+  ): Promise<EnhancedChatResponse> => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      return sendMessage(
+        message,
+        conversationId,
+        universityName,
+        additionalContext,
+        signal,
+      );
+    }
+
+    try {
+      const requestPayload = {
+        message,
+        conversation_id: conversationId,
+        university_name: universityName || null,
+        user_context: {
+          preferred_university: universityName,
+          timestamp: new Date().toISOString(),
+          ...additionalContext,
+        },
+      };
+
+      const response = await fetch(`${API_BASE_URL}/chat/send-stream`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(requestPayload),
+        credentials: "include",
+        signal,
+      });
+
+      // Fall back cleanly to non-streaming /send if /send-stream is not deployed.
+      if (response.status === 404) {
+        return sendMessage(
+          message,
+          conversationId,
+          universityName,
+          additionalContext,
+          signal,
+        );
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem("token");
+        const errorBody = await response.json().catch(() => ({}));
+
+        if (errorBody?.requiresAuth) {
+          showError(
+            "Authentication Required",
+            errorBody.message || "Please log in to continue.",
+          );
+          return {
+            success: false,
+            message:
+              "Authentication required. Please log in to access this feature.",
+            error: "AUTHENTICATION_REQUIRED",
+            requiresAuth: true,
+          };
+        }
+
+        return sendMessage(
+          message,
+          conversationId,
+          universityName,
+          additionalContext,
+          signal,
+        );
+      }
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        if (errorBody?.retryable) {
+          return {
+            success: false,
+            message: errorBody.message || "Your message couldn't be sent.",
+            error: errorBody.error || "AI_UNAVAILABLE",
+            retryable: true,
+          };
+        }
+        throw new Error(
+          errorBody?.message || `HTTP error! status: ${response.status}`,
+        );
+      }
+
+      if (!contentType.includes("text/event-stream") || !response.body) {
+        const jsonBody = await response.json().catch(() => null);
+        if (jsonBody && jsonBody.success) {
+          return {
+            success: true,
+            message:
+              jsonBody.reply ||
+              jsonBody.message ||
+              "Response received from assistant.",
+            conversation_title: jsonBody.conversation_title,
+            sources: jsonBody.sources || [],
+            confidence: jsonBody.confidence || 0.0,
+            timestamp: jsonBody.timestamp || new Date().toISOString(),
+          };
+        }
+        return sendMessage(
+          message,
+          conversationId,
+          universityName,
+          additionalContext,
+          signal,
+        );
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+      let accumulatedText = "";
+      let finalReply = "";
+      let finalSources: ChatSource[] = [];
+      let finalConfidence = 0.0;
+      let finalTimestamp = new Date().toISOString();
+      let conversationTitle: string | undefined;
+      let streamError: EnhancedChatResponse | null = null;
+
+      const handleSseBlock = (block: string) => {
+        const lines = block.split("\n");
+        let eventName = "message";
+        const dataLines: string[] = [];
+
+        for (const line of lines) {
+          if (!line || line.startsWith(":")) continue;
+          if (line.startsWith("event:")) {
+            eventName = line.slice(6).trim();
+          } else if (line.startsWith("data:")) {
+            dataLines.push(line.slice(5).trimStart());
+          }
+        }
+
+        if (dataLines.length === 0) return;
+        let parsed: any;
+        try {
+          parsed = JSON.parse(dataLines.join("\n"));
+        } catch {
+          parsed = { text: dataLines.join("\n") };
+        }
+
+        if (eventName === "meta") {
+          finalSources = Array.isArray(parsed.sources) ? parsed.sources : [];
+          finalConfidence =
+            typeof parsed.confidence === "number" ? parsed.confidence : 0.0;
+          callbacks?.onMeta?.({
+            sources: finalSources,
+            confidence: finalConfidence,
+          });
+        } else if (eventName === "delta") {
+          const textChunk = typeof parsed.text === "string" ? parsed.text : "";
+          if (textChunk) {
+            accumulatedText += textChunk;
+            callbacks?.onDelta?.(textChunk);
+          }
+        } else if (eventName === "done") {
+          if (typeof parsed.reply === "string") finalReply = parsed.reply;
+          else if (typeof parsed.message === "string")
+            finalReply = parsed.message;
+          if (Array.isArray(parsed.sources)) finalSources = parsed.sources;
+          if (typeof parsed.confidence === "number")
+            finalConfidence = parsed.confidence;
+          if (parsed.timestamp) finalTimestamp = parsed.timestamp;
+          if (parsed.conversation_title)
+            conversationTitle = parsed.conversation_title;
+        } else if (eventName === "error") {
+          streamError = {
+            success: false,
+            message:
+              parsed.message || "Your message couldn't be sent. Please try again.",
+            error: parsed.error || "AI_UNAVAILABLE",
+            retryable: parsed.retryable ?? true,
+          };
+        }
+      };
+
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (signal?.aborted) {
+            reader.cancel().catch(() => {});
+            return { success: false, message: "Cancelled", error: "CANCELLED" };
+          }
+          buffer += decoder.decode(value, { stream: true });
+          buffer = buffer.replace(/\r\n/g, "\n");
+
+          let boundary = buffer.indexOf("\n\n");
+          while (boundary !== -1) {
+            const block = buffer.slice(0, boundary);
+            buffer = buffer.slice(boundary + 2);
+            if (block.trim()) {
+              handleSseBlock(block);
+            }
+            boundary = buffer.indexOf("\n\n");
+          }
+        }
+
+        buffer += decoder.decode();
+        if (buffer.trim()) {
+          handleSseBlock(buffer.replace(/\r\n/g, "\n"));
+        }
+      } finally {
+        reader.releaseLock();
+      }
+
+      if (signal?.aborted) {
+        return { success: false, message: "Cancelled", error: "CANCELLED" };
+      }
+
+      if (streamError) {
+        return streamError;
+      }
+
+      const replyText = finalReply || accumulatedText;
+      if (!replyText) {
+        return {
+          success: false,
+          message: "Cerkyl couldn't answer that just now. Please try again.",
+          error: "AI_UNAVAILABLE",
+          retryable: true,
+        };
+      }
+
+      return {
+        success: true,
+        message: replyText,
+        conversation_title: conversationTitle,
+        sources: finalSources,
+        confidence: finalConfidence,
+        timestamp: finalTimestamp,
+      };
+    } catch (networkError) {
+      if (signal?.aborted) {
+        return { success: false, message: "Cancelled", error: "CANCELLED" };
+      }
+      console.error("Chat stream failed:", networkError);
+
+      let userFriendlyMessage = "Unable to send message. Please try again.";
+      let errorCategory = "UNKNOWN_ERROR";
+
+      if (networkError instanceof Error) {
+        if (
+          networkError.message.includes("fetch") ||
+          networkError.message.includes("Failed to fetch")
+        ) {
+          userFriendlyMessage =
+            "Connection problem. Please check your internet and try again.";
+          errorCategory = "NETWORK_ERROR";
+        } else if (
+          networkError.message.includes("timeout") ||
+          networkError.message.includes("aborted")
+        ) {
+          userFriendlyMessage =
+            "Request timed out. The server is taking too long to respond. Please try again.";
+          errorCategory = "TIMEOUT_ERROR";
+        } else if (
+          networkError.message.includes("HTTP") ||
+          networkError.message.includes("status:")
+        ) {
+          userFriendlyMessage = `Server error: ${networkError.message}. Please try again later.`;
+          errorCategory = "HTTP_ERROR";
+        } else if (
+          !networkError.message.includes("TypeError") &&
+          !networkError.message.includes("undefined")
+        ) {
+          userFriendlyMessage = networkError.message;
+          errorCategory = "CUSTOM_ERROR";
+        }
+      }
+
+      return {
+        success: false,
+        message: userFriendlyMessage,
+        error: errorCategory,
+        retryable: true,
+      };
+    }
+  };
+
   return {
     sendMessage,
+    sendMessageStream,
     searchUniversities,
     getScholarships,
   };

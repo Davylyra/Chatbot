@@ -1510,6 +1510,457 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
   }
 });
 
+router.post("/send-stream", authMiddleware, rateLimiters.chatRateLimit, validateChatPayload, async (req, res) => {
+  const startTime = Date.now();
+  let userMessageSaved = false;
+  let sseStarted = false;
+
+  const sendSseEvent = (eventName, payload) => {
+    if (res.writableEnded) return;
+    res.write(`event: ${eventName}\ndata: ${JSON.stringify(payload)}\n\n`);
+  };
+
+  try {
+    const { message, conversation_id, university_name, user_context } = req.body;
+    const userId = req.user.id;
+
+    console.log(` [CHAT-STREAM] User ${userId} sending message (${message?.length || 0} chars) to conversation ${conversation_id}`);
+
+    if (!message || !conversation_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Message and conversation_id are required"
+      });
+    }
+
+    const chatHistoryDB = await getCollection('messages');
+
+    // Load recent conversation turns BEFORE inserting the current message.
+    let chatHistoryForAI = [];
+    try {
+      const userIdCandidatesHist = [userId];
+      if (/^[a-fA-F0-9]{24}$/.test(userId)) {
+        try { userIdCandidatesHist.push(new ObjectId(userId)); } catch (e) {}
+      }
+      const convIdCandidatesHist = [conversation_id];
+      if (/^[a-fA-F0-9]{24}$/.test(conversation_id)) {
+        try { convIdCandidatesHist.push(new ObjectId(conversation_id)); } catch (e) {}
+      }
+
+      const priorMessages = await chatHistoryDB
+        .find({
+          conversation_id: { $in: convIdCandidatesHist },
+          user_id: { $in: userIdCandidatesHist }
+        })
+        .sort({ sequence: -1, created_at: -1 })
+        .limit(20)
+        .toArray();
+
+      chatHistoryForAI = priorMessages
+        .reverse()
+        .map(m => ({ role: m.is_bot ? 'assistant' : 'user', content: m.message || '' }));
+    } catch (historyError) {
+      console.error(` [CHAT-STREAM] Failed to load chat history:`, historyError.message);
+    }
+
+    const coachOpening = typeof user_context?.coach_opening === 'string'
+      ? user_context.coach_opening.trim().slice(0, 1000)
+      : '';
+    if (coachOpening && chatHistoryForAI.length === 0) {
+      chatHistoryForAI = [{ role: 'assistant', content: coachOpening }];
+    }
+
+    let assessmentContext = {};
+    try {
+      const userProfilesDB = await getCollection('user_profiles');
+      const profileIdCandidates = [userId];
+      if (/^[a-fA-F0-9]{24}$/.test(userId)) {
+        try { profileIdCandidates.push(new ObjectId(userId)); } catch (e) {}
+      }
+
+      const userProfile = await userProfilesDB.findOne({
+        user_id: { $in: profileIdCandidates }
+      });
+
+      if (userProfile) {
+        assessmentContext = {
+          assessment_data: userProfile.preferences || null,
+          university_matches: userProfile.university_matches || null,
+          ai_recommendations: userProfile.ai_recommendations || null
+        };
+      }
+    } catch (profileError) {
+      console.error(` [CHAT-STREAM] Failed to load assessment profile:`, profileError.message);
+    }
+
+    const studentMessage = {
+      user_id: userId,
+      conversation_id: conversation_id,
+      message: message,
+      is_bot: false,
+      created_at: new Date(),
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      await chatHistoryDB.insertOne(studentMessage);
+      userMessageSaved = true;
+    } catch (dbError) {
+      console.error(` [CHAT-STREAM] Failed to save user message:`, dbError);
+    }
+
+    const knowledgeRequestPayload = {
+      message: message,
+      conversation_id: conversation_id,
+      university_name: university_name || null,
+      chat_history: chatHistoryForAI,
+      user_context: {
+        ...assessmentContext,
+        ...(user_context || {}),
+        user_id: userId,
+        preferred_university: university_name,
+        timestamp: new Date().toISOString()
+      }
+    };
+
+    const streamEndpoint = AI_SERVICE_URL.endsWith('/respond')
+      ? AI_SERVICE_URL.replace(/\/respond$/, '/respond-stream')
+      : `${AI_SERVICE_URL.replace(/\/$/, '')}/respond-stream`;
+
+    console.log(` [CHAT-STREAM] Connecting to RAG stream endpoint: ${streamEndpoint}`);
+
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn(`[CHAT-STREAM] RAG stream connection timeout after 30s, aborting`);
+      abortController.abort();
+    }, 30000);
+
+    let cancelledByStudent = false;
+    res.on('close', () => {
+      if (!res.writableFinished) {
+        cancelledByStudent = true;
+        abortController.abort();
+      }
+    });
+
+    const deleteStudentMessage = async () => {
+      if (userMessageSaved && studentMessage._id) {
+        try {
+          await chatHistoryDB.deleteOne({ _id: studentMessage._id });
+          userMessageSaved = false;
+        } catch (dbError) {
+          console.error(` [CHAT-STREAM] Failed to remove unsaved message:`, dbError.message);
+        }
+      }
+    };
+
+    let knowledgeServiceResponse;
+    try {
+      knowledgeServiceResponse = await fetch(streamEndpoint, {
+        method: "POST",
+        headers: aiServiceHeaders({
+          "Content-Type": "application/json",
+          "Accept": "text/event-stream",
+          "x-user-id": userId,
+        }),
+        body: JSON.stringify(knowledgeRequestPayload),
+        signal: abortController.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!knowledgeServiceResponse.ok) {
+        const errorText = await knowledgeServiceResponse.text().catch(() => 'Unknown error');
+        const statusError = new Error(`RAG stream returned ${knowledgeServiceResponse.status}: ${errorText}`);
+        statusError.status = knowledgeServiceResponse.status;
+        throw statusError;
+      }
+    } catch (ragError) {
+      clearTimeout(timeoutId);
+
+      if (cancelledByStudent) {
+        await deleteStudentMessage();
+        return;
+      }
+
+      await deleteStudentMessage();
+
+      if (ragError.status === 404) {
+        return res.status(404).json({
+          success: false,
+          error: 'STREAM_NOT_SUPPORTED',
+          message: 'Streaming endpoint is not available.'
+        });
+      }
+
+      const wakingUp =
+        ragError.name === 'AbortError' ||
+        ['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN'].includes(ragError.code) ||
+        [502, 503, 504].includes(ragError.status);
+
+      const processingTime = Date.now() - startTime;
+      console.log(` [CHAT-STREAM] AI unavailable (${wakingUp ? 'waking up' : 'error'}) after ${processingTime}ms`);
+
+      return res.status(503).json({
+        success: false,
+        error: wakingUp ? 'AI_WAKING_UP' : 'AI_UNAVAILABLE',
+        retryable: true,
+        message: wakingUp
+          ? 'Cerkyl is waking up. This can take up to a minute.'
+          : "Cerkyl couldn't answer that just now. Please try again.",
+        conversation_id: conversation_id,
+        processing_time: processingTime
+      });
+    }
+
+    if (cancelledByStudent) {
+      await deleteStudentMessage();
+      return;
+    }
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+    sseStarted = true;
+
+    let buffer = '';
+    let accumulatedReply = '';
+    let finalReply = '';
+    let finalSources = [];
+    let finalConfidence = 0.0;
+    let finalTimestamp = new Date().toISOString();
+    let streamErrorPayload = null;
+
+    const processSseBlock = (block) => {
+      const lines = block.split('\n');
+      let eventName = 'message';
+      const dataLines = [];
+
+      for (const line of lines) {
+        if (!line || line.startsWith(':')) continue;
+        if (line.startsWith('event:')) {
+          eventName = line.slice(6).trim();
+        } else if (line.startsWith('data:')) {
+          dataLines.push(line.slice(5).trimStart());
+        }
+      }
+
+      if (dataLines.length === 0) return;
+      const rawData = dataLines.join('\n');
+      let parsed;
+      try {
+        parsed = JSON.parse(rawData);
+      } catch {
+        parsed = { text: rawData };
+      }
+
+      if (eventName === 'meta') {
+        finalSources = parsed.sources || [];
+        finalConfidence = parsed.confidence || 0.0;
+        sendSseEvent('meta', {
+          sources: finalSources,
+          confidence: finalConfidence
+        });
+      } else if (eventName === 'delta') {
+        const chunkText = typeof parsed.text === 'string' ? parsed.text : '';
+        if (chunkText) {
+          accumulatedReply += chunkText;
+          sendSseEvent('delta', { text: chunkText });
+        }
+      } else if (eventName === 'done') {
+        finalReply = typeof parsed.reply === 'string' ? parsed.reply : accumulatedReply;
+        if (Array.isArray(parsed.sources)) finalSources = parsed.sources;
+        if (typeof parsed.confidence === 'number') finalConfidence = parsed.confidence;
+        if (parsed.timestamp) finalTimestamp = parsed.timestamp;
+      } else if (eventName === 'error') {
+        streamErrorPayload = parsed;
+      }
+    };
+
+    try {
+      for await (const rawChunk of knowledgeServiceResponse.body) {
+        if (cancelledByStudent) break;
+        buffer += Buffer.isBuffer(rawChunk) ? rawChunk.toString('utf8') : String(rawChunk);
+        buffer = buffer.replace(/\r\n/g, '\n');
+
+        let boundary = buffer.indexOf('\n\n');
+        while (boundary !== -1) {
+          const block = buffer.slice(0, boundary);
+          buffer = buffer.slice(boundary + 2);
+          if (block.trim()) {
+            processSseBlock(block);
+          }
+          boundary = buffer.indexOf('\n\n');
+        }
+      }
+
+      if (!cancelledByStudent && buffer.trim()) {
+        processSseBlock(buffer);
+      }
+    } catch (streamErr) {
+      if (cancelledByStudent) {
+        await deleteStudentMessage();
+        if (!res.writableEnded) res.end();
+        return;
+      }
+
+      console.error(` [CHAT-STREAM] Upstream stream error:`, streamErr.message);
+      await deleteStudentMessage();
+
+      const wakingUp =
+        streamErr.name === 'AbortError' ||
+        ['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN'].includes(streamErr.code);
+
+      sendSseEvent('error', {
+        success: false,
+        error: wakingUp ? 'AI_WAKING_UP' : 'AI_UNAVAILABLE',
+        retryable: true,
+        message: wakingUp
+          ? 'Cerkyl is waking up. This can take up to a minute.'
+          : "Cerkyl couldn't finish answering that just now. Please try again.",
+        conversation_id: conversation_id
+      });
+      if (!res.writableEnded) res.end();
+      return;
+    }
+
+    if (cancelledByStudent) {
+      await deleteStudentMessage();
+      if (!res.writableEnded) res.end();
+      return;
+    }
+
+    const replyToSave = finalReply || accumulatedReply;
+    if (streamErrorPayload || !replyToSave) {
+      await deleteStudentMessage();
+      sendSseEvent('error', {
+        success: false,
+        error: streamErrorPayload?.error || 'AI_UNAVAILABLE',
+        retryable: streamErrorPayload?.retryable ?? true,
+        message: streamErrorPayload?.message || "Cerkyl couldn't answer that just now. Please try again.",
+        conversation_id: conversation_id
+      });
+      if (!res.writableEnded) res.end();
+      return;
+    }
+
+    const aiMessage = {
+      user_id: userId,
+      conversation_id: conversation_id,
+      message: replyToSave,
+      is_bot: true,
+      created_at: new Date(),
+      timestamp: finalTimestamp,
+      sources: finalSources,
+      confidence: finalConfidence
+    };
+
+    try {
+      await chatHistoryDB.insertOne(aiMessage);
+      console.log(` [CHAT-STREAM] AI response saved to MongoDB`);
+    } catch (dbError) {
+      console.error(` [CHAT-STREAM] Failed to save AI response:`, dbError.message);
+    }
+
+    // Background title generation (same as /send)
+    try {
+      const chatSessionsDB = await getCollection('conversations');
+      const conversation = await chatSessionsDB.findOne(
+        { _id: conversation_id },
+        { projection: { title: 1, user_id: 1 } }
+      );
+      const ownedByOther = conversation?.user_id != null && String(conversation.user_id) !== String(userId);
+
+      if (!ownedByOther && isGenericTitle(conversation?.title) && !titlesInProgress.has(conversation_id)) {
+        titlesInProgress.add(conversation_id);
+        setImmediate(async () => {
+          try {
+            const firstUserMessage = await chatHistoryDB.findOne(
+              { conversation_id, user_id: userId, is_bot: false },
+              { sort: { created_at: 1 }, projection: { message: 1 } }
+            );
+            const firstText = firstUserMessage?.message || message;
+            const titleResult = await generateTitleWithFallback(
+              firstText,
+              replyToSave,
+              university_name,
+              () => titleFromMessage(firstText)
+            );
+
+            const latest = await chatSessionsDB.findOne({ _id: conversation_id }, { projection: { title: 1 } });
+            if (latest && !isGenericTitle(latest.title)) {
+              return;
+            }
+
+            await chatSessionsDB.updateOne(
+              { _id: conversation_id },
+              {
+                $set: {
+                  title: titleResult.title,
+                  title_generated_at: new Date(),
+                  title_method: titleResult.method,
+                  updated_at: new Date(),
+                  user_id: userId
+                },
+                $setOnInsert: {
+                  created_at: new Date(),
+                  last_message: '',
+                  message_count: 0
+                }
+              },
+              { upsert: true }
+            );
+          } catch (titleError) {
+            console.error(` [TITLE-GEN] Failed to generate title:`, titleError.message);
+          } finally {
+            titlesInProgress.delete(conversation_id);
+          }
+        });
+      }
+    } catch (titleCheckError) {
+      console.error(` [TITLE-GEN] Error checking for title generation:`, titleCheckError.message);
+    }
+
+    const processingTime = Date.now() - startTime;
+    sendSseEvent('done', {
+      success: true,
+      reply: replyToSave,
+      message: replyToSave,
+      conversation_id: conversation_id,
+      sources: finalSources,
+      confidence: finalConfidence,
+      timestamp: finalTimestamp,
+      processing_time: processingTime
+    });
+    if (!res.writableEnded) res.end();
+
+  } catch (error) {
+    const processingTime = Date.now() - startTime;
+    console.error(` [CHAT-STREAM] Critical error (after ${processingTime}ms):`, error);
+
+    if (sseStarted) {
+      sendSseEvent('error', {
+        success: false,
+        error: 'SEND_FAILED',
+        retryable: true,
+        message: "Your message couldn't be sent. Please try again.",
+        conversation_id: req.body?.conversation_id
+      });
+      if (!res.writableEnded) res.end();
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'SEND_FAILED',
+        retryable: true,
+        message: "Your message couldn't be sent. Please try again.",
+        conversation_id: req.body?.conversation_id
+      });
+    }
+  }
+});
+
 router.post("/send-message-demo", async (req, res) => {
   try {
     const { message, conversation_id, university_name } = req.body;

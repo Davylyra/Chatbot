@@ -110,6 +110,7 @@ interface AppState {
   createConversation: (title: string) => string;
   setCurrentConversation: (conversation: Conversation | null) => void;
   addMessage: (message: ChatMessage) => void;
+  updateMessage: (id: string, updates: Partial<ChatMessage>) => void;
   updateConversation: (id: string, updates: Partial<Conversation>) => void;
   deleteConversation: (id: string) => void;
   getConversationMessages: (conversationId: string) => ChatMessage[];
@@ -240,6 +241,17 @@ export const useAppStore = create<AppState>()(
             }),
             false,
             "addMessage",
+          ),
+
+        updateMessage: (id, updates) =>
+          set(
+            (state) => ({
+              messages: state.messages.map((msg) =>
+                msg.id === id ? { ...msg, ...updates } : msg,
+              ),
+            }),
+            false,
+            "updateMessage",
           ),
 
         updateConversation: (id, updates) =>

@@ -14,9 +14,15 @@ import requests
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from groq import AsyncGroq
 import asyncio
 from pydantic import BaseModel
+
+try:
+    from streaming import SSE_HEADERS, format_sse, stream_groq_response
+except ImportError:
+    from .streaming import SSE_HEADERS, format_sse, stream_groq_response
 
 load_dotenv()
 
@@ -3324,6 +3330,221 @@ Just let me know! 😊
             timestamp=datetime.now().isoformat(),
             model_used="file-error-fallback",
         )
+
+
+@app.post("/respond-stream", dependencies=[Depends(verify_internal_key)])
+async def respond_to_query_stream(request: ChatRequest):
+    start_time = datetime.now()
+    user_profile: Dict[str, Any] = {}
+
+    async def event_generator():
+        try:
+            is_coach_mode = bool(
+                isinstance(request.user_context, dict)
+                and request.user_context.get("is_coach_mode")
+            )
+            if request.user_context and isinstance(request.user_context, dict):
+                assessment_data = request.user_context.get("assessment_data", None)
+                if assessment_data and isinstance(assessment_data, dict):
+                    user_profile.update(assessment_data)
+                skip_keys = {
+                    "is_assessment_request",
+                    "assessment_data",
+                    "has_files",
+                    "file_count",
+                    "file_info",
+                    "is_coach_mode",
+                    "coach_opening",
+                }
+                for k, v in request.user_context.items():
+                    if k not in skip_keys and v:
+                        user_profile.setdefault(k, v)
+
+            user_message = (request.message or "").strip()
+            if not user_message:
+                empty_msg = "I need a question or message to help you."
+                yield format_sse("meta", {"sources": [], "confidence": 0.0})
+                yield format_sse("delta", {"text": empty_msg})
+                yield format_sse(
+                    "done",
+                    {
+                        "reply": empty_msg,
+                        "sources": [],
+                        "confidence": 0.0,
+                        "processing_time": 0.0,
+                        "timestamp": datetime.now().isoformat(),
+                    },
+                )
+                return
+
+            print(
+                f"📥 [STREAM] Processing query (coach={is_coach_mode}): {user_message[:100]}..."
+            )
+
+            small_talk = (not is_coach_mode) and is_small_talk(user_message)
+            if small_talk:
+                local_matches = {"results": [], "confidence": 0.0}
+            else:
+                local_matches = search_local_knowledge(
+                    user_message, request.university_name, request.chat_history
+                )
+
+            source_documents: List[Dict[str, Any]] = []
+            context_segments: List[str] = []
+
+            num_matches = len(local_matches.get("results", [])) or 1
+            per_university_cap = max(3000, 12000 // num_matches)
+
+            for search_result in local_matches.get("results", []):
+                source_documents.append(
+                    {
+                        "source": search_result.get("source"),
+                        "type": "local_knowledge",
+                        "confidence": search_result.get("relevance", 0.0),
+                        "url": official_website_url(search_result.get("data", {})),
+                    }
+                )
+                uni_context = build_university_context(
+                    search_result.get("source", ""),
+                    search_result.get("data", {}),
+                    user_message,
+                )
+                context_segments.append(uni_context[:per_university_cap])
+
+            if is_coach_mode:
+                use_web_search = needs_fresh_info(user_message)
+            else:
+                use_web_search = not small_talk and (
+                    local_matches.get("confidence", 0.0) < 0.95
+                    or needs_fresh_info(user_message)
+                )
+
+            if not use_web_search:
+                combined_context = "\n\n".join(context_segments)[:12000]
+                final_confidence = local_matches.get("confidence", 0.8)
+                can_use_groq = bool(
+                    groq_client
+                    and (
+                        is_coach_mode
+                        or small_talk
+                        or final_confidence > 0.3
+                        or combined_context
+                    )
+                )
+            else:
+                web_matches = await search_web_realtime(user_message)
+                for web_match in web_matches.get("results", []):
+                    source_documents.append(
+                        {
+                            "source": web_match.get("title", "Web Result"),
+                            "url": web_match.get("url", ""),
+                            "type": web_match.get("source", "web_search"),
+                            "confidence": 0.7,
+                        }
+                    )
+                    snippet = web_match.get("snippet") or web_match.get("body") or ""
+                    context_segments.append(f"Web Result: {snippet}")
+
+                combined_context = "\n\n".join(context_segments)[:12000]
+                final_confidence = max(
+                    local_matches.get("confidence", 0.0),
+                    web_matches.get("confidence", 0.0),
+                )
+                can_use_groq = bool(
+                    groq_client
+                    and (is_coach_mode or final_confidence > 0.3 or combined_context)
+                )
+
+            async def log_rag_completion(reply_text: str, processing_time: float):
+                print(
+                    f"✅ [STREAM] Response generated in {processing_time:.2f}s with confidence {final_confidence:.2f}"
+                )
+                if db_client:
+                    try:
+                        db = db_client[os.getenv("DB_NAME", "glinax_chatbot_db")]
+                        await db.rag_logs.insert_one(
+                            {
+                                "query": request.message,
+                                "response": reply_text,
+                                "confidence": final_confidence,
+                                "sources": source_documents,
+                                "processing_time": processing_time,
+                                "timestamp": datetime.now(),
+                                "conversation_id": request.conversation_id,
+                                "user_id": request.user_id,
+                            }
+                        )
+                    except Exception as db_exc:
+                        print(f" Failed to save stream log to MongoDB: {db_exc}")
+
+            async for frame in stream_groq_response(
+                groq_client=groq_client,
+                query=user_message,
+                context=combined_context,
+                sources=source_documents,
+                confidence=final_confidence,
+                user_profile=user_profile,
+                chat_history=request.chat_history,
+                is_coach_mode=is_coach_mode,
+                use_groq=can_use_groq,
+                model=GROQ_MODEL,
+                temperature=GROQ_TEMPERATURE,
+                reasoning_effort=GROQ_REASONING_EFFORT,
+                build_profile_section_fn=build_profile_section,
+                fallback_fn=lambda: generate_smart_fallback_response(
+                    user_message, combined_context, source_documents, user_profile
+                ),
+                sanitize_fn=sanitize_markdown_urls,
+                start_time=start_time,
+                on_complete=log_rag_completion,
+            ):
+                yield frame
+
+        except Exception as e:
+            print(f" [STREAM] RAG processing error: {e}")
+            try:
+                fallback_response = sanitize_markdown_urls(
+                    generate_smart_fallback_response(
+                        request.message, "", [], user_profile
+                    )
+                )
+                fallback_sources = [
+                    {
+                        "source": "Local Knowledge Base",
+                        "type": "fallback",
+                        "confidence": 0.5,
+                    }
+                ]
+                yield format_sse(
+                    "meta", {"sources": fallback_sources, "confidence": 0.5}
+                )
+                yield format_sse("delta", {"text": fallback_response})
+                yield format_sse(
+                    "done",
+                    {
+                        "reply": fallback_response,
+                        "sources": fallback_sources,
+                        "confidence": 0.5,
+                        "processing_time": (datetime.now() - start_time).total_seconds(),
+                        "timestamp": datetime.now().isoformat(),
+                    },
+                )
+            except Exception as fallback_error:
+                print(f" [STREAM] Even fallback failed: {fallback_error}")
+                yield format_sse(
+                    "error",
+                    {
+                        "error": "AI_UNAVAILABLE",
+                        "retryable": True,
+                        "message": "I apologize, but I'm having technical difficulties. Please try again.",
+                    },
+                )
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers=SSE_HEADERS,
+    )
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ import ChatBubble, { CerkylAvatar, TypingDots } from './ChatBubble';
 import AuthenticationModal from './AuthenticationModal';
 import { useAppStore } from '../store';
 import { useTheme } from '../contexts/ThemeContext';
-import { useChat, type EnhancedChatResponse } from '../hooks/useChat';
+import { useChat, type EnhancedChatResponse, type StreamCallbacks } from '../hooks/useChat';
 import { useAuth } from '../contexts/AuthContext';
 import {
   generateConversationTitle,
@@ -84,13 +84,14 @@ const ChatBot: React.FC<ChatBotProps> = memo(
     const {
       currentConversation,
       addMessage,
+      updateMessage,
       addConversation,
       createConversation,
       setCurrentConversation,
       startNewConversation,
       saveCurrentConversation,
     } = useAppStore();
-    const { sendMessage: sendChatMessage } = useChat();
+    const { sendMessageStream: sendChatMessageStream } = useChat();
     const { user, isGuest, isAuthenticated } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
@@ -109,6 +110,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
     const initialMessage = suppressContext ? undefined : rawInitialMessage;
 
     const stableAddMessage = useCallback(addMessage, [addMessage]);
+    const stableUpdateMessage = useCallback(updateMessage, [updateMessage]);
     const stableCreateConversation = useCallback(createConversation, [createConversation]);
     const stableSetCurrentConversation = useCallback(setCurrentConversation, [
       setCurrentConversation,
@@ -116,13 +118,16 @@ const ChatBot: React.FC<ChatBotProps> = memo(
     const stableSaveCurrentConversation = useCallback(saveCurrentConversation, [
       saveCurrentConversation,
     ]);
-    const stableSendChatMessage = useCallback(sendChatMessage, [sendChatMessage]);
+    const stableSendChatMessageStream = useCallback(sendChatMessageStream, [
+      sendChatMessageStream,
+    ]);
 
     const [processedMessages, setProcessedMessages] = useState<Set<string>>(new Set());
     const [isInitialized, setIsInitialized] = useState(false);
 
     const [inputMessage, setInputMessage] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const [isStreamingContent, setIsStreamingContent] = useState(false);
     const [error, setError] = useState<string | null>(null);
     // A message whose reply failed, kept so the Retry button can resend it.
     const [failedSend, setFailedSend] = useState<ReplyRequest | null>(null);
@@ -375,16 +380,18 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       text: string,
       conversationId: string,
       context: any,
-      signal?: AbortSignal
+      signal?: AbortSignal,
+      callbacks?: StreamCallbacks
     ): Promise<EnhancedChatResponse> => {
       const cancelled: EnhancedChatResponse = { success: false, message: 'Cancelled', error: 'CANCELLED' };
       for (let attempt = 0; ; attempt++) {
-        const response = await stableSendChatMessage(
+        const response = await stableSendChatMessageStream(
           text,
           conversationId,
           universityContext?.name,
           context,
-          signal
+          signal,
+          callbacks
         );
         if (signal?.aborted) return cancelled;
         const wakingUp =
@@ -546,15 +553,65 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       const { text: messageText, files: filesToSend, conversationId, isFirstUserMessage } =
         request;
       setIsTyping(true);
+      setIsStreamingContent(false);
       setError(null);
       setFailedSend(null);
 
       const controller = new AbortController();
       activeRequestRef.current = controller;
 
+      let streamingBotId: string | null = null;
+      let streamedText = '';
+      let streamedSources: any[] = [];
+      let streamedConfidence = 0.0;
+
+      const removeStreamingPlaceholder = () => {
+        if (streamingBotId) {
+          const idToRemove = streamingBotId;
+          streamingBotId = null;
+          useAppStore.setState((state) => ({
+            messages: state.messages.filter((m) => m.id !== idToRemove),
+          }));
+        }
+      };
+
       const showFailure = (message: string) => {
+        removeStreamingPlaceholder();
         setError(message);
         setFailedSend(request);
+      };
+
+      const streamCallbacks: StreamCallbacks = {
+        onMeta: (meta) => {
+          if (controller.signal.aborted) return;
+          streamedSources = meta.sources || [];
+          streamedConfidence = meta.confidence || 0.0;
+          if (streamingBotId) {
+            stableUpdateMessage(streamingBotId, {
+              sources: streamedSources,
+              confidence: streamedConfidence,
+            });
+          }
+        },
+        onDelta: (delta) => {
+          if (controller.signal.aborted || !delta) return;
+          streamedText += delta;
+          if (!streamingBotId) {
+            streamingBotId = `bot-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+            stableAddMessage({
+              id: streamingBotId,
+              text: streamedText,
+              isUser: false,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              conversationId,
+              sources: streamedSources,
+              confidence: streamedConfidence,
+            });
+            setIsStreamingContent(true);
+          } else {
+            stableUpdateMessage(streamingBotId, { text: streamedText });
+          }
+        },
       };
 
       try {
@@ -567,11 +624,19 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                 universityContext?.name,
                 controller.signal
               )
-            : await sendWithWakeRetry(messageText, conversationId, request.context, controller.signal);
+            : await sendWithWakeRetry(
+                messageText,
+                conversationId,
+                request.context,
+                controller.signal,
+                streamCallbacks
+              );
 
         if (controller.signal.aborted || response?.error === 'CANCELLED') {
-          // Stopped: take the message back out of the chat and put the text
-          // back in the box so the student can edit and resend it.
+          // Stopped: take the message (and any partial streamed reply) back out
+          // of the chat and put the text back in the box so the student can edit
+          // and resend it.
+          removeStreamingPlaceholder();
           if (request.userMessageId) {
             useAppStore.setState((state) => ({
               messages: state.messages.filter((m) => m.id !== request.userMessageId),
@@ -583,17 +648,25 @@ const ChatBot: React.FC<ChatBotProps> = memo(
         }
 
         if (response && response.success && response.message) {
-          const botMessage = {
-            id: (Date.now() + 1).toString(),
-            text: response.message,
-            isUser: false,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            conversationId,
-            sources: response.sources || [],
-            confidence: response.confidence || 0.0,
-          };
+          if (streamingBotId) {
+            stableUpdateMessage(streamingBotId, {
+              text: response.message,
+              sources: response.sources || streamedSources,
+              confidence: response.confidence ?? streamedConfidence,
+            });
+          } else {
+            const botMessage = {
+              id: (Date.now() + 1).toString(),
+              text: response.message,
+              isUser: false,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              conversationId,
+              sources: response.sources || [],
+              confidence: response.confidence || 0.0,
+            };
 
-          stableAddMessage(botMessage);
+            stableAddMessage(botMessage);
+          }
 
           if (
             response.conversation_title &&
@@ -622,6 +695,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
             notifySidebarRefresh();
           }
         } else if (response && response.error === 'AUTHENTICATION_REQUIRED') {
+          removeStreamingPlaceholder();
           setShowAuthModal(true);
           setError(null);
         } else {
@@ -638,6 +712,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       } finally {
         if (activeRequestRef.current === controller) activeRequestRef.current = null;
         setIsTyping(false);
+        setIsStreamingContent(false);
         setStatusNote(null);
       }
     };
@@ -1029,7 +1104,7 @@ const ChatBot: React.FC<ChatBotProps> = memo(
           </AnimatePresence>
 
           {/* Typing Indicator */}
-          {isTyping && (
+          {isTyping && !isStreamingContent && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
