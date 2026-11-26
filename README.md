@@ -43,8 +43,8 @@ API key. Tesseract is optional (only for OCR on uploaded images).
    [`backend/.env.example`](backend/.env.example),
    [`ai-rag-service/.env.example`](ai-rag-service/.env.example),
    [`frontend/.env.example`](frontend/.env.example).
-   `JWT_SECRET`, `MONGODB_URI` and `DB_NAME` must match between the
-   backend and the AI service.
+   `JWT_SECRET`, `MONGODB_URI`, `DB_NAME` and (when set) `INTERNAL_API_KEY`
+   must match between the backend and the AI service.
 2. Install and start each service in its own terminal:
 
 ```powershell

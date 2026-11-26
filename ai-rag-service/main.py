@@ -1,3 +1,4 @@
+import hmac
 import json
 import os
 import platform
@@ -11,7 +12,7 @@ import httpx
 import motor.motor_asyncio
 import requests
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from groq import AsyncGroq
 import asyncio
@@ -183,6 +184,24 @@ def resolve_user_id(token_user: Optional[str], fallback_user: Optional[str]) -> 
     return token_user or (fallback_user or "")
 
 
+def verify_internal_key(
+    x_internal_key: Optional[str] = Header(default=None, alias="X-Internal-Key"),
+):
+    """Require a shared X-Internal-Key header when INTERNAL_API_KEY is configured.
+
+    Left open when INTERNAL_API_KEY is unset so existing deploys stay safe until
+    both Render services have the env var configured.
+    """
+    expected = os.getenv("INTERNAL_API_KEY", "").strip()
+    if not expected:
+        return
+    if not x_internal_key or not hmac.compare_digest(x_internal_key.strip(), expected):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing internal API key",
+        )
+
+
 _raw_origins = os.getenv(
     "ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5000"
 )
@@ -193,7 +212,7 @@ app.add_middleware(
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "Authorization", "x-user-id"],
+    allow_headers=["Content-Type", "Authorization", "x-user-id", "X-Internal-Key"],
 )
 embedding_model = None
 groq_client = None
@@ -2231,6 +2250,64 @@ def search_local_knowledge(query: str, university_name: str = None, chat_history
 # WEB SEARCH FUNCTIONS (Preserved)
 # ============================================================================
 
+OFFICIAL_GHANA_UNI_DOMAINS = (
+    "ug.edu.gh",
+    "knust.edu.gh",
+    "ucc.edu.gh",
+    "uds.edu.gh",
+    "upsa.edu.gh",
+    "uenr.edu.gh",
+    "uhas.edu.gh",
+    "gctu.edu.gh",
+    "umat.edu.gh",
+    "uew.edu.gh",
+    "ttu.edu.gh",
+    "ashesi.edu.gh",
+)
+
+
+def _is_google_redirect_url(url: str) -> bool:
+    if not url:
+        return False
+    parsed = urllib.parse.urlparse(url)
+    host = (parsed.netloc or "").lower()
+    path = (parsed.path or "").lower()
+    return (host == "google.com" or host.endswith(".google.com")) and path in ("/url", "/goto")
+
+
+def extract_real_serpapi_url(organic_result: Dict[str, Any]) -> str:
+    """Resolve the real destination URL from a SerpAPI organic result.
+
+    SerpAPI occasionally returns Google redirect links (google.com/goto?... or
+    google.com/url?q=...). Unwrap them or fall back to displayed_link so
+    official-domain detection and student-facing source links work properly.
+    """
+    raw_link = str(organic_result.get("link") or "").strip()
+
+    if raw_link and _is_google_redirect_url(raw_link):
+        qs = urllib.parse.parse_qs(urllib.parse.urlparse(raw_link).query)
+        for param in ("q", "url", "u", "dest"):
+            candidates = qs.get(param) or []
+            for candidate in candidates:
+                candidate = candidate.strip()
+                if candidate.startswith(("http://", "https://")) and not _is_google_redirect_url(candidate):
+                    return candidate
+    elif raw_link:
+        return raw_link
+
+    # Fallback: parse displayed_link (e.g. "https://www.ug.edu.gh › admissions" or "ug.edu.gh › apply")
+    displayed = str(organic_result.get("displayed_link") or "").strip()
+    if displayed:
+        head = re.split(r"\s*[›>]\s*|\s+", displayed, maxsplit=1)[0].strip().rstrip(".,;:")
+        if head and "." in head:
+            if not head.startswith(("http://", "https://")):
+                head = "https://" + head
+            if not _is_google_redirect_url(head):
+                return head
+
+    return raw_link
+
+
 async def search_web_realtime(query: str) -> Dict[str, Any]:
     try:
         serpapi_key = os.getenv("SERPAPI_KEY")
@@ -2255,22 +2332,7 @@ async def search_web_realtime(query: str) -> Dict[str, Any]:
             url_domain = (url or "").lower()
             source_type = (
                 "official_website"
-                if any(
-                    d in url_domain
-                    for d in [
-                        "ug.edu.gh",
-                        "knust.edu.gh",
-                        "ucc.edu.gh",
-                        "uds.edu.gh",
-                        "upsa.edu.gh",
-                        "uenr.edu.gh",
-                        "uhas.edu.gh",
-                        "gctu.edu.gh",
-                        "umat.edu.gh",
-                        "uew.edu.gh",
-                        "ttu.edu.gh",
-                    ]
-                )
+                if any(d in url_domain for d in OFFICIAL_GHANA_UNI_DOMAINS)
                 else "web_search"
             )
             search_results.append(
@@ -2314,36 +2376,19 @@ async def search_with_serpapi(query: str, api_key: str) -> Dict[str, Any]:
 
         search_results = []
         for organic_result in serpapi_payload.get("organic_results", [])[:5]:
-            url = organic_result.get("link", "")
-            if any(
-                domain in url.lower()
-                for domain in [
-                    "ug.edu.gh",
-                    "knust.edu.gh",
-                    "ucc.edu.gh",
-                    "uds.edu.gh",
-                    "upsa.edu.gh",
-                ]
-            ):
-                search_results.append(
-                    {
-                        "title": organic_result.get("title", ""),
-                        "url": url,
-                        "snippet": organic_result.get("snippet", ""),
-                        "source": "official_website",
-                        "priority": "high",
-                    }
-                )
-            else:
-                search_results.append(
-                    {
-                        "title": organic_result.get("title", ""),
-                        "url": url,
-                        "snippet": organic_result.get("snippet", ""),
-                        "source": "web_search",
-                        "priority": "medium",
-                    }
-                )
+            result_url = extract_real_serpapi_url(organic_result)
+            is_official = any(
+                domain in result_url.lower() for domain in OFFICIAL_GHANA_UNI_DOMAINS
+            )
+            search_results.append(
+                {
+                    "title": organic_result.get("title", ""),
+                    "url": result_url,
+                    "snippet": organic_result.get("snippet", ""),
+                    "source": "official_website" if is_official else "web_search",
+                    "priority": "high" if is_official else "medium",
+                }
+            )
 
         return {"results": search_results, "confidence": 0.8 if search_results else 0.0}
 
@@ -2434,7 +2479,12 @@ def build_profile_section(user_profile: Optional[Dict[str, Any]]) -> str:
 
 
 async def generate_response_with_groq(
-    query: str, context: str, sources: List[Dict], user_profile: Dict = None, chat_history: List[Dict] = None
+    query: str,
+    context: str,
+    sources: List[Dict],
+    user_profile: Dict = None,
+    chat_history: List[Dict] = None,
+    is_coach_mode: bool = False,
 ) -> str:
     """Generate response using Groq LLM."""
     try:
@@ -2444,8 +2494,26 @@ async def generate_response_with_groq(
             )
 
         current_year = datetime.now().year
-        
-        system_prompt = f"""You are Cerkyl — a smart, friendly, and knowledgeable AI admission counsellor built specifically for Ghanaian SHS graduates. You have access to detailed information about Ghanaian universities including programs with cut-off points, subject requirements, application deadlines, entrance exam dates, and fees.
+
+        if is_coach_mode:
+            system_prompt = f"""You are Cerkyl in **Career Coach** mode — a warm, thoughtful Socratic career counsellor built specifically for Ghanaian SHS graduates.
+
+**CAREER COACH RULES - STRICTLY FOLLOW:**
+
+1. **SOCRATIC, ONE STEP AT A TIME**: Help the student discover what suits them through a natural conversation. Ask **only ONE** focused follow-up question per reply. Never dump a checklist of questions.
+2. **EXPLORE BEFORE RECOMMENDING**: Do not rush to list universities or programmes on the first 1-3 turns unless the student explicitly asks for recommendations right now. Spend the first 3-4 exchanges gently uncovering:
+   - Subjects they enjoy and find easy
+   - Activities, hobbies, or problems they like solving outside class
+   - The kind of work environment, lifestyle, or impact they want
+   - Their SHS programme and actual/expected WASSCE aggregate (skip if already in STUDENT PROFILE)
+3. **SYNTHESISE WHEN READY**: Once you have a clear picture (typically after 3-4 student replies, or if they ask directly), connect their strengths to **2-3 specific career paths** and matching university degree programmes in Ghana. Explain *why* each fits what they shared, then offer to look up exact cut-off points or universities for whichever path excites them most.
+4. **USE ONLY RETRIEVED DATA FOR FACTS**: Only quote specific cut-off points, fees, or deadlines if they appear in the "Retrieved university data" section below. Never invent cut-offs.
+5. **KEEP IT SHORT & CONVERSATIONAL**: 2-4 concise sentences reflecting what they just said, followed by your single next question. No filler openings like "Great answer!" or "That's awesome!".
+6. **PLAIN MARKDOWN ONLY - NO HTML**: Never output raw HTML tags such as <br>, <table>, <div>, <b>, <li>.
+
+Current year: {current_year}"""
+        else:
+            system_prompt = f"""You are Cerkyl — a smart, friendly, and knowledgeable AI admission counsellor built specifically for Ghanaian SHS graduates. You have access to detailed information about Ghanaian universities including programs with cut-off points, subject requirements, application deadlines, entrance exam dates, and fees.
 
 **CRITICAL RULES - STRICTLY FOLLOW:**
 
@@ -2472,16 +2540,32 @@ Current year: {current_year}"""
 
         profile_section = build_profile_section(user_profile)
 
-        user_message = f"""{profile_section}Student's question: {query}
+        if is_coach_mode:
+            retrieved_block = (
+                f"\n\nRetrieved university data (use only if referencing specific Ghanaian programmes/cut-offs):\n{context}"
+                if context
+                else ""
+            )
+            user_message = (
+                f"{profile_section}Student's message: {query}{retrieved_block}\n\n"
+                "Continue the Career Coach conversation naturally, keeping your reply concise and ending with one focused question (unless you are ready to present tailored career/programme options)."
+            )
+        else:
+            user_message = f"""{profile_section}Student's question: {query}
 
 Retrieved university data (from our own knowledge base - the student did not supply this):
 {context}
 
 Respond naturally and helpfully like you're having a conversation with a student. Base your answer strictly on the retrieved data above. If it doesn't cover something they asked, say YOU don't currently have that specific information - never imply they were supposed to provide it."""
-        
+
         messages_array = [{"role": "system", "content": system_prompt}]
         if chat_history:
-            recent_history = chat_history[-5:] if len(chat_history) > 5 else chat_history
+            history_limit = 10 if is_coach_mode else 5
+            recent_history = (
+                chat_history[-history_limit:]
+                if len(chat_history) > history_limit
+                else chat_history
+            )
             messages_array.extend(recent_history)
         messages_array.append({"role": "user", "content": user_message})
 
@@ -2708,90 +2792,15 @@ async def list_conversations_demo():
     return {"success": True, "history": demo}
 
 
-@app.get("/history/{user_id}")
-async def get_history(user_id: str):
-    if not db_client:
-        raise HTTPException(status_code=503, detail="Database not available")
-    try:
-        db = db_client[os.getenv("DB_NAME", "glinax_chatbot_db")]
-        pipeline = [
-            {"$match": {"user_id": user_id}},
-            {"$sort": {"conversation_id": 1, "timestamp": 1}},
-            {
-                "$group": {
-                    "_id": "$conversation_id",
-                    "title": {"$first": "$query"},
-                    "last_active": {"$max": "$timestamp"},
-                    "message_count": {"$sum": 1},
-                }
-            },
-            {"$sort": {"last_active": -1}},
-        ]
-        cursor = db.rag_logs.aggregate(pipeline)
-        items = []
-        async for doc in cursor:
-            items.append(
-                {
-                    "conversation_id": doc.get("_id"),
-                    "title": (doc.get("title") or "Untitled conversation")[:120],
-                    "last_active": (
-                        doc.get("last_active").isoformat()
-                        if isinstance(doc.get("last_active"), datetime)
-                        else str(doc.get("last_active"))
-                    ),
-                    "message_count": int(doc.get("message_count", 0)),
-                }
-            )
-        return {"success": True, "history": items}
-    except Exception as e:
-        print(f" History aggregation error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch history")
-
-
-@app.get("/history/chat/{conversation_id}")
-async def get_conversation(conversation_id: str):
-    if not db_client:
-        raise HTTPException(status_code=503, detail="Database not available")
-    try:
-        db = db_client[os.getenv("DB_NAME", "glinax_chatbot_db")]
-        cursor = db.rag_logs.find({"conversation_id": conversation_id}).sort(
-            "timestamp", 1
-        )
-        thread = []
-        async for doc in cursor:
-            ts = doc.get("timestamp")
-            ts_iso = ts.isoformat() if isinstance(ts, datetime) else str(ts)
-            user_msg = doc.get("query")
-            assistant_msg = doc.get("response")
-            if user_msg:
-                thread.append(
-                    {"role": "user", "content": user_msg, "timestamp": ts_iso}
-                )
-            if assistant_msg:
-                thread.append(
-                    {
-                        "role": "assistant",
-                        "content": assistant_msg,
-                        "timestamp": ts_iso,
-                        "meta": {
-                            "confidence": doc.get("confidence"),
-                            "sources": doc.get("sources", []),
-                        },
-                    }
-                )
-        return {"success": True, "conversation_id": conversation_id, "messages": thread}
-    except Exception as e:
-        print(f" Conversation fetch error: {e}")
-        raise HTTPException(
-            status_code=500, detail="Failed to fetch conversation thread"
-        )
-
-
-@app.post("/respond", response_model=ChatResponse)
+@app.post("/respond", response_model=ChatResponse, dependencies=[Depends(verify_internal_key)])
 async def respond_to_query(request: ChatRequest):
     start_time = datetime.now()
 
     try:
+        is_coach_mode = bool(
+            isinstance(request.user_context, dict)
+            and request.user_context.get("is_coach_mode")
+        )
         user_profile = {}
         if request.user_context and isinstance(request.user_context, dict):
             assessment_data = request.user_context.get("assessment_data", None)
@@ -2803,6 +2812,8 @@ async def respond_to_query(request: ChatRequest):
                 "has_files",
                 "file_count",
                 "file_info",
+                "is_coach_mode",
+                "coach_opening",
             }
             for k, v in request.user_context.items():
                 if k not in skip_keys and v:
@@ -2820,10 +2831,10 @@ async def respond_to_query(request: ChatRequest):
                 model_used="hybrid-rag",
             )
 
-        print(f"📥 Processing query: {user_message[:100]}...")
+        print(f"📥 Processing query (coach={is_coach_mode}): {user_message[:100]}...")
 
         # Greetings/thanks need neither retrieval nor a web search.
-        small_talk = is_small_talk(user_message)
+        small_talk = (not is_coach_mode) and is_small_talk(user_message)
         if small_talk:
             local_matches = {"results": [], "confidence": 0.0}
         else:
@@ -2864,18 +2875,28 @@ async def respond_to_query(request: ChatRequest):
         # Web search only when local data isn't a confident match, or the
         # question is time-sensitive (deadlines, lists, news) - the static
         # knowledge base can't answer those reliably even when it matches.
-        use_web_search = not small_talk and (
-            local_matches.get("confidence", 0.0) < 0.95 or needs_fresh_info(user_message)
-        )
+        # In Career Coach mode, skip web search unless the student asks for
+        # time-sensitive info so coaching turns stay fast and conversational.
+        if is_coach_mode:
+            use_web_search = needs_fresh_info(user_message)
+        else:
+            use_web_search = not small_talk and (
+                local_matches.get("confidence", 0.0) < 0.95 or needs_fresh_info(user_message)
+            )
 
         if not use_web_search:
-            print("⚡ Fast Path: Skipping web search (small talk or confident local match)")
+            print("⚡ Fast Path: Skipping web search (coach mode, small talk, or confident local match)")
             combined_context = "\n\n".join(context_segments)
             combined_context = combined_context[:12000]  # sized to stay under the Groq account's 8000 TPM rate limit even with multiple matched universities, while still far fuller than the original 8000-char cap
             final_confidence = local_matches.get("confidence", 0.8)
-            if groq_client and (small_talk or final_confidence > 0.3 or combined_context):
+            if groq_client and (is_coach_mode or small_talk or final_confidence > 0.3 or combined_context):
                 response_text = await generate_response_with_groq(
-                    user_message, combined_context, source_documents, user_profile, request.chat_history
+                    user_message,
+                    combined_context,
+                    source_documents,
+                    user_profile,
+                    request.chat_history,
+                    is_coach_mode=is_coach_mode,
                 )
             else:
                 response_text = generate_smart_fallback_response(
@@ -2906,9 +2927,14 @@ async def respond_to_query(request: ChatRequest):
                 local_matches.get("confidence", 0.0), web_matches.get("confidence", 0.0)
             )
 
-            if groq_client and (final_confidence > 0.3 or combined_context):
+            if groq_client and (is_coach_mode or final_confidence > 0.3 or combined_context):
                 response_text = await generate_response_with_groq(
-                    user_message, combined_context, source_documents, user_profile, request.chat_history
+                    user_message,
+                    combined_context,
+                    source_documents,
+                    user_profile,
+                    request.chat_history,
+                    is_coach_mode=is_coach_mode,
                 )
             else:
                 response_text = generate_smart_fallback_response(
@@ -2983,7 +3009,7 @@ async def respond_to_query(request: ChatRequest):
             )
 
 
-@app.post("/respond-with-files", response_model=ChatResponse)
+@app.post("/respond-with-files", response_model=ChatResponse, dependencies=[Depends(verify_internal_key)])
 async def respond_with_files(
     message: str = Form(...),
     conversation_id: str = Form(...),

@@ -21,6 +21,12 @@ const router = express.Router();
 const upload = multer({ dest: "uploads/" });
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL ;
+const aiServiceHeaders = (extra = {}) => ({
+  ...extra,
+  ...(process.env.INTERNAL_API_KEY
+    ? { "X-Internal-Key": process.env.INTERNAL_API_KEY }
+    : {}),
+});
 
 // Visitors who aren't logged in send a private per-browser id
 // (frontend/src/utils/guestId.ts). Guest routes only ever return data saved
@@ -154,9 +160,9 @@ router.post("/upload", authMiddleware, upload.array('files', 5), async (req, res
 
     const knowledgeServiceResponse = await fetch(fileEndpoint, {
       method: 'POST',
-      headers: {
+      headers: aiServiceHeaders({
         "x-user-id": userId,
-      },
+      }),
       body: formData,
       timeout: 60000 // Longer timeout for file processing
     });
@@ -271,9 +277,9 @@ router.post("/demo", cacheMiddleware, logConversationMiddleware, async (req, res
     try {
       const response = await fetch(AI_SERVICE_URL, {
         method: 'POST',
-        headers: {
+        headers: aiServiceHeaders({
           'Content-Type': 'application/json'
-        },
+        }),
         body: JSON.stringify({
           message,
           conversation_id: conversation_id,
@@ -448,7 +454,7 @@ router.post(
 
         aiResponse = await fetch(`${AI_SERVICE_URL}`, {
           method: "POST",
-          headers: { "x-user-id": userId.toString() },
+          headers: aiServiceHeaders({ "x-user-id": userId.toString() }),
           body: formData,
         });
 
@@ -457,10 +463,10 @@ router.post(
       } else {
         aiResponse = await fetch(`${AI_SERVICE_URL}`, {
           method: "POST",
-          headers: {
+          headers: aiServiceHeaders({
             "Content-Type": "application/json",
             "x-user-id": userId.toString(),
-          },
+          }),
           body: JSON.stringify({ conversation_id, message }),
         });
       }
@@ -1309,10 +1315,10 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
     try {
       const knowledgeServiceResponse = await fetch(AI_SERVICE_URL, {
         method: "POST",
-        headers: {
+        headers: aiServiceHeaders({
           "Content-Type": "application/json",
           "x-user-id": userId,
-        },
+        }),
         body: JSON.stringify(knowledgeRequestPayload),
         signal: abortController.signal
       });
@@ -1528,10 +1534,10 @@ router.post("/send-message-demo", async (req, res) => {
 
     const knowledgeServiceResponse = await fetch(AI_SERVICE_URL, {
       method: "POST",
-      headers: {
+      headers: aiServiceHeaders({
         "Content-Type": "application/json",
         "x-user-id": userId,
-      },
+      }),
       body: JSON.stringify(knowledgeRequestPayload),
     });
 
