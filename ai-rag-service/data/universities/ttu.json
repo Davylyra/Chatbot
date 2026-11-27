@@ -1,0 +1,51 @@
+{
+  "slug": "ttu",
+  "name": "Takoradi Technical University",
+  "aliases": [
+    "TTU",
+    "Takoradi Technical"
+  ],
+  "location": "Takoradi, Western Region",
+  "established": "1954",
+  "website": "www.ttu.edu.gh",
+  "type": "Public",
+  "programs": {
+    "Mechanical Engineering Technology": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in Maths, Physics, Chemistry, English",
+      "career_prospects": "Mechanical Technologist, Manufacturing Specialist"
+    },
+    "Civil Engineering Technology": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in Maths, Physics, Chemistry, English",
+      "career_prospects": "Civil Technologist, Construction Manager"
+    },
+    "Electrical Engineering Technology": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in Maths, Physics, Chemistry, English",
+      "career_prospects": "Electrical Technologist, Power Systems Specialist"
+    },
+    "Petroleum Engineering": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in Maths, Physics, Chemistry, English",
+      "career_prospects": "Petroleum Engineer, Energy Consultant"
+    },
+    "Hospitality Management": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in English, Maths + Home Economics",
+      "career_prospects": "Hotel Manager, Catering Professional"
+    }
+  },
+  "admission_requirements": {
+    "general": "WASSCE with 6 credits including English and Maths",
+    "application_deadline": "October 31, 2026",
+    "online_portal": "https://admissions.ttu.edu.gh"
+  },
+  "contact": {
+    "phone": "+233-31-202-3490",
+    "email": "admissions@ttu.edu.gh"
+  },
+  "scholarships": {
+    "technical_scholarship": "For outstanding technical program students"
+  }
+}

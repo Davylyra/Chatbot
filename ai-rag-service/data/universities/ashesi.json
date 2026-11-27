@@ -1,0 +1,110 @@
+{
+  "slug": "ashesi",
+  "name": "Ashesi University",
+  "aliases": [
+    "Ashesi",
+    "Berekuso"
+  ],
+  "location": "Berekuso, Ghana",
+  "established": "2002 (opened with its pioneer class; the Ashesi University Foundation was established in 1999)",
+  "website": "www.ashesi.edu.gh",
+  "type": "Private",
+  "admission_requirements": {
+    "general": "Ashesi does NOT use an aggregate cut-off point system like Ghana's public universities. WASSCE route: a minimum credit pass of C6 (or better) in EACH of 6 subjects - Integrated Science, Core Mathematics, Core English, plus 3 electives. Admission is application-based: shortlisted applicants are interviewed, and the final decision is based on the full application plus interview, not a single number. Meeting the minimum grade requirement makes an applicant ELIGIBLE to apply - it does not guarantee admission.",
+    "no_cutoff_warning": "Never state or imply a specific aggregate cut-off for Ashesi - none is published. If asked what aggregate is needed, explain that admission depends on meeting the minimum grade requirement (C6 in all 6 subjects) plus a competitive application and interview, not a cut-off number.",
+    "engineering_requirement": "Engineering applicants must additionally have Physics and Elective/Further Mathematics among their WASSCE subjects.",
+    "alternative_qualifications": "Also accepted: IGCSE/O-Level plus A-Level combinations, International Baccalaureate (IB), American/Canadian High School Diploma, French Baccalaureate, and other qualifications approved by Ghana's tertiary education authorities (GTEC).",
+    "international_applicants": "Documents not in English require certified English translations. Applicants whose high-school instruction was not in English must show English proficiency (e.g. TOEFL or IELTS) where applicable. Original exam results may be required for verification. International applicants should not assume equivalence between qualifications without an official/authoritative basis.",
+    "transfer_admissions": "Transfer applications are reviewed case-by-case by Admissions and the relevant academic department. Official transcripts from every college/university attended are required. Some admitted transfer students may have one year of study waived, at the university's discretion - this is never guaranteed. Transfer applications are rolling for the 2026/27 cycle.",
+    "intake_and_rounds": "Two entry points per year: September and January. Four application rounds are listed on the admissions page - Round 1 (June), Round 2 (August), Round 3 (October), Round 4 (December) - though exact dates should be checked on the current admissions cycle, as they are not fixed year to year.",
+    "how_to_apply": "Apply online through the Ashesi admissions portal. Application-fee amount and payment details should be checked on the current application portal; fee waivers can be requested by contacting Admissions directly.",
+    "recognition_note": "Ashesi's own site has displayed ranking claims such as #1 in Ghana in the Times Higher Education Impact Rankings and Top 10 in Africa in the Times Higher Education Sub-Saharan Africa University Rankings (as compiled in this knowledge base's 2026 edition) - rankings change yearly and by category, so this should be treated as a snapshot, not a permanent standing, and verified against the current official site.",
+    "application_deadline": "Check the current admissions cycle - Ashesi runs 4 application rounds per year (June, August, October, December)",
+    "online_portal": "https://ashesi.edu.gh/how-to-apply/",
+    "entrance_exam": "No entrance exam for undergraduate admission - shortlisted applicants are interviewed instead"
+  },
+  "contact": {
+    "phone": "Not published in the available data - check the official website",
+    "email": "See https://ashesi.edu.gh/admissions/ for the current admissions contact",
+    "address": "Ashesi University, Berekuso, Ghana"
+  },
+  "colleges": {
+    "Business, Economics and Law": {
+      "cutoff_range": "No published aggregate cut-off - Ashesi admission is application/interview-based, see admission requirements",
+      "requirements": "Minimum C6 in all 6 WASSCE subjects (Integrated Science, Core Maths, Core English + 3 electives); admission is application and interview based, not aggregate-based.",
+      "programs": [
+        {
+          "name": "BSc Business Administration",
+          "duration": "4 years"
+        },
+        {
+          "name": "BSc Economics",
+          "duration": "4 years"
+        },
+        {
+          "name": "LLB Law with Public Policy",
+          "duration": "4 years",
+          "requirements": "Combines law, public policy, liberal arts and technology; includes internship and a final capstone. Representative subjects: Constitutional Law, Criminal Law, Contract Law, Torts, Company Law, Public International Law, plus public-policy subjects such as Designing Public Policy and Evaluating Public Policy."
+        }
+      ]
+    },
+    "Computing and Information Systems": {
+      "cutoff_range": "No published aggregate cut-off - Ashesi admission is application/interview-based, see admission requirements",
+      "requirements": "Minimum C6 in all 6 WASSCE subjects; admission is application and interview based, not aggregate-based.",
+      "programs": [
+        {
+          "name": "BSc Computer Science",
+          "duration": "4 years",
+          "requirements": "A rigorous computing programme (not just 'programming') covering data structures & algorithms, database systems, computer organisation & architecture, software engineering, operating systems, and networks & data communications, alongside the university's multidisciplinary core curriculum."
+        },
+        {
+          "name": "BSc Management Information Systems",
+          "duration": "4 years",
+          "requirements": "Combines technology and information systems with business/organisational applications - covers systems analysis & design, IT infrastructure, systems administration, information systems project management, e-commerce and competitive strategy, alongside managerial accounting."
+        }
+      ]
+    },
+    "Engineering": {
+      "cutoff_range": "No published aggregate cut-off - Ashesi admission is application/interview-based, see admission requirements",
+      "requirements": "Minimum C6 in all 6 WASSCE subjects, PLUS Physics and Elective/Further Mathematics specifically. Admission is application and interview based, not aggregate-based.",
+      "programs": [
+        {
+          "name": "BSc Biological Engineering",
+          "duration": "4 years",
+          "requirements": "Covers biotechnology, bioinformatics, neuro-engineering, biomedical applications, synthetic biology, biomaterials and systems biology."
+        },
+        {
+          "name": "BSc Computer Engineering",
+          "duration": "4 years"
+        },
+        {
+          "name": "BSc Electrical and Electronics Engineering",
+          "duration": "4 years"
+        },
+        {
+          "name": "BSc Mechanical Engineering",
+          "duration": "4 years"
+        },
+        {
+          "name": "BSc Mechatronic Engineering",
+          "duration": "4 years",
+          "requirements": "Combines mechanical engineering, electrical engineering, electronics, computing, control systems and automation - covers CAD/CAM, mechanics of materials, electrical machines, control systems, manufacturing, machine design, fluid mechanics, heat transfer and a senior project."
+        }
+      ]
+    }
+  },
+  "fees": {
+    "ghanaian_students": {
+      "Undergraduate Tuition (per term, Ghanaian)": "GH¢53,498",
+      "Housing (per term, Ghanaian)": "GH¢9,435",
+      "Student Council Dues (per term, Ghanaian)": "GH¢235",
+      "Health Insurance (per term, Ghanaian)": "GH¢1,880"
+    },
+    "international_students": "International undergraduate fees per term: tuition ~US$4,553, housing ~US$803, Student Council dues ~US$20, health insurance ~US$160. Application-fee payment details should be checked on the current application portal.",
+    "payment_policy": "IMPORTANT: these are PER-TERM figures - Ashesi runs a 3-term academic year, and tuition alone is NOT the complete cost of attendance. Housing, Student Council dues, and health insurance are additional per-term costs on top of tuition. Never state the tuition figure alone as 'what Ashesi costs.' All figures should be treated as dynamic and re-verified against the current Fact Book/admissions page before being treated as final."
+  },
+  "scholarships": {
+    "need_based_note": "Ashesi undergraduate scholarships and financial aid are NEED-BASED, not merit-based - never describe them as merit-based. Applicants seeking assistance complete the financial-aid process and indicate the amount of assistance needed; awards depend on evidence provided and fund availability, and can range from partial assistance to a comprehensive package. Never promise a scholarship or assume an award covers every cost.",
+    "aid_statistics": "Ashesi's own admissions materials have advertised that approximately 50% of students receive some financial aid, and about 25% pay nothing to attend - these figures are from the university's own materials as compiled in this knowledge base's 2026 edition and should be treated as dynamic/year-specific, not a permanent guarantee."
+  }
+}

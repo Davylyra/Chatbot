@@ -1,0 +1,47 @@
+{
+  "slug": "uds",
+  "name": "University for Development Studies",
+  "aliases": [
+    "UDS",
+    "Tamale"
+  ],
+  "location": "Tamale, Northern Region",
+  "established": "1992",
+  "website": "www.uds.edu.gh",
+  "type": "Public",
+  "programs": {
+    "Agriculture": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in English, Maths, Science subjects",
+      "career_prospects": "Agricultural Officer, Farm Manager"
+    },
+    "Medicine": {
+      "duration": "6 years",
+      "requirements": "WASSCE: A1-B3 in Biology, Chemistry, Physics, Maths, English",
+      "career_prospects": "Medical Doctor, Healthcare Professional"
+    },
+    "Development Studies": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in English, Maths + Social Science subjects",
+      "career_prospects": "Development Worker, Policy Analyst"
+    },
+    "Agricultural Engineering": {
+      "duration": "4 years",
+      "requirements": "WASSCE: A1-C6 in Maths, Physics, Chemistry + English",
+      "career_prospects": "Agricultural Engineer, Irrigation Specialist"
+    }
+  },
+  "admission_requirements": {
+    "general": "WASSCE with relevant subject combinations",
+    "application_deadline": "September 30, 2026",
+    "online_portal": "https://admissions.uds.edu.gh"
+  },
+  "contact": {
+    "phone": "+233-37-209-3541",
+    "email": "admissions@uds.edu.gh"
+  },
+  "scholarships": {
+    "rural_development": "Scholarships for students from rural communities",
+    "northern_scholarship": "Special support for Northern Ghana students"
+  }
+}

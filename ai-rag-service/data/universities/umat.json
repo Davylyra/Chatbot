@@ -1,0 +1,244 @@
+{
+  "slug": "umat",
+  "name": "University of Mines and Technology",
+  "aliases": [
+    "UMaT",
+    "Tarkwa"
+  ],
+  "location": "Tarkwa, Western Region",
+  "established": "3rd November, 1952",
+  "website": "www.umat.edu.gh",
+  "type": "Public",
+  "also_known_as": "George Grant University of Mines and Technology",
+  "admission_requirements": {
+    "general": "All first-year degree programmes are 4 years spanning eight semesters. WASSCE/SSSCE: Credit passes (A1-C6 WASSCE / A-D SSSCE) in the 3 core subjects - English Language, Mathematics, Integrated Science (prerequisite for ALL programmes) - plus credit passes (A1-C6) in three science electives, typically Mathematics, Physics and Chemistry (Geography can substitute for Chemistry in Geomatic Engineering, and Land Administration programmes accept three Business, Agriculture or Science electives instead), with a minimum aggregate of 36 considered for BSc admission - but this does NOT guarantee an offer.",
+    "gce_alevel": "GCE O/A-Level applicants need credit passes (Grade 6) in at least five O-Level subjects, including English Language, Mathematics, Physics and Chemistry, plus A-Level passes (Grade D or better) in Mathematics, Physics and Chemistry (or Geography for non-science students).",
+    "other_qualifications": "International Baccalaureate (IB), IGCSE, GCSE, American Grade 13 Examinations, and other external qualifications are accepted as equivalent to WASSCE/SSSCE and GCE O/A-Levels.",
+    "international_applicants": "International students whose first language is not English must have English proficiency from a recognised institution before they can register. Their certificates must be certified by the National Accreditation Board (NAB).",
+    "certificate_topup": "An applicant with a Certificate in Minerals Technology from the University, who meets the standard requirements, must complete a one (1) year top-up for the diploma programme.",
+    "mature": "Mature applicants must be at least 25 years old, hold SSSCE/WASSCE or GCE O-Level passes in five subjects including English Language and Mathematics (plus a science subject and relevant work experience), and must pass a written examination and/or interview.",
+    "how_to_apply": "Purchase an application e-voucher for GH¢230 (Ghanaian undergraduate applicants) from https://apply.umat.edu.gh or from a branch of Access Bank, GCB Bank, CBG Bank, Zenith Bank, Fidelity Bank, UMB Bank, Prudential Bank, or Post Offices. The voucher's serial number and PIN serve as login details for the UMaT Online Admission System. Complete the online form, upload the required documents (results slip/WASSCE-SSSCE certificate, birth certificate, valid national ID/Ghana Card, passport photograph), then print the completed application. Applicants still awaiting WASSCE results may apply and add results once released, but only results submitted WITH the application are used for selection.",
+    "passport_photo_spec": "Must be recent, JPEG format, 3.5cm x 4.5cm, white background, 65KB or less, with no headgear or spectacles.",
+    "programme_selection": "BSc applicants select 4 programmes, Diploma applicants 1, BSc Top-up applicants 2, and Certificate applicants 1, in order of preference.",
+    "corroborator_requirement": "A corroborator must be an approved senior officer, traditional authority, Reverend Minister or Imam, or headteacher - parents and relatives cannot corroborate.",
+    "campuses": "Main Campus (Tarkwa), with some diploma/certificate programmes offered through outreach centres such as Bibiani.",
+    "international_application_fee": "International applicants pay a non-refundable US$100 application fee and must complete the online application plus submit the required documents.",
+    "application_documents_note": "Applicants must submit the signed application summary, results slip, certificates, valid national ID, and other required supporting documents to admissions@umat.edu.gh.",
+    "no_cutoff_note": "UMaT does not officially publish per-programme cut-off aggregates - only the general minimum aggregate of 36 considered for BSc admission is published, and meeting it does not guarantee an offer. Never invent a specific cut-off number for an individual UMaT programme.",
+    "application_deadline": "Check the admissions portal - deadlines vary by year and programme",
+    "online_portal": "https://apply.umat.edu.gh",
+    "application_fee": "GH¢230 for BSc (Ghanaian, 2026/2027 cycle); GH¢200 Diploma; GH¢180 Certificate; GH¢180 Arts-to-Engineering. International: US$100/85/75/75 respectively.",
+    "entrance_exam": "Required (plus interview) for mature-entry and HND/Diploma-entry categories, and for certain professional/technical programmes across faculties."
+  },
+  "contact": {
+    "phone": "+233 3121 97734",
+    "email": "registrar@umat.edu.gh",
+    "address": "Box 237, Tarkwa, Western Region",
+    "webmaster_email": "webmaster@umat.edu.gh"
+  },
+  "colleges": {
+    "Mining and Minerals Technology": {
+      "cutoff_range": "Not officially published",
+      "requirements": "Credits in English Language, Mathematics, Integrated Science plus Physics, Elective Mathematics and Chemistry.",
+      "programs": [
+        {
+          "name": "BSc Mining Engineering",
+          "school": "Department of Mining Engineering"
+        },
+        {
+          "name": "BSc Minerals Engineering",
+          "school": "Department of Minerals Engineering"
+        }
+      ]
+    },
+    "Computing and Mathematical Sciences": {
+      "cutoff_range": "Not officially published",
+      "requirements": "Credits in English Language, Mathematics, Integrated Science, plus programme-specific electives (see individual programmes).",
+      "programs": [
+        {
+          "name": "BSc Computer Science and Engineering",
+          "school": "Department of Computer Science and Engineering",
+          "requirements": "Physics, Mathematics and Chemistry, Applied Electricity, Electronics, ICT or Computer Studies"
+        },
+        {
+          "name": "BSc Mathematics",
+          "school": "Department of Mathematical Sciences",
+          "requirements": "Elective Mathematics and any 2 of Physics, Chemistry, Applied Electricity, Technical Drawing, Metal Work, Geography, Applied Electronics or ICT"
+        },
+        {
+          "name": "BSc Cyber Security",
+          "school": "Cyber Security and Information Systems",
+          "requirements": "3 relevant electives from Science, General Arts or Business subjects"
+        },
+        {
+          "name": "BSc Information Systems and Technology",
+          "school": "Cyber Security and Information Systems",
+          "requirements": "3 relevant electives from Science, General Arts or Business subjects"
+        }
+      ]
+    },
+    "Integrated Management Science": {
+      "cutoff_range": "Not officially published",
+      "requirements": "Credits in English Language, Mathematics, Integrated Science; elective requirements vary by programme.",
+      "programs": [
+        {
+          "name": "BSc Logistics and Transport Management",
+          "school": "Department of Management Studies",
+          "requirements": "Relevant Science, General Arts or Business electives"
+        },
+        {
+          "name": "BSc Economics and Industrial Organisation",
+          "school": "Department of Management Studies",
+          "requirements": "Relevant Science, General Arts or Business electives"
+        },
+        {
+          "name": "BSc Finance and Data Science",
+          "school": "Department of Management Studies",
+          "requirements": "Elective Mathematics plus 2 relevant electives"
+        }
+      ]
+    },
+    "Engineering": {
+      "cutoff_range": "Not officially published",
+      "requirements": "Credits in English Language, Mathematics, Integrated Science plus Physics, Mathematics and Chemistry or related technical subjects.",
+      "programs": [
+        {
+          "name": "BSc Mechanical Engineering",
+          "school": "Department of Mechanical Engineering",
+          "requirements": "Physics, Mathematics and Chemistry, Technical Drawing or related technical subjects"
+        },
+        {
+          "name": "BSc Electrical and Electronic Engineering",
+          "school": "Department of Electrical and Electronic Engineering",
+          "requirements": "Physics, Mathematics and Chemistry, Applied Electricity or Applied Electronics"
+        },
+        {
+          "name": "BSc Renewable Energy Engineering",
+          "school": "Department of Renewable Energy Engineering",
+          "requirements": "Physics, Mathematics and Chemistry, Applied Electricity or Applied Electronics"
+        },
+        {
+          "name": "BSc Telecommunication Engineering (New)",
+          "school": "Faculty of Engineering"
+        }
+      ]
+    },
+    "Geosciences and Environmental Studies": {
+      "cutoff_range": "Not officially published",
+      "requirements": "Credits in English Language, Mathematics, Integrated Science plus Mathematics, Physics and Chemistry (or Geography as a substitute in Geomatic Engineering).",
+      "programs": [
+        {
+          "name": "BSc Geological Engineering",
+          "school": "Department of Geological Engineering"
+        },
+        {
+          "name": "BSc Geomatic Engineering",
+          "school": "Department of Geomatic Engineering",
+          "requirements": "Mathematics, Physics and Chemistry - Chemistry may be replaced with Geography"
+        },
+        {
+          "name": "BSc Land Administration and Information Systems",
+          "school": "Department of Geomatic Engineering",
+          "requirements": "Relevant Business, Agriculture, Science or specified General Arts electives"
+        },
+        {
+          "name": "BSc Spatial Planning",
+          "school": "Department of Geomatic Engineering",
+          "requirements": "Relevant Business, Agriculture, Science or specified General Arts electives"
+        },
+        {
+          "name": "BSc Environmental and Safety Engineering",
+          "school": "Department of Environmental and Safety Engineering"
+        }
+      ]
+    },
+    "Petroleum Studies": {
+      "cutoff_range": "Not officially published",
+      "requirements": "Credits in English Language, Mathematics, Integrated Science plus Mathematics, Physics and Chemistry.",
+      "programs": [
+        {
+          "name": "BSc Petroleum Engineering",
+          "school": "Department of Petroleum and Natural Gas Engineering"
+        },
+        {
+          "name": "BSc Natural Gas Engineering",
+          "school": "Department of Petroleum and Natural Gas Engineering"
+        },
+        {
+          "name": "BSc Petroleum Geosciences and Engineering",
+          "school": "Department of Petroleum Geosciences and Engineering"
+        },
+        {
+          "name": "BSc Petroleum Refining and Petrochemical Engineering",
+          "school": "Department of Chemical and Petrochemical Engineering"
+        },
+        {
+          "name": "BSc Chemical Engineering",
+          "school": "Department of Chemical and Petrochemical Engineering"
+        }
+      ]
+    },
+    "Railways and Infrastructure Development (Essikado)": {
+      "cutoff_range": "Not officially published",
+      "requirements": "Listed directly under the School rather than by department on the current official Essikado programme page.",
+      "programs": [
+        {
+          "name": "BSc Geomatic Engineering (Essikado)"
+        },
+        {
+          "name": "BSc Geological Engineering (Essikado)"
+        },
+        {
+          "name": "BSc Environmental and Safety Engineering (Essikado)"
+        },
+        {
+          "name": "BSc Civil Engineering (Essikado)"
+        },
+        {
+          "name": "BSc Mechanical Engineering (Essikado)"
+        },
+        {
+          "name": "BSc Electrical and Electronic Engineering (Essikado)"
+        },
+        {
+          "name": "BSc Computer Science and Engineering (Essikado)"
+        },
+        {
+          "name": "BSc Data Science and Analytics"
+        },
+        {
+          "name": "BSc Transport Planning and Management"
+        },
+        {
+          "name": "BSc Mathematics with Finance"
+        },
+        {
+          "name": "BSc Engineering Mathematics"
+        },
+        {
+          "name": "BSc Mechanical Engineering (Top Up)"
+        },
+        {
+          "name": "BSc Electrical and Electronic Engineering (Top Up)"
+        }
+      ]
+    }
+  },
+  "fees": {
+    "ghanaian_students": {
+      "Fee-Paying Year 1 - Mechanical/Electrical/Mining/Minerals/Geomatic Engineering": "~GH¢4,498",
+      "Fee-Paying Year 1 - Computer Science and Engineering": "~GH¢4,631",
+      "Residential - Chamber of Mines Hall": "GH¢528",
+      "Residential - Chamber of Mines Hall Annex": "GH¢528",
+      "Residential - Gold Refinery Hall": "GH¢440"
+    },
+    "international_students": "International undergraduate Engineering and Science programmes: approximately US$7,257.76 for Year 1 and about US$6,923.83 for Year 2 for several BSc programmes; exact fees vary by programme and year. Foreign students pay into the University of Mines and Technology Foreign Account at Ecobank Ghana, Tarkwa Branch.",
+    "payment_policy": "UMaT does not publish one simple faculty-wide fee table - programme and student-category fees should be confirmed from the latest UMaT fee schedule. Application fees are separate from tuition/academic fees; academic and residential fees should be confirmed from the current UMaT fee schedule for the applicant's specific programme and student category."
+  },
+  "scholarships": {
+    "gcm_tef_scholarship": "GCM-TEF Undergraduate Scholarship - supports brilliant and needy UMaT students. For 2026/2027, at least 40 students are expected to benefit, with an award worth up to the Ghana cedi equivalent of US$600 per student, contributing toward academic fees, accommodation and/or stipend.",
+    "gcm_tef_eligibility": "Applicants generally must be Ghanaian, in first or second year, demonstrate academic ability and financial need, and meet CWA requirements - standard category requires at least 75% CWA, with exceptional cases of extreme financial need considered from 60% CWA.",
+    "other_scholarships": "UMaT's scholarship records include support from Gold Fields, Ghana National Petroleum Corporation, AngloGold Ashanti, Aker Energy, Newmont, Ghana Chamber of Mines, MTN, GETFund, District Assemblies and other sponsors.",
+    "student_financial_support": "UMaT's Student Financial Support Unit helps students identify and apply for internal and external scholarships, including merit-based, need-based and programme-specific opportunities."
+  }
+}

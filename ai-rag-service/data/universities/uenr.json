@@ -1,0 +1,244 @@
+{
+  "slug": "uenr",
+  "name": "University of Energy and Natural Resources",
+  "aliases": [
+    "UENR",
+    "Sunyani"
+  ],
+  "location": "Sunyani-Berekum Road, Fiapre, Sunyani, Bono Region",
+  "established": "2011",
+  "website": "www.uenr.edu.gh",
+  "type": "Public",
+  "admission_requirements": {
+    "general": "WASSCE and SSSCE holders need credit passes (A1-C6)/(A-D) respectively in 3 core subjects - English Language, Mathematics, and Integrated Science/Social Studies - plus 3 elective subjects relevant to the chosen programme.",
+    "abce": "Advanced Business Certificate Examination (ABCE) holders: passes in 3 compulsory subjects plus 3 optional subjects relevant to the programme.",
+    "gbce": "General Business Certificate (GBCE) holders: credit passes (A-D) in 6 subjects comprising 3 core subjects (including English Language and Mathematics) plus 3 relevant elective subjects.",
+    "alevel": "Advanced Level holders: credit in at least 5 subjects at GCE 'O' Level (or equivalent) including English and Mathematics, plus at least 2 passes in subjects relevant to the programme.",
+    "hnd_holders": "Higher National Diploma (HND) holders with relevant working experience, in addition to the minimum WASSCE/SSSCE entry requirements or 5 GCE O-Level credits including English and Mathematics. May be asked to write an entrance examination and/or attend an interview.",
+    "diploma_holders": "UENR Diploma holders (or recognised equivalents) with relevant working experience may be considered. May be asked to write an entrance exam and/or attend an interview. Admitted to Level 200 or Level 300 based on FGPA and area of study.",
+    "other_qualifications": "Other qualifications accepted for consideration include International Baccalaureate (IB), IGCSE, American Grade 13 Examinations, and other external qualifications equivalent to WASSCE/SSSCE and GCE A-Levels.",
+    "foreign_applicants": "Foreign applicants with any of the above qualifications (or their equivalences) from an accredited/recognised institution. International students must submit their certificates to the Ghana Tertiary Education Commission (GTEC) for evaluation and attach the report(s) to the application form.",
+    "all_diploma_programmes": "WASSCE holders need credit passes (A1-C6) in English Language, Mathematics, and Integrated Science/Social Studies plus 2 credit passes in 2 elective subjects relevant to the programme.",
+    "mature": "Must be at least 25 years old with proof of age (birth certificate or legitimate documentary proof). Must pass the Mature Students' Entrance Examination (English Language, Mathematics, and an Aptitude Test) conducted by the institution. Must also possess SSSCE/WASSCE/GCE O or A Level/ABCE/GBCE or equivalent, a Teacher's Cert 'A', or NVTI/NABPTEX Certificates.",
+    "how_to_apply": "1) Buy an Application Voucher - GH¢230 for Diploma and Undergraduate programmes (GH¢300 for Postgraduate), from Ghana Post offices nationwide (or dial *885# on any network), bank branches (GCB Bank, Zenith Bank, Prudential Bank, Fidelity Bank, Consolidated Bank of Ghana), the UENR Finance Directorate (Main Campus, Sunyani), or the UENR Accra Office. This gives you an Application Number and PIN. 2) Complete the online application at the UENR Admissions Portal, log in with your Application Number and PIN, fill in personal/academic/programme fields, upload a passport photo (white background), review, certify and submit. 3) Print 2 copies of the completed form, attach certified copies of academic certificates/result slips and a birth certificate copy, and mail/submit to: The Academic and Students' Affairs Division, University of Energy and Natural Resources, P.O. Box 214, Sunyani, Bono Region, Ghana.",
+    "e_voucher_sale_points": "Ghana Post offices nationwide (or dial *885#), GCB Bank, Zenith Bank, Prudential Bank, Fidelity Bank and Consolidated Bank of Ghana (CBG) branches nationwide, UENR Finance Directorate (Main Campus Sunyani), UENR Accra Office (in the VCG Office Complex on the UPSA road - contact Mr. Richard Hammond, 0246565451), or call 0533581475 / 0552590370 / 0205475443 / 032290390.",
+    "no_cutoff_note": "UENR does not publish per-programme cut-off aggregates in the available data - only the subject/credit requirements above are published. Never invent a specific cut-off number for a UENR programme.",
+    "application_deadline": "Check the admissions portal - deadlines vary by year and programme",
+    "online_portal": "https://admissions.uenr.edu.gh",
+    "voucher_purchase_portal": "https://uenr.edu.gh/admission-details/",
+    "application_fee": "GH¢230 (Diploma and Undergraduate); GH¢300 (Postgraduate)",
+    "postgraduate_enquiries": "srgs@uenr.edu.gh",
+    "diploma_undergrad_enquiries": "0553581475 / 0552590370 / 0205475443, or admissions@uenr.edu.gh"
+  },
+  "contact": {
+    "phone": "+233 352 290 390",
+    "email": "uro@uenr.edu.gh",
+    "address": "University of Energy and Natural Resources, P.O. Box 214, Sunyani, Bono Region, Ghana",
+    "registrar": "Abigail Amo Boatemaa (registrar@uenr.edu.gh, +233 352 290 382)",
+    "admissions_email": "admissions@uenr.edu.gh",
+    "admissions_whatsapp": "+233 55 358 1475"
+  },
+  "colleges": {
+    "Sciences": {
+      "cutoff_range": "Not officially published",
+      "requirements": "Credit passes in English Language, Mathematics, and Integrated Science plus 3 relevant electives; specific science electives vary by programme.",
+      "programs": [
+        {
+          "name": "Diploma in Statistics",
+          "notes": "Regular/Weekend"
+        },
+        {
+          "name": "Diploma in Information Technology"
+        },
+        {
+          "name": "Diploma in Computer Science"
+        },
+        {
+          "name": "BSc Biological Science"
+        },
+        {
+          "name": "BSc Engineering Physics"
+        },
+        {
+          "name": "BSc Medical Laboratory Sciences"
+        },
+        {
+          "name": "BSc Nursing"
+        },
+        {
+          "name": "BSc Chemistry"
+        },
+        {
+          "name": "BSc Computer Science",
+          "notes": "Regular/Weekend"
+        },
+        {
+          "name": "BSc Information Technology",
+          "notes": "Regular/Weekend"
+        },
+        {
+          "name": "BSc Actuarial Science",
+          "notes": "Regular/Weekend"
+        },
+        {
+          "name": "BSc Statistics",
+          "notes": "Regular/Weekend"
+        },
+        {
+          "name": "BSc Mathematics",
+          "notes": "Regular/Weekend"
+        },
+        {
+          "name": "BSc Biochemistry"
+        }
+      ]
+    },
+    "Natural Resources": {
+      "cutoff_range": "Not officially published",
+      "requirements": "Credit passes in English Language, Mathematics, and Integrated Science plus 3 relevant electives.",
+      "programs": [
+        {
+          "name": "Diploma in Natural Resources Management"
+        },
+        {
+          "name": "Diploma in Fire, Safety and Disaster Management"
+        },
+        {
+          "name": "BSc Aquaculture and Aquatic Resources Management"
+        },
+        {
+          "name": "BSc Environmental Resources Management and Sustainability"
+        },
+        {
+          "name": "BSc Fire, Safety and Disaster Management"
+        },
+        {
+          "name": "BSc Hospitality Management"
+        },
+        {
+          "name": "BSc Natural Resources Management",
+          "options": "Ecotourism, Fisheries and Aquaculture, Forest Resources Management, Land Reclamation and Restoration, Social Forestry"
+        }
+      ]
+    },
+    "Engineering": {
+      "cutoff_range": "Not officially published",
+      "requirements": "Credit passes in English Language, Mathematics, and Integrated Science plus relevant science electives (typically Physics, Chemistry, Elective Mathematics).",
+      "programs": [
+        {
+          "name": "BSc Agricultural Engineering"
+        },
+        {
+          "name": "BSc Civil Engineering"
+        },
+        {
+          "name": "BSc Computer Engineering"
+        },
+        {
+          "name": "BSc Electrical and Electronic Engineering"
+        },
+        {
+          "name": "BSc Environmental Engineering"
+        },
+        {
+          "name": "BSc Mechanical Engineering"
+        }
+      ]
+    },
+    "Mines and Built Environment": {
+      "cutoff_range": "Not officially published",
+      "requirements": "Credit passes in English Language, Mathematics, and Integrated Science plus relevant electives.",
+      "programs": [
+        {
+          "name": "BSc Development Minerals Mining"
+        },
+        {
+          "name": "BSc Urban Mining"
+        },
+        {
+          "name": "BSc Sustainable Mining"
+        },
+        {
+          "name": "BSc Sustainable Land Management"
+        },
+        {
+          "name": "BSc Resource and Development Planning"
+        }
+      ]
+    },
+    "Agriculture and Technology": {
+      "cutoff_range": "Not officially published",
+      "requirements": "Credit passes in English Language, Mathematics, and Integrated Science plus relevant Agriculture/Science electives.",
+      "programs": [
+        {
+          "name": "BSc Agriculture",
+          "options": "Animal Production, Crop Production, Horticulture"
+        },
+        {
+          "name": "BSc Agribusiness"
+        },
+        {
+          "name": "BSc Food Technology"
+        },
+        {
+          "name": "BSc Agricultural and Resource Economics"
+        },
+        {
+          "name": "MPhil Agricultural and Resource Economics",
+          "notes": "Graduate programme"
+        }
+      ]
+    },
+    "Arts and Social Sciences": {
+      "cutoff_range": "Not officially published",
+      "requirements": "Credit passes in English Language, Mathematics, and Integrated Science/Social Studies plus relevant electives.",
+      "programs": [
+        {
+          "name": "BSc Resource Enterprise & Entrepreneurship"
+        },
+        {
+          "name": "BSc Accounting"
+        },
+        {
+          "name": "BSc Economics"
+        }
+      ]
+    },
+    "Geosciences": {
+      "cutoff_range": "Not officially published",
+      "requirements": "Credit passes in English Language, Mathematics, and Integrated Science plus relevant Science/Geography electives.",
+      "programs": [
+        {
+          "name": "Diploma in Geoinformation Science"
+        },
+        {
+          "name": "Diploma in Geomatics"
+        },
+        {
+          "name": "BSc Applied Meteorology and Climate Science"
+        },
+        {
+          "name": "BSc Climate Change and Sustainable Development"
+        },
+        {
+          "name": "BSc Geo-Environmental Science"
+        },
+        {
+          "name": "BSc Geoinformation Science"
+        },
+        {
+          "name": "BSc Geomatics"
+        },
+        {
+          "name": "BSc Planning and Sustainability"
+        }
+      ]
+    }
+  },
+  "fees": {
+    "payment_policy": "UENR's fee schedule was not included in the available data - contact the Academic and Students' Affairs Division (admissions@uenr.edu.gh) or check the official website for current tuition and fees."
+  },
+  "scholarships": {
+    "energy_scholarship": "For students in energy-related programmes - contact the University for current scholarship listings and eligibility."
+  }
+}

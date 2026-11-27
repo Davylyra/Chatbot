@@ -1,0 +1,54 @@
+{
+  "slug": "uhas",
+  "name": "University of Health and Allied Sciences",
+  "aliases": [
+    "UHAS",
+    "Ho"
+  ],
+  "location": "Ho, Volta Region",
+  "established": "2011",
+  "website": "www.uhas.edu.gh",
+  "type": "Public",
+  "programs": {
+    "Medicine": {
+      "duration": "6 years",
+      "requirements": "WASSCE: A1-B3 in Biology, Chemistry, Physics, Maths, English",
+      "career_prospects": "Medical Doctor, Surgeon"
+    },
+    "Nursing": {
+      "duration": "4 years",
+      "requirements": "WASSCE: A1-C6 in English, Maths, Biology, Chemistry",
+      "career_prospects": "Registered Nurse, Healthcare Provider"
+    },
+    "Public Health": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in English, Maths, Biology, Chemistry",
+      "career_prospects": "Public Health Officer, Epidemiologist"
+    },
+    "Physician Assistant Studies": {
+      "duration": "4 years",
+      "requirements": "WASSCE: A1-C6 in Biology, Chemistry, English, Maths",
+      "career_prospects": "Physician Assistant, Medical Professional"
+    },
+    "Biomedical Sciences": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in Biology, Chemistry, Maths, English",
+      "career_prospects": "Biomedical Scientist, Lab Specialist"
+    }
+  },
+  "admission_requirements": {
+    "general": "WASSCE with strong performance in science subjects",
+    "entrance_exam": "Required for Medicine and competitive programs",
+    "application_deadline": "August 14, 2026",
+    "online_portal": "https://admissions.uhas.edu.gh",
+    "application_fee": "GH¢ 230"
+  },
+  "contact": {
+    "phone": "+233-36-202-1401",
+    "email": "admissions@uhas.edu.gh"
+  },
+  "scholarships": {
+    "health_professional": "For outstanding health sciences students",
+    "rural_health": "For students committed to rural healthcare"
+  }
+}

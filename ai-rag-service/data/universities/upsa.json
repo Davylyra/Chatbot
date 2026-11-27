@@ -1,0 +1,51 @@
+{
+  "slug": "upsa",
+  "name": "University of Professional Studies, Accra",
+  "aliases": [
+    "UPSA"
+  ],
+  "location": "Accra, Greater Accra",
+  "established": "1965",
+  "website": "www.upsa.edu.gh",
+  "type": "Public",
+  "programs": {
+    "Accounting": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in English, Maths, Economics + 3 others",
+      "career_prospects": "Accountant, Auditor, Financial Analyst"
+    },
+    "Marketing": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in English, Maths, Economics/Business",
+      "career_prospects": "Marketing Manager, Brand Specialist"
+    },
+    "Banking and Finance": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in English, Maths, Economics",
+      "career_prospects": "Banker, Financial Advisor"
+    },
+    "Human Resource Management": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in English, Maths + relevant subjects",
+      "career_prospects": "HR Manager, Recruitment Specialist"
+    },
+    "Public Administration": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in English, Maths + Social Sciences",
+      "career_prospects": "Public Servant, Administrator"
+    }
+  },
+  "admission_requirements": {
+    "general": "WASSCE with 6 credits including English and Maths",
+    "application_deadline": "August 21, 2026",
+    "online_portal": "https://admissions.upsa.edu.gh"
+  },
+  "contact": {
+    "phone": "+233-30-298-1000",
+    "email": "admissions@upsa.edu.gh"
+  },
+  "scholarships": {
+    "professional_excellence": "Merit-based scholarships for top performers",
+    "need_based": "Financial support for disadvantaged students"
+  }
+}

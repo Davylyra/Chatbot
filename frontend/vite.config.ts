@@ -9,6 +9,7 @@ export default defineConfig(() => {
     test: {
       globals: true,
       environment: 'jsdom',
+      pool: 'threads',
       setupFiles: './src/setupTests.ts',
     },
     base: '/', // CRITICAL: Use '/' for SPA routing

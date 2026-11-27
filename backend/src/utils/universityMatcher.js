@@ -1,7 +1,7 @@
-import { ghanaUniversitiesDatabase, getAllUniversities } from '../data/ghanaUniversitiesDatabase.js';
+import { loadSharedUniversities } from './universityDataLoader.js';
 
 export function matchUniversitiesToProfile(studentProfile) {
-  const matchedUniversities = getAllUniversities()
+  const matchedUniversities = loadSharedUniversities()
     .map(institution => {
       const score = calculateUniversityMatchScore(institution, studentProfile);
       if (score.totalScore <= 30) return null;
@@ -118,7 +118,7 @@ function calculateUniversityMatchScore(institution, studentProfile) {
 
   if (studentProfile.interests?.length) {
     const interests = studentProfile.interests.map(i => i.toLowerCase());
-    const specializationsMatch = institution.specializations.some(spec =>
+    const specializationsMatch = (institution.specializations || []).some(spec =>
       interests.some(interest => 
         spec.toLowerCase().includes(interest) || interest.includes(spec.toLowerCase().split(' ')[0])
       )

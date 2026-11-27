@@ -1,0 +1,468 @@
+{
+  "slug": "ug",
+  "name": "University of Ghana",
+  "aliases": [
+    "UG",
+    "Legon",
+    "UG Legon"
+  ],
+  "location": "Legon, Accra",
+  "established": "1948",
+  "website": "www.ug.edu.gh",
+  "type": "Public",
+  "admission_requirements": {
+    "general": "WASSCE: Credit passes (A1-C6) in 6 subjects (4 Core + 3 Electives). Aggregate 24 or better for regular admission. Distance Education: Aggregate 30.",
+    "wassce": "Credit passes A1-C6 in English, Core Maths, Integrated Science, Social Studies + 3 relevant electives",
+    "sssce": "Credit passes A-D in English, Core Maths, Integrated Science, Social Studies + 3 relevant electives",
+    "aggregate_calculation": "Science-related disciplines: English + Core Maths + Integrated Science + 3 Science Electives (Social Studies excluded). Non-Science disciplines: English + Core Maths + Social Studies + 3 Electives (Integrated Science excluded). A lower aggregate is a better/more competitive score.",
+    "gce": "3 'A' Level passes + 5 'O' Level credits including English and Maths",
+    "ib": "Grade 4+ in 3 HL subjects",
+    "mature": "25+ years old, entrance exam, relevant work experience",
+    "how_to_apply": "Purchase an E-Voucher from an approved bank - Consolidated Bank Ghana (*924*200*25#), Fidelity Bank (*776*108#), or Prudential Bank (*772*100#), costing about GH¢250. Access the Admissions Portal, complete the application with personal details, academic records, and programme choices, then upload transcripts, certificates, and result slips before the deadline (application window typically runs March-June).",
+    "international_applicants": "Do NOT purchase an e-voucher. Apply through the International Programmes Office and pay a non-refundable application fee of US$55.",
+    "fee_schedule_status": "The official 2026/2027 fee schedule had not been published as of August 2026; figures here are based on the 2024/2025 and 2025/2026 schedules. Academic Facility User Fees (AFUF) have been maintained at the same rates since 2023/2024.",
+    "application_deadline": "August 31, 2026 (Pending WASSCE release)",
+    "online_portal": "https://admissions.ug.edu.gh",
+    "application_fee": "GH¢ 250 (via *924*200*25#)",
+    "entrance_exam": "Required for Medicine, Law, and other competitive programmes",
+    "first_choice_policy": "Many competitive programmes (Medicine, Law, Business, Computer Science, Engineering) are strictly 'First Choice Only'. If selecting LLB as first choice, select a BA bouquet as your second choice."
+  },
+  "contact": {
+    "phone": "+233-30-213-8501",
+    "email": "admissions@ug.edu.gh",
+    "address": "P.O. Box LG 25, Legon, Accra"
+  },
+  "colleges": {
+    "Humanities": {
+      "cutoff_range": "7-24",
+      "programs": [
+        {
+          "name": "LLB (Law)",
+          "duration": "4 years",
+          "cutoff": "7",
+          "first_choice": "Yes"
+        },
+        {
+          "name": "BSc Administration - Accounting",
+          "cutoff": "9",
+          "first_choice": "Yes"
+        },
+        {
+          "name": "BSc Administration - Banking & Finance",
+          "cutoff": "9",
+          "first_choice": "Yes"
+        },
+        {
+          "name": "BSc Administration - Marketing",
+          "cutoff": "9",
+          "first_choice": "Yes"
+        },
+        {
+          "name": "BSc Administration - Human Resource Management",
+          "cutoff": "9",
+          "first_choice": "Yes"
+        },
+        {
+          "name": "BSc Administration - Public Administration",
+          "cutoff": "9",
+          "first_choice": "Yes"
+        },
+        {
+          "name": "BSc Administration - Insurance",
+          "cutoff": "9",
+          "first_choice": "Yes"
+        },
+        {
+          "name": "BSc Administration - Health Services Management",
+          "cutoff": "9",
+          "first_choice": "Yes"
+        },
+        {
+          "name": "BSc Administration - E-Commerce & Customer Management",
+          "cutoff": "9",
+          "first_choice": "Yes"
+        },
+        {
+          "name": "BA Political Science",
+          "cutoff": "24"
+        },
+        {
+          "name": "BA Economics",
+          "cutoff": "24"
+        },
+        {
+          "name": "BA Geography & Resource Development",
+          "cutoff": "24"
+        },
+        {
+          "name": "BA Psychology",
+          "cutoff": "24"
+        },
+        {
+          "name": "BA Social Work",
+          "cutoff": "24"
+        },
+        {
+          "name": "BA Sociology",
+          "cutoff": "24"
+        },
+        {
+          "name": "BA English",
+          "cutoff": "24"
+        },
+        {
+          "name": "BA French",
+          "cutoff": "24"
+        },
+        {
+          "name": "BA History",
+          "cutoff": "24"
+        },
+        {
+          "name": "BA Archaeology & Heritage Studies",
+          "cutoff": "24"
+        },
+        {
+          "name": "BA Information Studies",
+          "cutoff": "24"
+        },
+        {
+          "name": "BA Music",
+          "cutoff": "24",
+          "requirements": "Audition"
+        },
+        {
+          "name": "BA Theatre Arts",
+          "cutoff": "24",
+          "requirements": "Audition"
+        },
+        {
+          "name": "BA Dance Studies",
+          "cutoff": "24",
+          "requirements": "Audition"
+        }
+      ]
+    },
+    "Basic and Applied Sciences": {
+      "cutoff_range": "6-24",
+      "requirements": "Credit passes in English, Core Maths, Integrated Science + 3 Science electives (Social Studies excluded from aggregate). Houses 6 schools across engineering, physical/mathematical sciences, biological sciences, agriculture, computer science, earth science, and veterinary medicine. Note: the School of Nuclear and Allied Sciences (SNAS) is graduate-only (MPhil/PhD, run with the Ghana Atomic Energy Commission and IAEA) and does not offer undergraduate programmes.",
+      "programs": [
+        {
+          "name": "BSc Biomedical Engineering",
+          "cutoff": "6-7",
+          "first_choice": "Yes",
+          "requirements": "Elective Maths (B3+)"
+        },
+        {
+          "name": "BSc Computer Engineering",
+          "cutoff": "7",
+          "first_choice": "Yes",
+          "requirements": "Elective Maths (B3+)"
+        },
+        {
+          "name": "BSc Computer Science",
+          "cutoff": "7-9",
+          "first_choice": "Yes",
+          "requirements": "Elective Maths (B3+)"
+        },
+        {
+          "name": "BSc Information Technology",
+          "cutoff": "12",
+          "first_choice": "Yes",
+          "requirements": "Core Maths (C4+)"
+        },
+        {
+          "name": "BSc Actuarial Science",
+          "cutoff": "12",
+          "requirements": "Elective Maths (high grade required)"
+        },
+        {
+          "name": "BSc Agricultural Engineering",
+          "cutoff": "15",
+          "requirements": "Elective Maths (B3+)"
+        },
+        {
+          "name": "BSc Food Process Engineering",
+          "cutoff": "14",
+          "requirements": "Elective Maths (B3+)"
+        },
+        {
+          "name": "BSc Materials Science & Engineering",
+          "cutoff": "14",
+          "requirements": "Elective Maths (B3+)"
+        },
+        {
+          "name": "Doctor of Veterinary Medicine",
+          "duration": "6 years",
+          "cutoff": "14",
+          "first_choice": "Yes"
+        },
+        {
+          "name": "BSc Agriculture",
+          "cutoff": "24"
+        },
+        {
+          "name": "BSc Earth Science",
+          "cutoff": "24"
+        },
+        {
+          "name": "BSc Mathematics",
+          "cutoff": "24",
+          "requirements": "Elective Maths required"
+        },
+        {
+          "name": "BSc Mathematical Sciences",
+          "cutoff": "24",
+          "requirements": "Combined departments; Elective Maths required"
+        },
+        {
+          "name": "BSc Statistics",
+          "cutoff": "24"
+        },
+        {
+          "name": "BSc Physics",
+          "cutoff": "24",
+          "requirements": "Physics, Elective Maths required"
+        },
+        {
+          "name": "BSc Geophysics",
+          "cutoff": "24",
+          "requirements": "Physics, Elective Maths required"
+        },
+        {
+          "name": "BSc Chemistry",
+          "cutoff": "24"
+        },
+        {
+          "name": "BSc Biochemistry, Cell & Molecular Biology",
+          "cutoff": "24"
+        },
+        {
+          "name": "BSc Nutrition & Food Science",
+          "cutoff": "24"
+        },
+        {
+          "name": "BSc Animal Biology & Conservation Science",
+          "cutoff": "24"
+        },
+        {
+          "name": "BSc Plant & Environmental Biology",
+          "cutoff": "24"
+        },
+        {
+          "name": "BSc Marine & Fisheries Sciences",
+          "cutoff": "24"
+        }
+      ]
+    },
+    "Health Sciences": {
+      "cutoff_range": "8-16",
+      "first_choice_only": "Yes",
+      "programs": [
+        {
+          "name": "MB ChB (Medicine & Surgery)",
+          "duration": "6 years",
+          "cutoff": "8",
+          "first_choice": "Yes",
+          "entrance_exam": "Yes",
+          "requirements": "Computer-based entrance exam may be required. Electives: Biology, Chemistry, Physics or Elective Maths."
+        },
+        {
+          "name": "Graduate Entry Medical Programme (GEMP)",
+          "duration": "4 years",
+          "cutoff": "N/A (degree required)",
+          "requirements": "Good first degree (min. 2nd Class Lower) in a relevant science field, good grades in 3 core + 3 science electives including Chemistry, national service completion, entrance exam and interview"
+        },
+        {
+          "name": "BDS (Dental Surgery)",
+          "duration": "6 years",
+          "cutoff": "10",
+          "first_choice": "Yes",
+          "entrance_exam": "Yes"
+        },
+        {
+          "name": "Graduate Entry Dental Programme (GEDP)",
+          "duration": "4 years",
+          "cutoff": "N/A (degree required)"
+        },
+        {
+          "name": "Pharm.D (Doctor of Pharmacy)",
+          "duration": "6 years",
+          "cutoff": "10",
+          "first_choice": "Yes"
+        },
+        {
+          "name": "BSc Nursing",
+          "duration": "4 years",
+          "cutoff": "15",
+          "first_choice": "Yes",
+          "requirements": "Non-Science applicants may be considered from General Arts, Home Economics, or Business backgrounds if core requirements are met"
+        },
+        {
+          "name": "BSc Midwifery",
+          "duration": "4 years",
+          "cutoff": "15",
+          "first_choice": "Yes"
+        },
+        {
+          "name": "BSc Medical Laboratory Science",
+          "duration": "4 years",
+          "cutoff": "12",
+          "first_choice": "Yes"
+        },
+        {
+          "name": "BSc Diagnostic Radiography",
+          "duration": "4 years",
+          "cutoff": "13",
+          "first_choice": "Yes"
+        },
+        {
+          "name": "BSc Physiotherapy",
+          "duration": "4 years",
+          "cutoff": "14",
+          "first_choice": "Yes"
+        },
+        {
+          "name": "BSc Dietetics",
+          "duration": "4 years",
+          "cutoff": "14",
+          "first_choice": "Yes"
+        },
+        {
+          "name": "BSc Occupational Therapy",
+          "duration": "4 years",
+          "cutoff": "14-15",
+          "first_choice": "Yes"
+        },
+        {
+          "name": "BSc Respiratory Therapy",
+          "duration": "4 years",
+          "cutoff": "14",
+          "first_choice": "Yes"
+        },
+        {
+          "name": "BSc Physiotherapy (Top-Up)",
+          "requirements": "For diploma holders"
+        },
+        {
+          "name": "BSc Occupational Therapy (Top-Up)",
+          "requirements": "For diploma holders"
+        },
+        {
+          "name": "BSc Radiography (Top-Up)",
+          "requirements": "For diploma holders"
+        },
+        {
+          "name": "BPH (Bachelor of Public Health)",
+          "duration": "4 years",
+          "cutoff": "16",
+          "first_choice": "Yes",
+          "requirements": "Diploma holders (Level 200 entry) need a Diploma in health/related sciences with FGPA 3.2+, plus entrance exam and interview"
+        }
+      ]
+    },
+    "Education": {
+      "cutoff_range": "24-30",
+      "requirements": "Credit passes in 4 core subjects + 3 relevant elective subjects. Aggregate 24 or better (regular), 30 or better (distance). The School of Continuing and Distance Education offers distance-learning versions of programmes from other colleges for working professionals, with learning centres across Ghana and weekend/evening classes.",
+      "programs": [
+        {
+          "name": "B.Ed Education",
+          "cutoff": "24"
+        },
+        {
+          "name": "B.Ed Early Grade Specialism",
+          "cutoff": "24"
+        },
+        {
+          "name": "B.Ed Upper Primary Specialism",
+          "cutoff": "24"
+        },
+        {
+          "name": "B.Ed JHS Specialism",
+          "cutoff": "24"
+        },
+        {
+          "name": "B.Ed Arabic",
+          "cutoff": "24",
+          "requirements": "C6 in French"
+        },
+        {
+          "name": "B.Ed Computer Science",
+          "cutoff": "24"
+        },
+        {
+          "name": "B.Ed Consumer Sciences",
+          "cutoff": "24"
+        },
+        {
+          "name": "B.Ed English",
+          "cutoff": "24",
+          "requirements": "C6 in Literature in English"
+        },
+        {
+          "name": "B.Ed French",
+          "cutoff": "24",
+          "requirements": "C6 in French"
+        },
+        {
+          "name": "B.Ed Ghanaian Language",
+          "cutoff": "24"
+        },
+        {
+          "name": "B.Ed Mathematics",
+          "cutoff": "24",
+          "requirements": "C6 in Elective Mathematics"
+        },
+        {
+          "name": "B.Ed Science",
+          "cutoff": "24",
+          "requirements": "C6 in relevant science subject"
+        },
+        {
+          "name": "B.Ed Social Studies",
+          "cutoff": "24"
+        },
+        {
+          "name": "BA Information Studies",
+          "cutoff": "24"
+        },
+        {
+          "name": "BSc Administration (Accra City Campus)",
+          "cutoff": "24"
+        },
+        {
+          "name": "BA (Accra City Campus)",
+          "cutoff": "24"
+        }
+      ]
+    }
+  },
+  "fees": {
+    "ghanaian_students": {
+      "Humanities (BA, BSc Admin, LLB)": "~GH¢ 2,300-2,500",
+      "Basic & Applied Sciences": "~GH¢ 2,500-3,000",
+      "Education": "~GH¢ 2,300-2,500",
+      "Medical School": "~GH¢ 2,900-3,000",
+      "Dental School": "~GH¢ 2,900-3,000",
+      "Pharmacy": "~GH¢ 4,500-4,600",
+      "Biomedical & Allied Health": "~GH¢ 4,200-4,300",
+      "Nursing": "~GH¢ 3,800-4,000"
+    },
+    "mandatory_levies": {
+      "SRC Dues": "GH¢ 50",
+      "SRC Development Levy": "GH¢ 150",
+      "75th Anniversary Legacy Project Levy": "GH¢ 100",
+      "Telecel Broadband Levy": "GH¢ 122 (optional)",
+      "GRASAG Development Levy": "GH¢ 250 (graduate students only)",
+      "Reprographic Fees": "GH¢ 5"
+    },
+    "payment_policy": "1st Semester: at least 50% before registration; 2nd Semester: 100% before registration; Residential Fees: 100% before hostel registration",
+    "international_students": "Fees are significantly higher and quoted in USD. Payment via approved banks (Ecobank Ghana, Access Bank) or the online portal https://sts.ug.edu.gh/ugpay. Application processing fee: US$55 (non-refundable). Contact the International Programmes Office (IPO) for exact amounts."
+  },
+  "scholarships": {
+    "ug_excellence": "Up to 100% tuition coverage for outstanding students",
+    "sabre_scholarship": "For students from Northern Ghana",
+    "mastercard_foundation": "For disadvantaged but brilliant students",
+    "needy_student_scholarship": "For students with financial need"
+  }
+}

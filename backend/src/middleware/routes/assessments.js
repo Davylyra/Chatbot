@@ -6,7 +6,8 @@ import { logAssessment } from "../conversationLogger.js";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
 import { matchUniversitiesToProfile, getTopUniversityMatches } from "../../utils/universityMatcher.js";
-import { ghanaUniversitiesDatabase, getAllUniversities } from "../../data/ghanaUniversitiesDatabase.js";
+import { loadSharedUniversities } from "../../utils/universityDataLoader.js";
+import { normalizeUserId, userIdFilter } from "../../utils/userId.js";
 
 dotenv.config();
 
@@ -86,12 +87,12 @@ router.get("/history/:userId", authMiddleware, async (req, res) => {
     
     const [evaluations, totalCount] = await Promise.all([
       assessmentsCollection
-        .find({ user_id: userId })
+        .find(userIdFilter(userId))
         .sort({ created_at: -1 })
         .skip(skip)
         .limit(limit)
         .toArray(),
-      assessmentsCollection.countDocuments({ user_id: userId })
+      assessmentsCollection.countDocuments(userIdFilter(userId))
     ]);
 
     res.json({
@@ -283,14 +284,16 @@ function generateConcerns(studentProfile, universityName) {
 }
 
 function generateNextSteps(universityName) {
-  const university = ghanaUniversitiesDatabase[universityName];
+  const university = loadSharedUniversities().find(
+    (u) => u.name.toLowerCase() === String(universityName || "").toLowerCase()
+  );
   const steps = [
     `Visit ${universityName} official website for current admission information`,
     'Check specific program requirements and application deadlines',
     'Prepare required documents (WASSCE results, personal statement, etc.)',
     'Contact admissions office for any clarifications'
   ];
-  if (university?.type === 'public') steps.push('Explore government scholarship schemes');
+  if (String(university?.type || "").toLowerCase() === 'public') steps.push('Explore government scholarship schemes');
   return steps;
 }
 
@@ -318,12 +321,13 @@ async function updateUserProfile(userId, assessmentRecord) {
   try {
     const userProfilesCollection = await getCollection("user_profiles");
     const { assessment_data, ai_recommendations, university_matches } = assessmentRecord;
+    const canonicalUserId = normalizeUserId(userId);
     
     await userProfilesCollection.updateOne(
-      { user_id: new ObjectId(userId) },
+      userIdFilter(canonicalUserId),
       { 
         $set: {
-          user_id: new ObjectId(userId),
+          user_id: canonicalUserId,
           last_assessment: assessmentRecord._id || new ObjectId(),
           preferences: assessment_data,
           ai_recommendations,
@@ -337,6 +341,67 @@ async function updateUserProfile(userId, assessmentRecord) {
   } catch (error) {
   }
 }
+
+router.patch("/interests", authMiddleware, async (req, res) => {
+  try {
+    const canonicalUserId = normalizeUserId(req.user?.id);
+    const { interests, career_goals, careerGoals, preferred_program } = req.body || {};
+
+    if (!interests && !career_goals && !careerGoals && !preferred_program) {
+      return res.status(400).json({
+        success: false,
+        message: "Provide at least one of interests, career_goals, or preferred_program",
+      });
+    }
+
+    const userProfilesCollection = await getCollection("user_profiles");
+    const existing = await userProfilesCollection.findOne(userIdFilter(canonicalUserId));
+    const currentPrefs = existing?.preferences || {};
+
+    const updatedPrefs = {
+      ...currentPrefs,
+      ...(interests !== undefined ? { interests: Array.isArray(interests) ? interests : [String(interests)] } : {}),
+      ...(career_goals || careerGoals ? { career_goals: String(career_goals || careerGoals) } : {}),
+      ...(preferred_program ? { preferred_program: String(preferred_program) } : {}),
+    };
+
+    const matcherProfile = {
+      subjects: updatedPrefs.subjects || [],
+      shsProgram: updatedPrefs.shs_program || "",
+      wassceGrade: updatedPrefs.wassce_grade || "",
+      interests: updatedPrefs.interests || [],
+      careerGoals: updatedPrefs.career_goals || updatedPrefs.preferred_program || "",
+      preferredLocation: updatedPrefs.preferred_location || "",
+    };
+
+    const recomputedMatches = matchUniversitiesToProfile(matcherProfile).slice(0, 5);
+
+    await userProfilesCollection.updateOne(
+      userIdFilter(canonicalUserId),
+      {
+        $set: {
+          user_id: canonicalUserId,
+          preferences: updatedPrefs,
+          university_matches: recomputedMatches,
+          updated_at: new Date(),
+        },
+      },
+      { upsert: true }
+    );
+
+    res.json({
+      success: true,
+      preferences: updatedPrefs,
+      university_matches: recomputedMatches,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update interests",
+      error: error.message,
+    });
+  }
+});
 
 function generateAssessmentMessage(assessmentRecord) {
   const topRecommendation = assessmentRecord.ai_recommendations?.[0];

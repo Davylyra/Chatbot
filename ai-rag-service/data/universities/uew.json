@@ -1,0 +1,46 @@
+{
+  "slug": "uew",
+  "name": "University of Education, Winneba",
+  "aliases": [
+    "UEW",
+    "Winneba"
+  ],
+  "location": "Winneba, Central Region",
+  "established": "1992",
+  "website": "www.uew.edu.gh",
+  "type": "Public",
+  "programs": {
+    "Basic Education": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in English, Maths + relevant subjects",
+      "career_prospects": "Primary School Teacher, Education Administrator"
+    },
+    "Science Education": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in English, Maths, Science subjects",
+      "career_prospects": "Science Teacher, STEM Educator"
+    },
+    "Physical Education": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in English, Maths + Sports aptitude",
+      "career_prospects": "PE Teacher, Sports Coach"
+    },
+    "Business Education": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in English, Maths, Business subjects",
+      "career_prospects": "Business Teacher, Vocational Trainer"
+    }
+  },
+  "admission_requirements": {
+    "general": "WASSCE with 6 credits including English and Maths",
+    "application_deadline": "September 10, 2026",
+    "online_portal": "https://admissions.uew.edu.gh"
+  },
+  "contact": {
+    "phone": "+233-23-202-6660",
+    "email": "admissions@uew.edu.gh"
+  },
+  "scholarships": {
+    "teacher_training": "Government scholarships for teacher trainees"
+  }
+}

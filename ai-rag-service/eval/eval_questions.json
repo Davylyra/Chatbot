@@ -1,0 +1,216 @@
+[
+  {
+    "id": "ug-cs-cutoff",
+    "query": "What is the cut-off point for Computer Science at UG?",
+    "expected_class": "specific_university",
+    "expected_universities": ["University of Ghana"],
+    "expected_keywords": ["computer science", "university of ghana"]
+  },
+  {
+    "id": "knust-medicine",
+    "query": "What are the requirements and cut-off for Medicine at KNUST?",
+    "expected_class": "specific_university",
+    "expected_universities": ["Kwame Nkrumah University of Science and Technology"],
+    "expected_keywords": ["medicine", "knust"]
+  },
+  {
+    "id": "ucc-nursing",
+    "query": "Tell me about Nursing at University of Cape Coast",
+    "expected_class": "specific_university",
+    "expected_universities": ["University of Cape Coast"],
+    "expected_keywords": ["nursing", "cape coast"]
+  },
+  {
+    "id": "uew-education",
+    "query": "What programmes does UEW offer in Winneba?",
+    "expected_class": "specific_university",
+    "expected_universities": ["University of Education, Winneba"],
+    "expected_keywords": ["winneba", "education"]
+  },
+  {
+    "id": "ashesi-cs",
+    "query": "How do I get admitted to Ashesi University for Computer Science?",
+    "expected_class": "specific_university",
+    "expected_universities": ["Ashesi University"],
+    "expected_keywords": ["ashesi", "computer science"]
+  },
+  {
+    "id": "uds-agriculture",
+    "query": "Tell me about Agriculture programmes at UDS Tamale",
+    "expected_class": "specific_university",
+    "expected_universities": ["University for Development Studies"],
+    "expected_keywords": ["agriculture", "development studies"]
+  },
+  {
+    "id": "upsa-accounting",
+    "query": "Does UPSA offer Accounting and Finance?",
+    "expected_class": "specific_university",
+    "expected_universities": ["University of Professional Studies, Accra"],
+    "expected_keywords": ["accounting", "professional studies"]
+  },
+  {
+    "id": "uhas-pharmacy",
+    "query": "What health programmes are available at UHAS in Ho?",
+    "expected_class": "specific_university",
+    "expected_universities": ["University of Health and Allied Sciences"],
+    "expected_keywords": ["health", "uhas"]
+  },
+  {
+    "id": "umat-mining",
+    "query": "Tell me about Mining Engineering at UMaT Tarkwa",
+    "expected_class": "specific_university",
+    "expected_universities": ["University of Mines and Technology"],
+    "expected_keywords": ["mining", "mines and technology"]
+  },
+  {
+    "id": "uenr-energy",
+    "query": "What engineering courses does UENR Sunyani offer?",
+    "expected_class": "specific_university",
+    "expected_universities": ["University of Energy and Natural Resources"],
+    "expected_keywords": ["engineering", "energy and natural resources"]
+  },
+  {
+    "id": "gctu-it",
+    "query": "What IT and telecom courses are at GCTU?",
+    "expected_class": "specific_university",
+    "expected_universities": ["Ghana Communication Technology University"],
+    "expected_keywords": ["communication technology"]
+  },
+  {
+    "id": "ttu-engineering",
+    "query": "Tell me about Takoradi Technical University admission requirements",
+    "expected_class": "specific_university",
+    "expected_universities": ["Takoradi Technical University"],
+    "expected_keywords": ["takoradi technical"]
+  },
+  {
+    "id": "compare-ug-knust-cs",
+    "query": "Compare Computer Science at UG and KNUST",
+    "expected_class": "comparison",
+    "expected_universities": [
+      "University of Ghana",
+      "Kwame Nkrumah University of Science and Technology"
+    ],
+    "expected_keywords": ["computer science"]
+  },
+  {
+    "id": "compare-ucc-uew",
+    "query": "Which is better for Education: UCC or UEW?",
+    "expected_class": "comparison",
+    "expected_universities": [
+      "University of Cape Coast",
+      "University of Education, Winneba"
+    ],
+    "expected_keywords": ["education"]
+  },
+  {
+    "id": "compare-ashesi-knust",
+    "query": "Compare Engineering at KNUST vs Ashesi University",
+    "expected_class": "comparison",
+    "expected_universities": [
+      "Kwame Nkrumah University of Science and Technology",
+      "Ashesi University"
+    ],
+    "expected_keywords": ["engineering"]
+  },
+  {
+    "id": "agg-08-science",
+    "query": "I got aggregate 08 in General Science, what can I study?",
+    "expected_class": "aggregate_eligibility",
+    "expected_aggregate": 8,
+    "expected_keywords": ["eligibility note"]
+  },
+  {
+    "id": "agg-12-cs",
+    "query": "My aggregate is 12, can I study Computer Science?",
+    "expected_class": "aggregate_eligibility",
+    "expected_aggregate": 12,
+    "expected_keywords": ["computer science"]
+  },
+  {
+    "id": "agg-15-business",
+    "query": "I got 15 in WASSCE Business, which programmes qualify?",
+    "expected_class": "aggregate_eligibility",
+    "expected_aggregate": 15,
+    "expected_keywords": ["business"]
+  },
+  {
+    "id": "agg-18-knust",
+    "query": "With aggregate 18, what programmes can I get at KNUST?",
+    "expected_class": "aggregate_eligibility",
+    "expected_aggregate": 18,
+    "expected_universities": ["Kwame Nkrumah University of Science and Technology"],
+    "expected_keywords": ["knust"]
+  },
+  {
+    "id": "agg-22-general",
+    "query": "My WASSCE grade is 22, where can I apply in Ghana?",
+    "expected_class": "aggregate_eligibility",
+    "expected_aggregate": 22,
+    "expected_keywords": []
+  },
+  {
+    "id": "deadline-ug",
+    "query": "When is the University of Ghana admission deadline this year?",
+    "expected_class": "deadlines_fresh",
+    "expected_universities": ["University of Ghana"],
+    "expected_web_search": true
+  },
+  {
+    "id": "admission-list-knust",
+    "query": "Is the KNUST admission list out yet?",
+    "expected_class": "deadlines_fresh",
+    "expected_universities": ["Kwame Nkrumah University of Science and Technology"],
+    "expected_web_search": true
+  },
+  {
+    "id": "deadline-general",
+    "query": "What are the current university application deadlines in Ghana?",
+    "expected_class": "deadlines_fresh",
+    "expected_web_search": true
+  },
+  {
+    "id": "career-doctor",
+    "query": "I want to become a doctor, what courses should I study?",
+    "expected_class": "career_advice",
+    "expected_keywords": ["medicine"]
+  },
+  {
+    "id": "career-lawyer",
+    "query": "What degree should I pursue if I want to be a lawyer in Ghana?",
+    "expected_class": "career_advice",
+    "expected_keywords": ["law"]
+  },
+  {
+    "id": "general-how-to-apply",
+    "query": "How do I apply to university in Ghana and buy forms?",
+    "expected_class": "general",
+    "min_distinct_universities": 3,
+    "expected_keywords": ["admission"]
+  },
+  {
+    "id": "general-vouchers",
+    "query": "Where can I buy university application vouchers in Ghana?",
+    "expected_class": "general",
+    "min_distinct_universities": 3
+  },
+  {
+    "id": "small-talk-hello",
+    "query": "Hello!",
+    "expected_class": "small_talk",
+    "expected_web_search": false
+  },
+  {
+    "id": "small-talk-thanks",
+    "query": "Thank you so much!",
+    "expected_class": "small_talk",
+    "expected_web_search": false
+  },
+  {
+    "id": "about-app",
+    "query": "Who built this app?",
+    "expected_class": "about_app",
+    "expected_web_search": false
+  }
+]
+

@@ -10,12 +10,7 @@
 node_modules/
 package-lock.json
 
-# Test files
-test-*.js
-*.test.js
-*.spec.js
-__tests__/
-__mocks__/
+# Test coverage
 coverage/
 
 # Logs

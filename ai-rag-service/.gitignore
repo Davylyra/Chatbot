@@ -12,18 +12,14 @@ __pycache__/
 .Python
 .pytest_cache/
 
-# Test files
-test_*.py
-*_test.py
-tests/
+# Test coverage
 coverage/
 .coverage
 
-# Data files
+# Large binary model/data artifacts (keep data/universities/*.json tracked)
 *.pkl
 *.bin
 *.h5
-data/
 models/
 checkpoints/
 

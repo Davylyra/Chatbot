@@ -1,0 +1,48 @@
+{
+  "slug": "gctu",
+  "name": "Ghana Communication Technology University",
+  "aliases": [
+    "GCTU",
+    "GTUC"
+  ],
+  "location": "Accra, Greater Accra",
+  "established": "2005",
+  "website": "www.gctu.edu.gh",
+  "type": "Public",
+  "programs": {
+    "Computer Science": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in Maths, Physics/ICT, English",
+      "career_prospects": "Software Developer, Systems Analyst"
+    },
+    "Information Technology": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in Maths, ICT, English",
+      "career_prospects": "IT Specialist, Network Engineer"
+    },
+    "Telecommunications Engineering": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in Maths, Physics, Chemistry, English",
+      "career_prospects": "Telecom Engineer, ICT Consultant"
+    },
+    "Communication Studies": {
+      "duration": "4 years",
+      "requirements": "WASSCE: Credits in English, Maths + relevant subjects",
+      "career_prospects": "Journalist, Media Specialist"
+    }
+  },
+  "admission_requirements": {
+    "general": "WASSCE with 6 credits including English and Maths",
+    "application_deadline": "August 31, 2026",
+    "online_portal": "https://admissions.gctu.edu.gh",
+    "application_fee": "GH¢ 250",
+    "study_options": "Day, Evening, Weekend"
+  },
+  "contact": {
+    "phone": "+233-30-295-4900",
+    "email": "admissions@gctu.edu.gh"
+  },
+  "scholarships": {
+    "ict_scholarship": "For outstanding ICT students"
+  }
+}

@@ -1,0 +1,496 @@
+{
+  "slug": "ucc",
+  "name": "University of Cape Coast",
+  "aliases": [
+    "UCC",
+    "Cape Coast"
+  ],
+  "location": "Cape Coast, Central Region",
+  "established": "1962",
+  "website": "www.ucc.edu.gh",
+  "type": "Public",
+  "admission_requirements": {
+    "general": "WASSCE: Credit passes (A1-C6) in 6 subjects (3 Core + 3 Electives). Maximum aggregate 36 (more accessible than UG/KNUST). SSSCE: Maximum aggregate 24.",
+    "wassce": "Credit passes A1-C6 in English, Core Maths, Integrated Science/Social Studies + 3 relevant electives. Aggregate 36 or better.",
+    "sssce": "Credit passes A-D in English, Core Maths, Integrated Science/Social Studies + 3 relevant electives. Aggregate 24 or better.",
+    "gce": "5 'O' Level credits + 3 'A' Level passes in relevant subjects",
+    "gce_business": "GBCE/ABCE credits in relevant subjects",
+    "igcse": "Equivalent grade requirements in relevant subjects",
+    "ib": "Grade 4+ in relevant subjects",
+    "american_high_school": "Grade 12 certificate with equivalent grades",
+    "diploma_hnd": "Assessed individually for Level 100/200/300 placement",
+    "mature": "25+ years by June 30, SHS certificate or equivalent, 5+ years work experience, entrance exam",
+    "how_to_apply": "Purchase an E-Voucher from GCB Bank, ADB, Fidelity Bank, Ecobank, or Ghana Post, complete the application with personal details, academic records, and programme choices, upload result slips/certificates/identification, then check your status using the voucher serial number and PIN.",
+    "study_modes": "Regular (Full-time on-campus); Distance Learning via the College of Distance Education (CoDE); Sandwich/Part-time programmes",
+    "status_check_portal": "https://admissions.ucc.edu.gh",
+    "application_deadline": "August 31, 2026",
+    "online_portal": "https://apply.ucc.edu.gh",
+    "application_fee": "Contact university for current fee"
+  },
+  "contact": {
+    "phone": "+233-33-213-2440",
+    "email": "admissions@ucc.edu.gh",
+    "address": "University of Cape Coast, Cape Coast, Central Region"
+  },
+  "colleges": {
+    "Health and Allied Sciences": {
+      "cutoff_range": "8-22",
+      "programs": [
+        {
+          "name": "MBChB (Medicine & Surgery)",
+          "duration": "6 years",
+          "cutoff": "8",
+          "entrance_exam": "Yes"
+        },
+        {
+          "name": "Doctor of Pharmacy (PharmD)",
+          "duration": "6 years",
+          "cutoff": "9"
+        },
+        {
+          "name": "BSc Physician Assistant Studies",
+          "duration": "4 years",
+          "cutoff": "11"
+        },
+        {
+          "name": "BSc Nursing",
+          "duration": "4 years",
+          "cutoff": "12"
+        },
+        {
+          "name": "BSc Midwifery",
+          "duration": "4 years",
+          "cutoff": "12"
+        },
+        {
+          "name": "Doctor of Optometry",
+          "duration": "6 years",
+          "cutoff": "12"
+        },
+        {
+          "name": "BSc Medical Laboratory Science",
+          "duration": "4 years",
+          "cutoff": "12"
+        },
+        {
+          "name": "BSc Mental Health Nursing",
+          "duration": "4 years",
+          "cutoff": "14"
+        },
+        {
+          "name": "BSc Community Mental Health Nursing",
+          "duration": "4 years",
+          "cutoff": "14"
+        },
+        {
+          "name": "BSc Clinical Nutrition & Dietetics",
+          "duration": "4 years",
+          "cutoff": "14"
+        },
+        {
+          "name": "BSc Biomedical Sciences",
+          "duration": "4 years",
+          "cutoff": "14"
+        },
+        {
+          "name": "BSc Diagnostic Imaging Technology",
+          "duration": "4 years",
+          "cutoff": "14"
+        },
+        {
+          "name": "BSc Diagnostic Medical Sonography",
+          "duration": "4 years",
+          "cutoff": "14"
+        },
+        {
+          "name": "BSc Health Information Management",
+          "duration": "4 years",
+          "cutoff": "16"
+        },
+        {
+          "name": "BSc Sports & Exercise Science",
+          "duration": "4 years",
+          "cutoff": "16"
+        }
+      ]
+    },
+    "Humanities and Legal Studies": {
+      "cutoff_range": "8-25",
+      "programs": [
+        {
+          "name": "LLB (Law)",
+          "duration": "4 years",
+          "cutoff": "8-10"
+        },
+        {
+          "name": "LLB (3-year Post-First-Degree)",
+          "duration": "3 years",
+          "requirements": "Degree + entrance exam"
+        },
+        {
+          "name": "BSc Economics",
+          "cutoff": "15"
+        },
+        {
+          "name": "BSc Economics with Finance",
+          "cutoff": "15"
+        },
+        {
+          "name": "BA Economics",
+          "cutoff": "16"
+        },
+        {
+          "name": "BBA Accounting",
+          "cutoff": "15"
+        },
+        {
+          "name": "BBA Human Resource Management",
+          "cutoff": "16"
+        },
+        {
+          "name": "BBA Management",
+          "cutoff": "16"
+        },
+        {
+          "name": "B.Com Finance",
+          "cutoff": "15"
+        },
+        {
+          "name": "B.Com Marketing",
+          "cutoff": "16"
+        },
+        {
+          "name": "B.Com Management",
+          "cutoff": "16"
+        },
+        {
+          "name": "B.Com Procurement & Supply Chain Management",
+          "cutoff": "16"
+        },
+        {
+          "name": "B.Com Commerce",
+          "cutoff": "16"
+        },
+        {
+          "name": "BSc Hospitality Management",
+          "cutoff": "16"
+        },
+        {
+          "name": "BSc Tourism Management",
+          "cutoff": "16"
+        },
+        {
+          "name": "BA Communication Studies",
+          "cutoff": "17"
+        },
+        {
+          "name": "BA English",
+          "cutoff": "18"
+        },
+        {
+          "name": "BA Sociology",
+          "cutoff": "18"
+        },
+        {
+          "name": "BA Population & Health",
+          "cutoff": "18"
+        },
+        {
+          "name": "BSc Geography & Regional Planning",
+          "cutoff": "18"
+        },
+        {
+          "name": "BA History",
+          "cutoff": "19"
+        },
+        {
+          "name": "BA African Studies",
+          "cutoff": "19"
+        },
+        {
+          "name": "BA French",
+          "cutoff": "20"
+        },
+        {
+          "name": "BA Theatre Studies",
+          "cutoff": "20"
+        },
+        {
+          "name": "BA Film Studies",
+          "cutoff": "20"
+        },
+        {
+          "name": "BA Social Behaviour & Conflict Management",
+          "cutoff": "20"
+        },
+        {
+          "name": "BA Anthropology",
+          "cutoff": "22"
+        },
+        {
+          "name": "BA Dance",
+          "cutoff": "22"
+        },
+        {
+          "name": "Bachelor of Music (B.Mus)",
+          "cutoff": "22"
+        },
+        {
+          "name": "BA Ghanaian Language & Linguistics",
+          "cutoff": "22"
+        },
+        {
+          "name": "BA Classics & Philosophy",
+          "cutoff": "22"
+        },
+        {
+          "name": "BA Religious Studies",
+          "cutoff": "22"
+        },
+        {
+          "name": "BA Chinese",
+          "cutoff": "25"
+        }
+      ]
+    },
+    "Education Studies": {
+      "cutoff_range": "18-24",
+      "programs": [
+        {
+          "name": "B.Ed Accounting",
+          "cutoff": "18"
+        },
+        {
+          "name": "B.Ed Mathematics",
+          "cutoff": "18"
+        },
+        {
+          "name": "B.Ed Computer Science / ICT",
+          "cutoff": "18"
+        },
+        {
+          "name": "B.Ed Robotics & Intelligent Systems",
+          "cutoff": "18"
+        },
+        {
+          "name": "B.Ed Arts",
+          "cutoff": "20"
+        },
+        {
+          "name": "B.Ed Social Science",
+          "cutoff": "20"
+        },
+        {
+          "name": "B.Ed Social Studies",
+          "cutoff": "20"
+        },
+        {
+          "name": "B.Ed Management",
+          "cutoff": "20"
+        },
+        {
+          "name": "B.Ed Science",
+          "cutoff": "20"
+        },
+        {
+          "name": "B.Ed Health Science",
+          "cutoff": "20"
+        },
+        {
+          "name": "B.Ed Health, Physical Education & Recreation",
+          "cutoff": "22"
+        },
+        {
+          "name": "B.Ed Home Economics",
+          "cutoff": "22"
+        },
+        {
+          "name": "B.Ed Basic Education",
+          "cutoff": "22"
+        },
+        {
+          "name": "B.Ed Early Childhood Education",
+          "cutoff": "24"
+        }
+      ]
+    },
+    "Agriculture and Natural Sciences": {
+      "cutoff_range": "14-24",
+      "programs": [
+        {
+          "name": "BSc Actuarial Science",
+          "cutoff": "14"
+        },
+        {
+          "name": "BSc Forensic Science",
+          "cutoff": "14"
+        },
+        {
+          "name": "BSc Computer Science",
+          "cutoff": "15"
+        },
+        {
+          "name": "BSc Biochemistry",
+          "cutoff": "16"
+        },
+        {
+          "name": "BSc Molecular Biology & Biotechnology",
+          "cutoff": "16"
+        },
+        {
+          "name": "BSc Information Technology",
+          "cutoff": "16"
+        },
+        {
+          "name": "BSc Agribusiness",
+          "cutoff": "18"
+        },
+        {
+          "name": "BSc Fisheries & Aquatic Science",
+          "cutoff": "18"
+        },
+        {
+          "name": "BSc Environmental Science",
+          "cutoff": "18"
+        },
+        {
+          "name": "BSc Mathematics",
+          "cutoff": "18"
+        },
+        {
+          "name": "BSc Statistics",
+          "cutoff": "18"
+        },
+        {
+          "name": "BSc Mathematics & Statistics",
+          "cutoff": "18"
+        },
+        {
+          "name": "BSc Mathematics with Business",
+          "cutoff": "18"
+        },
+        {
+          "name": "BSc Mathematics with Economics",
+          "cutoff": "18"
+        },
+        {
+          "name": "BSc Engineering Physics",
+          "cutoff": "18"
+        },
+        {
+          "name": "BSc Industrial Chemistry",
+          "cutoff": "18"
+        },
+        {
+          "name": "BSc Laboratory Technology",
+          "cutoff": "18"
+        },
+        {
+          "name": "BSc Agriculture",
+          "cutoff": "20"
+        },
+        {
+          "name": "BSc Agro-Processing",
+          "cutoff": "20"
+        },
+        {
+          "name": "BSc Animal Health",
+          "cutoff": "20"
+        },
+        {
+          "name": "BSc Physics",
+          "cutoff": "20"
+        },
+        {
+          "name": "BSc Chemistry",
+          "cutoff": "20"
+        },
+        {
+          "name": "BSc Agricultural Extension & Community Development",
+          "cutoff": "22"
+        },
+        {
+          "name": "BSc Entomology & Wildlife",
+          "cutoff": "20"
+        },
+        {
+          "name": "BSc Meteorology & Atmospheric Physics",
+          "cutoff": "22"
+        },
+        {
+          "name": "BSc Water & Sanitation",
+          "cutoff": "22"
+        }
+      ]
+    },
+    "Distance Education (CoDE)": {
+      "cutoff_range": "Generally higher aggregate thresholds than regular admission (more accessible entry)",
+      "requirements": "Provides distance learning versions of programmes from other colleges for working professionals and remote students. Study centres across all regions of Ghana, weekend/evening classes with online components. Awards the same UCC degree upon completion.",
+      "programs": [
+        {
+          "name": "B.Ed Basic Education (Distance)"
+        },
+        {
+          "name": "B.Ed Arts (Distance)"
+        },
+        {
+          "name": "B.Ed Science (Distance)"
+        },
+        {
+          "name": "B.Ed Social Studies (Distance)"
+        },
+        {
+          "name": "B.Ed Accounting (Distance)"
+        },
+        {
+          "name": "B.Ed Management (Distance)"
+        },
+        {
+          "name": "BBA/B.Com Accounting (Distance)"
+        },
+        {
+          "name": "BBA/B.Com Human Resource Management (Distance)"
+        },
+        {
+          "name": "BBA/B.Com Marketing (Distance)"
+        },
+        {
+          "name": "BBA/B.Com Finance (Distance)"
+        },
+        {
+          "name": "BA Social Sciences (Distance)"
+        },
+        {
+          "name": "BA Communication Studies (Distance)"
+        },
+        {
+          "name": "BSc Computer Science (Distance)"
+        },
+        {
+          "name": "BSc Information Technology (Distance)"
+        },
+        {
+          "name": "BSc Mathematics (Distance)"
+        }
+      ]
+    }
+  },
+  "fees": {
+    "ghanaian_students": {
+      "Humanities/Arts/Education": "~GH¢ 1,300-2,400",
+      "Social Sciences/Business/Economics": "~GH¢ 1,500-2,500",
+      "Sciences/Agriculture": "~GH¢ 1,600-3,000",
+      "Health Sciences (Nursing/Allied Health)": "~GH¢ 2,500-3,500+",
+      "Health Sciences (Medicine/Pharmacy)": "~GH¢ 3,000-4,000+",
+      "Distance Education": "Varies by programme"
+    },
+    "payment_policy": "1st Semester: at least 50% before registration; 2nd Semester: 100% before registration. Fee amount confirmed via the admission letter (freshmen) or Student Portal (continuing students). Residential students pay additional accommodation fees on top of tuition.",
+    "international_students": "Fees are higher and typically quoted in USD equivalents; contact the International Programmes Office for exact amounts."
+  },
+  "scholarships": {
+    "teacher_training": "Government scholarships for teacher trainees",
+    "excellence_awards": "Merit-based scholarships for outstanding students",
+    "need_based": "Financial support for disadvantaged students",
+    "distance_education_scholarship": "Scholarships for distance education students"
+  }
+}
