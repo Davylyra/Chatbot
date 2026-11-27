@@ -51,9 +51,48 @@ const getTokenUserId = (req) => {
   }
 };
 
-const GENERIC_TITLES = new Set(["", "untitled", "new conversation", "untitled conversation", "conversation"]);
-const isGenericTitle = (title) =>
-  !title || GENERIC_TITLES.has(String(title).trim().toLowerCase()) || String(title).startsWith("conv_");
+const GENERIC_TITLES = new Set([
+  "",
+  "untitled",
+  "new chat",
+  "new conversation",
+  "untitled conversation",
+  "conversation",
+  "general greeting",
+  "greeting",
+  "friendly greeting",
+  "casual greeting",
+  "welcome greeting",
+  "hello",
+  "hi",
+  "hey",
+  "welcome",
+  "morning consultation",
+  "afternoon consultation",
+  "evening consultation",
+  "university consultation",
+]);
+const isGenericTitle = (title) => {
+  const normalized = String(title || "").trim().toLowerCase();
+  return (
+    !normalized ||
+    GENERIC_TITLES.has(normalized) ||
+    normalized.startsWith("conv_") ||
+    /\bgreeting\b/.test(normalized)
+  );
+};
+
+const SMALL_TALK_WORDS = new Set([
+  "hi", "hello", "hey", "hiya", "yo", "sup", "good", "morning", "afternoon",
+  "evening", "day", "thanks", "thank", "you", "u", "ok", "okay", "cool",
+  "nice", "great", "bye", "goodbye", "how", "are", "doing", "there",
+  "cerkyl", "bot", "bro", "charley", "chale", "sir", "madam", "please",
+  "whats", "up", "what's", "fine", "alright",
+]);
+const isSmallTalkMessage = (text) => {
+  const words = (String(text || "").toLowerCase().match(/[a-z']+/g) || []);
+  return words.length === 0 || (words.length <= 6 && words.every((w) => SMALL_TALK_WORDS.has(w)));
+};
 
 const titleFromMessage = (text) => {
   const clean = String(text || "").replace(/\s+/g, " ").trim();
@@ -631,9 +670,14 @@ router.post("/save-conversation", async (req, res) => {
       return res.status(403).json({ success: false, message: "Not allowed to save this conversation" });
     }
 
-    const firstUserMessage = messages.find(m => m.isUser === true || m.sender === 'user');
+    const substantiveUserMessage =
+      messages.find(
+        (m) =>
+          (m.isUser === true || m.sender === "user") &&
+          !isSmallTalkMessage(m.text || m.message || "")
+      ) || messages.find((m) => m.isUser === true || m.sender === "user");
     const firstBotReply = messages.find(m => m.isUser === false || m.sender === 'bot');
-    const firstUserText = firstUserMessage?.text || firstUserMessage?.message || '';
+    const firstUserText = substantiveUserMessage?.text || substantiveUserMessage?.message || '';
 
     // Keep a real title if one is already saved (for example the one /send
     // generated). Otherwise generate one; never fall back to a generic title.
@@ -1424,17 +1468,26 @@ router.post("/send", authMiddleware, rateLimiters.chatRateLimit, validateChatPay
       );
       const ownedByOther = conversation?.user_id != null && String(conversation.user_id) !== String(userId);
 
-      if (!ownedByOther && isGenericTitle(conversation?.title) && !titlesInProgress.has(conversation_id)) {
+      if (
+        !ownedByOther &&
+        !isSmallTalkMessage(message) &&
+        isGenericTitle(conversation?.title) &&
+        !titlesInProgress.has(conversation_id)
+      ) {
         titlesInProgress.add(conversation_id);
         console.log(`[TITLE-GEN] Generating title for conversation ${conversation_id}`);
 
         setImmediate(async () => {
           try {
-            const firstUserMessage = await chatHistoryDB.findOne(
-              { conversation_id, user_id: userId, is_bot: false },
-              { sort: { created_at: 1 }, projection: { message: 1 } }
-            );
-            const firstText = firstUserMessage?.message || message;
+            const userMessages = await chatHistoryDB
+              .find(
+                { conversation_id, user_id: userId, is_bot: false },
+                { sort: { created_at: 1 }, projection: { message: 1 } }
+              )
+              .limit(10)
+              .toArray();
+            const firstSubstantive = userMessages.find((m) => !isSmallTalkMessage(m.message));
+            const firstText = firstSubstantive?.message || message;
             const titleResult = await generateTitleWithFallback(
               firstText,
               aiKnowledgeResponse.reply,
@@ -1873,15 +1926,24 @@ router.post("/send-stream", authMiddleware, rateLimiters.chatRateLimit, validate
       );
       const ownedByOther = conversation?.user_id != null && String(conversation.user_id) !== String(userId);
 
-      if (!ownedByOther && isGenericTitle(conversation?.title) && !titlesInProgress.has(conversation_id)) {
+      if (
+        !ownedByOther &&
+        !isSmallTalkMessage(message) &&
+        isGenericTitle(conversation?.title) &&
+        !titlesInProgress.has(conversation_id)
+      ) {
         titlesInProgress.add(conversation_id);
         setImmediate(async () => {
           try {
-            const firstUserMessage = await chatHistoryDB.findOne(
-              { conversation_id, user_id: userId, is_bot: false },
-              { sort: { created_at: 1 }, projection: { message: 1 } }
-            );
-            const firstText = firstUserMessage?.message || message;
+            const userMessages = await chatHistoryDB
+              .find(
+                { conversation_id, user_id: userId, is_bot: false },
+                { sort: { created_at: 1 }, projection: { message: 1 } }
+              )
+              .limit(10)
+              .toArray();
+            const firstSubstantive = userMessages.find((m) => !isSmallTalkMessage(m.message));
+            const firstText = firstSubstantive?.message || message;
             const titleResult = await generateTitleWithFallback(
               firstText,
               replyToSave,

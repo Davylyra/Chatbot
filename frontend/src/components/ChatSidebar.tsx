@@ -7,7 +7,6 @@ import {
   FiStar,
   FiShoppingCart,
   FiClipboard,
-  FiSearch,
   FiUser,
   FiX,
   FiMenu,
@@ -60,7 +59,6 @@ const ChatSidebar: React.FC<ChatSidebarProps> = memo(
 
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [confirmingId, setConfirmingId] = useState<string | null>(null);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -228,10 +226,6 @@ const ChatSidebar: React.FC<ChatSidebarProps> = memo(
       { icon: FiInfo, label: 'About CERKYL', path: '/about' },
     ].filter((item) => loggedIn || !item.authOnly);
 
-    const filteredConversations = conversations.filter((c) =>
-      c.title.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
     const activeConversationId = location.pathname === '/chat' ? location.state?.conversationId : null;
 
     const rowHover = dark ? 'hover:bg-[#1e2329]' : 'hover:bg-gray-200';
@@ -262,15 +256,15 @@ const ChatSidebar: React.FC<ChatSidebarProps> = memo(
         );
       }
 
-      if (filteredConversations.length === 0) {
+      if (conversations.length === 0) {
         return (
           <div className={`px-2.5 text-sm ${mutedText}`}>
-            {searchQuery ? 'No chats match your search' : 'No chats yet'}
+            No chats yet
           </div>
         );
       }
 
-      return filteredConversations.map((conv) => {
+      return conversations.map((conv) => {
         const isActive = conv.id === activeConversationId;
         return (
           <div
@@ -460,7 +454,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = memo(
             )}
           </div>
 
-          {/* New chat, search and shortcuts */}
+          {/* New chat and shortcuts */}
           <div className={`${isOpen ? 'px-3' : 'px-2 flex flex-col items-center'} pb-2 space-y-1 shrink-0`}>
             <button
               onClick={handleNewChat}
@@ -472,21 +466,6 @@ const ChatSidebar: React.FC<ChatSidebarProps> = memo(
               </span>
               {isOpen && <span>New Chat</span>}
             </button>
-
-            {isOpen && (
-              <div
-                className={`flex items-center rounded-lg px-2.5 py-2 ${dark ? 'bg-[#1a1e23]' : 'bg-white border border-gray-200'}`}
-              >
-                <FiSearch className={`w-4 h-4 mr-2.5 shrink-0 ${mutedText}`} />
-                <input
-                  type="text"
-                  placeholder="Search chats"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`bg-transparent w-full focus:outline-none text-sm ${dark ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-400'}`}
-                />
-              </div>
-            )}
 
             {shortcuts.map((item) => (
               <button
@@ -517,14 +496,6 @@ const ChatSidebar: React.FC<ChatSidebarProps> = memo(
               <>
                 <div className="flex items-center justify-between px-2.5 mb-1.5">
                   <h3 className={sectionLabel}>Your chats</h3>
-                  {loggedIn && conversations.length > 0 && (
-                    <button
-                      onClick={() => go('/conversation-history')}
-                      className={`text-xs font-medium ${dark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}
-                    >
-                      See all
-                    </button>
-                  )}
                 </div>
                 <div className="space-y-0.5">{renderChats()}</div>
               </>

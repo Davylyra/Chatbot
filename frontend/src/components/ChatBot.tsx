@@ -419,61 +419,136 @@ const ChatBot: React.FC<ChatBotProps> = memo(
 
     // quickActions removed due to TS6133
 
-    const scrollToBottom = useCallback(() => {
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({
-          behavior: 'smooth',
-          block: 'end',
-          inline: 'nearest',
-        });
+    // Smooth auto-scroll: glides smoothly with new messages & streaming tokens,
+    // and immediately yields when the user scrolls up to read earlier messages.
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
+    const lastMessageCountRef = useRef<number>(0);
+    const isUserAtBottomRef = useRef<boolean>(true);
+    const smoothScrollRafRef = useRef<number | null>(null);
+    const [showJumpToLatest, setShowJumpToLatest] = useState(false);
+
+    const cancelSmoothScroll = useCallback(() => {
+      if (smoothScrollRafRef.current !== null) {
+        cancelAnimationFrame(smoothScrollRafRef.current);
+        smoothScrollRafRef.current = null;
       }
     }, []);
 
-    // Smart auto-scroll - only when user is at bottom
-    const messagesContainerRef = useRef<HTMLDivElement>(null);
-    const lastMessageCountRef = useRef<number>(0);
-    const [isUserAtBottom, setIsUserAtBottom] = useState(true);
-    const [showJumpToLatest, setShowJumpToLatest] = useState(false);
+    const scrollToBottom = useCallback(
+      (mode: 'smooth' | 'follow' = 'smooth') => {
+        const container = messagesContainerRef.current;
+        if (!container) return;
 
-    // Detect if user is scrolled to bottom
+        if (mode === 'smooth') {
+          cancelSmoothScroll();
+          container.scrollTo({
+            top: container.scrollHeight,
+            behavior: 'smooth',
+          });
+          return;
+        }
+
+        // Damped 60fps glide for streaming tokens — avoids cancelling overlapping
+        // native smooth scrolls (which causes choppy stutter).
+        if (smoothScrollRafRef.current !== null) return;
+        const step = () => {
+          const el = messagesContainerRef.current;
+          if (!el || !isUserAtBottomRef.current) {
+            smoothScrollRafRef.current = null;
+            return;
+          }
+          const target = el.scrollHeight - el.clientHeight;
+          const remaining = target - el.scrollTop;
+          if (remaining <= 1) {
+            el.scrollTop = target;
+            smoothScrollRafRef.current = null;
+            return;
+          }
+          el.scrollTop += Math.max(remaining * 0.22, 1.5);
+          smoothScrollRafRef.current = requestAnimationFrame(step);
+        };
+        smoothScrollRafRef.current = requestAnimationFrame(step);
+      },
+      [cancelSmoothScroll]
+    );
+
+    // Detect if user is near the bottom
     const checkScrollPosition = useCallback(() => {
-      if (!messagesContainerRef.current) return;
+      const container = messagesContainerRef.current;
+      if (!container) return;
 
-      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      const { scrollTop, scrollHeight, clientHeight } = container;
       const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-      const isAtBottom = distanceFromBottom < 100; // 100px threshold
+      const isAtBottom = distanceFromBottom < 80;
 
-      setIsUserAtBottom(isAtBottom);
+      isUserAtBottomRef.current = isAtBottom;
       setShowJumpToLatest(!isAtBottom && currentMessages.length > 0);
     }, [currentMessages.length]);
 
-    // Monitor scroll position
+    // Monitor scroll position and immediately stop auto-follow on user wheel/touch up
     useEffect(() => {
       const container = messagesContainerRef.current;
       if (!container) return;
 
-      container.addEventListener('scroll', checkScrollPosition);
-      return () => container.removeEventListener('scroll', checkScrollPosition);
-    }, [checkScrollPosition]);
+      const onWheel = (e: WheelEvent) => {
+        if (e.deltaY < 0) {
+          cancelSmoothScroll();
+          isUserAtBottomRef.current = false;
+        }
+      };
+      const onTouchMove = () => {
+        cancelSmoothScroll();
+      };
 
-    // Auto-scroll only when USER messages are added and user is at bottom
-    // Bot messages will NOT trigger auto-scroll to respect user's reading position
+      container.addEventListener('scroll', checkScrollPosition, { passive: true });
+      container.addEventListener('wheel', onWheel, { passive: true });
+      container.addEventListener('touchmove', onTouchMove, { passive: true });
+      return () => {
+        cancelSmoothScroll();
+        container.removeEventListener('scroll', checkScrollPosition);
+        container.removeEventListener('wheel', onWheel);
+        container.removeEventListener('touchmove', onTouchMove);
+      };
+    }, [checkScrollPosition, cancelSmoothScroll]);
+
+    const lastMessageTextLength =
+      currentMessages.length > 0
+        ? currentMessages[currentMessages.length - 1]?.text?.length || 0
+        : 0;
+
+    // Smoothly scroll when a new message is added (user or bot) or typing starts
     useEffect(() => {
       const hasNewMessages = currentMessages.length > lastMessageCountRef.current;
-
       if (hasNewMessages) {
         const latestMessage = currentMessages[currentMessages.length - 1];
         const isUserMessage = latestMessage?.isUser === true;
 
-        if (isUserMessage && isUserAtBottom) {
-          const timer = setTimeout(() => scrollToBottom(), 150);
-          lastMessageCountRef.current = currentMessages.length;
-          return () => clearTimeout(timer);
+        if (isUserMessage) {
+          isUserAtBottomRef.current = true;
+          setShowJumpToLatest(false);
+          requestAnimationFrame(() => scrollToBottom('smooth'));
+        } else if (isUserAtBottomRef.current) {
+          requestAnimationFrame(() =>
+            scrollToBottom(isStreamingContent ? 'follow' : 'smooth')
+          );
         }
       }
-
       lastMessageCountRef.current = currentMessages.length;
-    }, [currentMessages.length, isUserAtBottom, scrollToBottom, currentMessages]);
+    }, [currentMessages.length, isStreamingContent, scrollToBottom, currentMessages]);
+
+    // Glide smoothly as streamed tokens expand the latest assistant message
+    useEffect(() => {
+      if (isStreamingContent && isUserAtBottomRef.current) {
+        scrollToBottom('follow');
+      }
+    }, [lastMessageTextLength, isStreamingContent, scrollToBottom]);
+
+    // Scroll smoothly when the typing indicator appears
+    useEffect(() => {
+      if (isTyping && isUserAtBottomRef.current) {
+        requestAnimationFrame(() => scrollToBottom('smooth'));
+      }
+    }, [isTyping, scrollToBottom]);
 
     // `overrideText` lets the suggestion cards send their prompt directly;
     // setting the input state first wouldn't apply until the next render.
@@ -513,7 +588,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(
       stableAddMessage(newMessage);
 
       if (
-        isFirstUserMessage &&
         messageText &&
         shouldUpdateConversationTitle(currentConversation.title, messageText)
       ) {
@@ -524,8 +598,6 @@ const ChatBot: React.FC<ChatBotProps> = memo(
         );
         useAppStore.getState().updateConversation(currentConversation.id, { title: newTitle });
       }
-
-      setTimeout(() => scrollToBottom(), 50);
 
       await deliverReply({
         text: messageText,
@@ -977,49 +1049,13 @@ const ChatBot: React.FC<ChatBotProps> = memo(
 
     return (
       <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-        {/* New chat bar, phones only: on larger screens the sidebar has it. */}
-        {currentMessages.length > 0 && (
-          <div
-            className={`md:hidden px-4 py-2.5 border-b transition-colors duration-200 ${
-              theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span
-                  className={`text-sm font-medium transition-colors duration-200 ${
-                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                  }`}
-                >
-                  {universityContext ? `${universityContext.name} Chat` : 'Active Chat'}
-                </span>
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleStartNewConversation}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  theme === 'dark'
-                    ? 'bg-primary-600 hover:bg-primary-700 text-white'
-                    : 'bg-primary-500 hover:bg-primary-600 text-white'
-                }`}
-                title="Save current chat and start new conversation"
-              >
-                + New Chat
-              </motion.button>
-            </div>
-          </div>
-        )}
-
         <div
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto scrollbar-hide min-h-0 relative"
+          className="flex-1 overflow-y-auto overscroll-y-contain scrollbar-hide min-h-0 relative"
         >
           {/* One centred column, like ChatGPT and Claude, so the eye doesn't
               travel across the whole screen. Shares its width with the input. */}
           <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-7">
-          <AnimatePresence mode="popLayout">
             {currentMessages.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-center w-full min-h-[60vh] py-8">
                 <img src="/cerkyl.svg" alt="" className="w-12 h-12 mb-5 object-contain" />
@@ -1090,18 +1126,11 @@ const ChatBot: React.FC<ChatBotProps> = memo(
               </div>
             ) : (
               currentMessages.map((message) => (
-                <motion.div
-                  key={`message-${message.id}-${message.conversationId}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
+                <div key={`message-${message.id}-${message.conversationId}`}>
                   <ChatBubble message={message} />
-                </motion.div>
+                </div>
               ))
             )}
-          </AnimatePresence>
 
           {/* Typing Indicator */}
           {isTyping && !isStreamingContent && (
@@ -1149,8 +1178,8 @@ const ChatBot: React.FC<ChatBotProps> = memo(
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 onClick={() => {
-                  scrollToBottom();
-                  setIsUserAtBottom(true);
+                  isUserAtBottomRef.current = true;
+                  scrollToBottom('smooth');
                   setShowJumpToLatest(false);
                 }}
                 className="fixed bottom-32 right-8 z-10 px-4 py-2 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"

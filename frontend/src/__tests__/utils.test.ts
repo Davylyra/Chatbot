@@ -1,7 +1,10 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach } from "vitest";
 import { getGuestId, guestHeaders } from "../utils/guestId";
-import { generateConversationTitle } from "../utils/conversationTitles";
+import {
+  generateConversationTitle,
+  shouldUpdateConversationTitle,
+} from "../utils/conversationTitles";
 import { AcademicYearCycle } from "../utils/academicYearHelper";
 
 const storageMap = new Map<string, string>();
@@ -54,6 +57,17 @@ describe("generateConversationTitle", () => {
         interests: ["Medicine", "Biology", "Chemistry"],
       }),
     ).toBe("Assessment: Medicine, Biology");
+  });
+
+  it("replaces General Greeting once the student asks a real question", () => {
+    expect(shouldUpdateConversationTitle("New Conversation", "hi")).toBe(false);
+    expect(shouldUpdateConversationTitle("New Conversation", "hello there")).toBe(false);
+    expect(
+      shouldUpdateConversationTitle("General Greeting", "What is KNUST CS cut-off?"),
+    ).toBe(true);
+    expect(
+      shouldUpdateConversationTitle("KNUST Computer Science", "What about fees?"),
+    ).toBe(false);
   });
 });
 

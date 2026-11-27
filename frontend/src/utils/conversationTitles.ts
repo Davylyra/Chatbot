@@ -109,24 +109,46 @@ function cleanMessageForTitle(message: string): string {
   return cleaned;
 }
 
+const SMALL_TALK_WORDS = new Set([
+  "hi", "hello", "hey", "hiya", "yo", "sup", "good", "morning", "afternoon",
+  "evening", "day", "thanks", "thank", "you", "u", "ok", "okay", "cool",
+  "nice", "great", "bye", "goodbye", "how", "are", "doing", "there",
+  "cerkyl", "bot", "bro", "charley", "chale", "sir", "madam", "please",
+  "whats", "up", "what's", "fine", "alright",
+]);
+
+export function isSmallTalkMessage(message?: string): boolean {
+  const words = String(message || "").toLowerCase().match(/[a-z']+/g) || [];
+  return words.length === 0 || (words.length <= 6 && words.every((w) => SMALL_TALK_WORDS.has(w)));
+}
+
 export function shouldUpdateConversationTitle(
   currentTitle: string,
-  firstUserMessage?: string,
+  userMessage?: string,
 ): boolean {
-  if (!firstUserMessage || firstUserMessage.trim().length <= 5) {
+  if (!userMessage || userMessage.trim().length <= 5 || isSmallTalkMessage(userMessage)) {
     return false;
   }
 
-  const alwaysUpdateTitles = [
-    "New Chat",
-    "Morning Consultation",
-    "Afternoon Consultation",
-    "Evening Consultation",
-    "Untitled",
-    "Conversation",
-  ];
+  const normalized = String(currentTitle || "").trim().toLowerCase();
+  const alwaysUpdateTitles = new Set([
+    "",
+    "new chat",
+    "new conversation",
+    "morning consultation",
+    "afternoon consultation",
+    "evening consultation",
+    "university consultation",
+    "untitled",
+    "untitled conversation",
+    "conversation",
+    "general greeting",
+    "greeting",
+    "friendly greeting",
+    "casual greeting",
+  ]);
 
-  if (alwaysUpdateTitles.includes(currentTitle)) {
+  if (alwaysUpdateTitles.has(normalized) || /\bgreeting\b/.test(normalized)) {
     return true;
   }
 

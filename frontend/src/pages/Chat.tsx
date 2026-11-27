@@ -8,8 +8,8 @@ const Chat: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 768);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 768);
 
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth >= 768);
