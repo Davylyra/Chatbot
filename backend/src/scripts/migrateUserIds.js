@@ -10,7 +10,6 @@
 
 import dotenv from "dotenv";
 import { ObjectId } from "mongodb";
-import { connectDB, getCollection } from "../config/db.js";
 
 dotenv.config();
 
@@ -31,6 +30,7 @@ export function parseCliArgs(argv = process.argv.slice(2)) {
 }
 
 export async function runMigration({ apply = false } = {}) {
+  const { connectDB, getCollection } = await import("../config/db.js");
   await connectDB();
 
   const summary = [];

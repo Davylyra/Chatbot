@@ -38,6 +38,10 @@ jobs:
       - run: npm install
       - run: node --check server.js
       - run: npm test
+        env:
+          MONGODB_URI: mongodb://localhost:27017/test
+          DB_NAME: test_db
+          JWT_SECRET: ci-test-secret
 
   ai-rag-service:
     name: AI Service (Compile, Unit Tests & Eval)

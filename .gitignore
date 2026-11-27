@@ -1,2 +1,5 @@
 # Local planning notes, not tracked
 docs/
+
+# macOS Finder metadata
+.DS_Store
